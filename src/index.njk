@@ -18,19 +18,19 @@ pageScript: |
 </div>
 
 <div class="filter-bar">
-  <span class="filter-label">Year</span>
+  <span class="filter-label">School Year</span>
   <button class="filter-btn active" onclick="filterYear('all',this)">All</button>
-  {% for year in years %}
-  <button class="filter-btn" onclick="filterYear('{{ year }}',this)">{{ year }}</button>
+  {% for sy in years %}
+  <button class="filter-btn" onclick="filterYear('{{ sy }}',this)">{{ sy }}</button>
   {% endfor %}
 </div>
 
 <main class="main" id="meetingList">
-  {% for year in years %}
-  <section class="year-section" data-year="{{ year }}">
-    <div class="year-label">{{ year }}</div>
+  {% for sy in years %}
+  <section class="year-section" data-year="{{ sy }}">
+    <div class="year-label">{{ sy }} School Year</div>
     <div class="meetings-grid">
-      {% for m in meetings | where("year", year) %}
+      {% for m in meetings | where("school_year", sy) %}
       <a href="{{ ('/meetings/' + m.slug + '/') | url }}" class="meeting-card">
         <div class="card-top">
           <div class="card-date">{{ m.display_date }}</div>
@@ -69,3 +69,4 @@ pageScript: |
   </section>
   {% endfor %}
 </main>
+
