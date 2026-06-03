@@ -21,11 +21,11 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "May Regular Meeting",
-    "topics": [],
-    "doc_count": 0,
+    "topics": ["Superintendent Search Update", "Top Scholars Recognition", "FY2026 Budget Status", "MaineCare Billing Overview", "Audit Remediation Plan", "Elementary Reconfiguration / Kaler Closure", "Educational Equity Policy (First Read)", "Bus Safety Concerns"],
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": false
   },
   {
     "slug": "2026-04-29",
