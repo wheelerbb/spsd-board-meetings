@@ -241,3 +241,33 @@ footer {
   margin-top:2rem; border-top:3px solid var(--gold);
 }
 footer a { color:var(--gold-light); text-decoration:none; }
+
+/* MOBILE */
+@media (max-width: 640px) {
+  /* Nav: keep only the SP mark, hide text labels and index nav-links */
+  nav { padding:0 1rem; height:52px; }
+  .nav-logo-mark { width:30px; height:30px; font-size:.8rem; }
+  .nav-logo-text, .nav-logo-sub { display:none; }
+  .nav-links { display:none; }
+  .breadcrumb { font-size:.72rem; gap:.3rem; }
+
+  /* Index */
+  .hero { padding:2.5rem 1.25rem 2rem; }
+  .hero h1 { font-size:clamp(1.8rem,8vw,2.8rem); }
+  .filter-bar { padding:.65rem 1.25rem; gap:.4rem; }
+  .filter-btn { padding:.3rem .7rem; }
+  .main { padding:1.75rem 1.25rem; }
+  .year-label { font-size:1.25rem; }
+  .meetings-grid { grid-template-columns:1fr; }
+
+  /* Meeting detail */
+  .meeting-header { padding:1.75rem 1.25rem 1.5rem; }
+  .meeting-meta { gap:1rem; }
+  .page-body { padding:1.25rem 1.25rem; gap:1.25rem; }
+  .section-head { font-size:1.05rem; }
+  .summary-intro { padding:1rem 1.1rem; }
+  .tl-item { grid-template-columns:56px 1fr; gap:.6rem; }
+
+  /* Footer */
+  footer { padding:1.5rem 1.25rem; }
+}
