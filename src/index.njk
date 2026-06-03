@@ -1,0 +1,71 @@
+---
+layout: layouts/base.njk
+title: "School Board Meetings — South Portland School Department"
+pageScript: |
+  function filterYear(year, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.year-section').forEach(sec => {
+      sec.style.display = (year === 'all' || sec.dataset.year === year) ? '' : 'none';
+    });
+  }
+---
+
+<div class="hero">
+  <div class="hero-eyebrow">South Portland School Department</div>
+  <h1>School Board<br>Meeting Archive</h1>
+  <p>Agendas, supporting materials, video recordings, and searchable transcripts for every School Board meeting.</p>
+</div>
+
+<div class="filter-bar">
+  <span class="filter-label">Year</span>
+  <button class="filter-btn active" onclick="filterYear('all',this)">All</button>
+  {% for year in years %}
+  <button class="filter-btn" onclick="filterYear('{{ year }}',this)">{{ year }}</button>
+  {% endfor %}
+</div>
+
+<main class="main" id="meetingList">
+  {% for year in years %}
+  <section class="year-section" data-year="{{ year }}">
+    <div class="year-label">{{ year }}</div>
+    <div class="meetings-grid">
+      {% for m in meetings | where("year", year) %}
+      <a href="{{ ('/meetings/' + m.slug + '/') | url }}" class="meeting-card">
+        <div class="card-top">
+          <div class="card-date">{{ m.display_date }}</div>
+          <div class="card-badge">{{ m.type }}</div>
+        </div>
+        <div class="card-body">
+          <div class="card-title">{{ m.title }}</div>
+          <div class="card-topics">{{ m.topics | join(" · ") }}</div>
+        </div>
+        <div class="card-footer">
+          <span class="card-icon-link">
+            <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>
+            {{ m.doc_count }} docs
+          </span>
+          {% if m.has_video %}
+          <span class="card-icon-link">
+            <svg class="icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1 4l4 2-4 2V6z"/></svg>
+            Video
+          </span>
+          {% endif %}
+          {% if m.has_transcript %}
+          <span class="card-icon-link">
+            <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+            Transcript
+          </span>
+          {% else %}
+          <span class="card-icon-link" style="opacity:.35; cursor:default;">
+            <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+            No transcript
+          </span>
+          {% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</main>

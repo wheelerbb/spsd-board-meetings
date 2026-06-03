@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ '/assets/style.css' | url }}">
+</head>
+<body>
+
+<nav>
+  <a href="{{ '/' | url }}" class="nav-logo">
+    <div class="nav-logo-mark">SP</div>
+    <div>
+      <div class="nav-logo-text">South Portland Schools</div>
+      <div class="nav-logo-sub">School Board Meetings</div>
+    </div>
+  </a>
+  {% if breadcrumb %}
+  <div class="breadcrumb">
+    <a href="{{ '/' | url }}">All Meetings</a>
+    <span>›</span>
+    <span>{{ breadcrumb }}</span>
+  </div>
+  {% else %}
+  <div class="nav-links">
+    <a href="https://www.spsdme.org" class="nav-link">District Site</a>
+    <a href="https://www.spsdme.org/page/school-board" class="nav-link">Board Page</a>
+    <a href="https://videoplayer.telvue.com/player/NzN-Z2CpIDNbXMWB16nIzGKjRlHJozGq/playlists/4004/media/1025314" class="nav-link">All Videos</a>
+  </div>
+  {% endif %}
+</nav>
+
+{{ content | safe }}
+
+<footer>
+  <p>South Portland School Department · 120 Wescott Road, South Portland, ME 04106 · <a href="https://www.spsdme.org">spsdme.org</a></p>
+  <p style="margin-top:.5rem; font-size:.7rem; opacity:.5;">Prototype navigation site. Linked materials hosted by SPSD, TelVue, and Google Drive.</p>
+</footer>
+
+{% if pageScript %}
+<script>{{ pageScript | safe }}</script>
+{% endif %}
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "spsd-board-meetings",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "eleventy",
+    "start": "eleventy --serve"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wheelerbb/spsd-board-meetings.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/wheelerbb/spsd-board-meetings/issues"
+  },
+  "homepage": "https://github.com/wheelerbb/spsd-board-meetings#readme",
+  "devDependencies": {
+    "@11ty/eleventy": "^3.1.6"
+  }
+}

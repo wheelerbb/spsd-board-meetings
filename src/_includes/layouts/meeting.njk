@@ -1,0 +1,99 @@
+---
+layout: layouts/base.njk
+---
+
+<div class="meeting-header">
+  <div class="header-inner">
+    <div class="meeting-tag">{{ meeting_tag }}</div>
+    <h1>{{ heading | safe }}</h1>
+    <div class="meeting-meta">
+      <div class="meta-item">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>
+        {{ day_of_week }}, {{ display_date }}
+      </div>
+      <div class="meta-item">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+        {{ time }} · {{ location }}
+      </div>
+      {% if duration %}
+      <div class="meta-item">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+        Duration: {{ duration }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="page-body">
+
+  <div>
+    {{ content | safe }}
+  </div>
+
+  <aside class="sidebar">
+
+    {% if has_video %}
+    <div class="sidebar-card">
+      <div class="sidebar-card-head">📹 Video Recording</div>
+      <div class="sidebar-card-body">
+        <p style="font-size:.8rem; color:var(--muted); margin-bottom:.8rem; line-height:1.5;">
+          Full meeting recording hosted on TelVue Connect.{% if has_transcript and not stub %} Use timestamp links above to jump to specific agenda items.{% endif %}
+        </p>
+        <a href="{{ video_url }}" target="_blank" class="video-btn">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1.5 4l4 2-4 2V6z"/></svg>
+          {{ "Watch Full Recording" if not stub else "Watch Recording" }}
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if docs and docs.length %}
+    <div class="sidebar-card">
+      <div class="sidebar-card-head">📄 Meeting Materials</div>
+      <div class="sidebar-card-body">
+        {% for doc in docs %}
+        <a href="{{ doc.url }}" target="_blank" class="doc-link">
+          <div class="doc-icon {{ doc.type }}">{{ doc.type | docIcon }}</div>
+          <div>
+            <div class="doc-name">{{ doc.label }}</div>
+            {% if doc.size %}<div class="doc-size">{{ doc.size }}</div>{% endif %}
+          </div>
+        </a>
+        {% endfor %}
+        <p style="font-size:.7rem; color:var(--muted); margin-top:.9rem; line-height:1.5;">All materials at the <a href="https://www.spsdme.org/page/school-board" target="_blank" style="color:var(--gold);">SPSD Board page</a>.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if has_transcript and drive_url %}
+    <div class="sidebar-card">
+      <div class="sidebar-card-head">🗂 Transcript (Google Drive)</div>
+      <div class="sidebar-card-body">
+        <p style="font-size:.8rem; color:var(--muted); margin-bottom:.8rem; line-height:1.5;">
+          Full verbatim transcript on Google Drive.{% if not stub %} Timestamps in the summary above link directly to the video player.{% else %} Timestamped highlights will be added to this page.{% endif %}
+        </p>
+        <a href="{{ drive_url }}" target="_blank" class="drive-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11l4-7 4 7M6 11h8l-4-7"/></svg>
+          Open in Google Drive
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    <div style="background:#fff; border:1px solid var(--rule); border-radius:6px; padding:1rem 1.1rem;">
+      <div style="font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:.8rem;">Navigate Meetings</div>
+      {% if prev %}
+      <a href="{{ ('/meetings/' + prev.slug + '/') | url }}" style="display:flex; align-items:center; gap:.5rem; font-size:.82rem; color:var(--navy); text-decoration:none; padding:.5rem 0; border-bottom:1px solid var(--rule);">← {{ prev.label }}</a>
+      {% else %}
+      <span style="display:flex; align-items:center; gap:.5rem; font-size:.82rem; color:var(--muted); padding:.5rem 0; border-bottom:1px solid var(--rule);">← Oldest meeting</span>
+      {% endif %}
+      {% if next %}
+      <a href="{{ ('/meetings/' + next.slug + '/') | url }}" style="display:flex; align-items:center; gap:.5rem; font-size:.82rem; color:var(--navy); text-decoration:none; padding:.5rem 0; justify-content:flex-end;">{{ next.label }} →</a>
+      {% else %}
+      <span style="display:flex; align-items:center; gap:.5rem; font-size:.82rem; color:var(--muted); padding:.5rem 0; justify-content:flex-end;">Next meeting TBD</span>
+      {% endif %}
+    </div>
+
+  </aside>
+</div>
