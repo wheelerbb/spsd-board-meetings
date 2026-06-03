@@ -56,6 +56,11 @@ pageScript: |
             <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
             Transcript
           </span>
+          {% elif not m.stub %}
+          <span class="card-icon-link">
+            <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+            Highlights
+          </span>
           {% else %}
           <span class="card-icon-link" style="opacity:.35; cursor:default;">
             <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
