@@ -30,7 +30,7 @@ pageScript: |
   <section class="year-section" data-year="{{ sy }}">
     <div class="year-label">{{ sy }} School Year</div>
     <div class="meetings-grid">
-      {% for m in meetings | where("school_year", sy) %}
+      {% for m in meetings | where("school_year", sy) | sort(true, false, "date") %}
       <a href="{{ ('/meetings/' + m.slug + '/') | url }}" class="meeting-card">
         <div class="card-top">
           <div class="card-date">{{ m.display_date }}</div>
