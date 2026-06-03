@@ -21,15 +21,10 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "New Student Information System & Enrollment",
-    "topics": [
-      "PowerSchool migration",
-      "Enrollment 2023\u201324 data",
-      "New teacher orientation report",
-      "Consent agenda"
-    ],
-    "doc_count": 4,
+    "topics": [],
+    "doc_count": 0,
     "has_video": true,
-    "has_transcript": true,
+    "has_transcript": false,
     "stub": true
   },
   {
@@ -54,16 +49,11 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "Facilities Master Plan Presentation",
-    "topics": [
-      "Building condition assessments",
-      "Skillin renovation scope",
-      "Climate & ventilation upgrades",
-      "CIP overview"
-    ],
-    "doc_count": 7,
+    "topics": [],
+    "doc_count": 0,
     "has_video": true,
-    "has_transcript": true,
-    "stub": false
+    "has_transcript": false,
+    "stub": true
   },
   {
     "slug": "2023-12-11",
@@ -143,13 +133,8 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "FY2025 Budget Vote",
-    "topics": [
-      "Final budget adoption",
-      "Debt service schedule",
-      "Special ed contract renewals",
-      "Personnel items"
-    ],
-    "doc_count": 5,
+    "topics": [],
+    "doc_count": 0,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -204,13 +189,8 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "Back to School & Equity Report",
-    "topics": [
-      "2024\u201325 enrollment update",
-      "Equity & inclusion annual report",
-      "Hiring update",
-      "Athletics"
-    ],
-    "doc_count": 4,
+    "topics": [],
+    "doc_count": 0,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -237,13 +217,8 @@
     "day_of_week": "Tuesday",
     "type": "Regular",
     "title": "Technology & AI Policy Discussion",
-    "topics": [
-      "Generative AI student use policy",
-      "Device refresh plan",
-      "Network security update",
-      "Consent agenda"
-    ],
-    "doc_count": 6,
+    "topics": [],
+    "doc_count": 0,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -284,15 +259,10 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "Strategic Plan Mid-Year Review",
-    "topics": [
-      "Goal progress report",
-      "SPHS graduation requirements",
-      "Policy 1st readings",
-      "Personnel"
-    ],
-    "doc_count": 5,
+    "topics": [],
+    "doc_count": 0,
     "has_video": true,
-    "has_transcript": true,
+    "has_transcript": false,
     "stub": true
   },
   {
@@ -317,15 +287,10 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "FY2026 Budget Workshop",
-    "topics": [
-      "Preliminary budget presentation",
-      "Capital improvements",
-      "Special education staffing",
-      "Public comment"
-    ],
-    "doc_count": 4,
+    "topics": [],
+    "doc_count": 0,
     "has_video": true,
-    "has_transcript": true,
+    "has_transcript": false,
     "stub": true
   },
   {
@@ -336,16 +301,11 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "Budget Adoption & Superintendent Evaluation",
-    "topics": [
-      "FY2026 budget vote",
-      "Superintendent annual review",
-      "MS curriculum adoption",
-      "Personnel"
-    ],
-    "doc_count": 3,
+    "topics": [],
+    "doc_count": 0,
     "has_video": true,
-    "has_transcript": true,
-    "stub": false
+    "has_transcript": false,
+    "stub": true
   },
   {
     "slug": "2025-06-09",

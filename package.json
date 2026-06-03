@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "eleventy",
+    "build": "rm -rf _site && eleventy",
     "start": "eleventy --serve"
   },
   "repository": {
