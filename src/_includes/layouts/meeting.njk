@@ -27,6 +27,86 @@ layout: layouts/base.njk
 <div class="page-body">
 
   <div class="main-column">
+    
+    {# 1. VOTES & ACTIONS #}
+    {% if votes and votes.length %}
+    <div class="content-block">
+      <div class="section-head">Votes &amp; Actions</div>
+      <table class="vote-table">
+        <thead>
+          <tr>
+            <th>Motion</th>
+            <th>Result</th>
+            <th>Moved / 2nd</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for vote in votes %}
+          <tr>
+            <td>{{ vote.motion }}</td>
+            <td>
+              <div class="vote-result">
+                <span class="vote-chip {{ vote.result | lower }}">{{ vote.result }}</span>
+                <span class="vote-count">{{ vote.count }}</span>
+              </div>
+            </td>
+            <td class="vote-tally">{{ vote.moved_2nd }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {# 2. MEETING SUMMARY #}
+    {% if summary and summary.length %}
+    <div class="content-block">
+      <div class="section-head">Meeting Summary</div>
+      <div class="summary-intro">
+        <ul class="summary-bullets">
+          {% for item in summary %}
+          <li><strong>{{ item.topic }}:</strong> {{ item.text }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% elif stub %}
+    <div class="content-block">
+      <div class="section-head">Meeting Summary</div>
+      <div class="summary-intro">
+        Summary and transcript highlights for this meeting are coming soon. Meeting materials and video recording are available via the sidebar links.
+      </div>
+    </div>
+    {% endif %}
+
+    {# 3. TIMELINE #}
+    {% if timeline and timeline.length %}
+    <div class="content-block">
+      <div class="section-head">Transcript Highlights with Timestamps</div>
+      <p style="font-size:.82rem; color:var(--muted); line-height:1.6; margin-bottom:1.5rem; font-style:italic;">Note: Transcripts are generated from video auto-captions. While highly accurate, they are non-official and do not meet State Archivist record-keeping requirements.</p>
+      <ul class="timeline">
+        {% for item in timeline %}
+        <li class="tl-item">
+          <div class="tl-time">
+            {% if has_video %}
+            <a href="{{ video_url }}#t={{ item.seconds }}s" target="_blank" class="tl-time-btn">
+              <svg viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1.5 4l4 2-4 2V6z"/></svg>
+              {{ item.time }}
+            </a>
+            {% else %}
+            <span class="tl-time-btn" style="background:var(--warm-gray); color:var(--muted); cursor:default;">{{ item.time }}</span>
+            {% endif %}
+          </div>
+          <div class="tl-body">
+            <div class="tl-topic">{{ item.topic }}</div>
+            <div class="tl-desc">{{ item.desc }}</div>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
     {{ content | safe }}
   </div>
 
@@ -50,41 +130,58 @@ layout: layouts/base.njk
     <div class="sidebar-card">
       <div class="sidebar-card-head">📄 Meeting Materials</div>
       <div class="sidebar-card-body">
-        {# Standard Materials Logic #}
-        {% set standardTypes = ['agenda', 'packet', 'min'] %}
-        {% set labels = { agenda: 'Agenda', packet: 'Meeting Packet', min: 'Minutes' } %}
-        
-        {% for type in standardTypes %}
-          {% set existingDoc = null %}
-          {% for d in docs %}
-            {% if d.type == type %}{% set existingDoc = d %}{% endif %}
-          {% endfor %}
-          
-          {% if existingDoc %}
-          <a href="{{ existingDoc.url }}" target="_blank" class="doc-link">
-            <div class="doc-icon {{ existingDoc.type | docClass }}">{{ existingDoc.type | docIcon }}</div>
-            <div>
-              <div class="doc-name">{{ existingDoc.label }}</div>
-              {% if existingDoc.size %}<div class="doc-size">{{ existingDoc.size }}</div>{% endif %}
-            </div>
-          </a>
-          {% else %}
-          <div class="doc-link" style="cursor:default; opacity:.5;">
-            <div class="doc-icon none">{{ type | truncate(3, true, "") | upper }}</div>
-            <div class="doc-name none">{{ labels[type] }} not found</div>
-          </div>
+        {# Identify standard documents by keyword #}
+        {% set agendaDoc = null %}{% set packetDoc = null %}{% set minDoc = null %}
+        {% for d in docs %}
+          {% set labelLower = d.label | lower %}
+          {% if 'agenda' in labelLower and not agendaDoc %}{% set agendaDoc = d %}
+          {% elif 'packet' in labelLower and not packetDoc %}{% set packetDoc = d %}
+          {% elif 'minutes' in labelLower and not minDoc %}{% set minDoc = d %}
           {% endif %}
         {% endfor %}
 
-        {# Additional Materials #}
-        {% for doc in docs %}
-          {% if doc.type not in standardTypes %}
-          <a href="{{ doc.url }}" target="_blank" class="doc-link">
-            <div class="doc-icon {{ doc.type | docClass }}">{{ doc.type | docIcon }}</div>
-            <div>
-              <div class="doc-name">{{ doc.label }}</div>
-              {% if doc.size %}<div class="doc-size">{{ doc.size }}</div>{% endif %}
-            </div>
+        {# 1. Agenda #}
+        {% if agendaDoc %}
+        <a href="{{ agendaDoc.url }}" target="_blank" class="doc-link">
+          <div class="doc-icon {{ agendaDoc.type | docClass }}">{{ agendaDoc.type | docIcon }}</div>
+          <div><div class="doc-name">{{ agendaDoc.label }}</div>{% if agendaDoc.size %}<div class="doc-size">{{ agendaDoc.size }}</div>{% endif %}</div>
+        </a>
+        {% else %}
+        <div class="doc-link" style="cursor:default; opacity:.5;">
+          <div class="doc-icon none">AGD</div><div class="doc-name none">Agenda not found</div>
+        </div>
+        {% endif %}
+
+        {# 2. Packet #}
+        {% if packetDoc %}
+        <a href="{{ packetDoc.url }}" target="_blank" class="doc-link">
+          <div class="doc-icon {{ packetDoc.type | docClass }}">{{ packetDoc.type | docIcon }}</div>
+          <div><div class="doc-name">{{ packetDoc.label }}</div>{% if packetDoc.size %}<div class="doc-size">{{ packetDoc.size }}</div>{% endif %}</div>
+        </a>
+        {% else %}
+        <div class="doc-link" style="cursor:default; opacity:.5;">
+          <div class="doc-icon none">PKT</div><div class="doc-name none">Meeting Packet not found</div>
+        </div>
+        {% endif %}
+
+        {# 3. Minutes #}
+        {% if minDoc %}
+        <a href="{{ minDoc.url }}" target="_blank" class="doc-link">
+          <div class="doc-icon {{ minDoc.type | docClass }}">{{ minDoc.type | docIcon }}</div>
+          <div><div class="doc-name">{{ minDoc.label }}</div>{% if minDoc.size %}<div class="doc-size">{{ minDoc.size }}</div>{% endif %}</div>
+        </a>
+        {% else %}
+        <div class="doc-link" style="cursor:default; opacity:.5;">
+          <div class="doc-icon none">MIN</div><div class="doc-name none">Minutes not found</div>
+        </div>
+        {% endif %}
+
+        {# 4. Additional Materials #}
+        {% for d in docs %}
+          {% if d != agendaDoc and d != packetDoc and d != minDoc %}
+          <a href="{{ d.url }}" target="_blank" class="doc-link">
+            <div class="doc-icon {{ d.type | docClass }}">{{ d.type | docIcon }}</div>
+            <div><div class="doc-name">{{ d.label }}</div>{% if d.size %}<div class="doc-size">{{ d.size }}</div>{% endif %}</div>
           </a>
           {% endif %}
         {% endfor %}
