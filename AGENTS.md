@@ -19,14 +19,8 @@ src/
   assets/style.css  ← single shared stylesheet (passthrough-copied to _site/)
   index.njk         ← archive listing; loops over years/meetings from _data
   meetings/
-    YYYY-MM-DD.njk  ← one file per meeting; front matter drives sidebar
+    YYYY-MM-DD.njk  ← one file per meeting; uses structured front matter
 ```
-
-## Page types
-
-**Index** (`src/index.njk`) — hero, year-filter bar (client-side JS), grid of meeting cards. Loops `years` × `meetings | where("school_year", sy)`.
-
-**Meeting detail** (`src/meetings/YYYY-MM-DD.njk`) — front matter defines everything the layout needs (heading, sidebar docs, prev/next nav, video/transcript URLs). The template body is only the main column content: summary, timeline, votes. Stub pages have placeholder text bodies; full pages have the real HTML.
 
 ## Data model
 
@@ -47,283 +41,96 @@ src/
 | `has_transcript` | bool | True only if a human-edited transcript doc exists in Drive |
 | `stub` | bool | `true` until the meeting is fully processed |
 
-### Custom Eleventy filters (`.eleventy.js`)
+## Meeting front matter (Structured Data)
 
-- `where(array, key, value)` — filters meetings by a field value
-- `docIcon(type)` — maps `agenda`→`AGD`, `min`→`MIN`, `pdf`→`PDF` for sidebar badges
+To keep meeting files maintainable, use structured data in the YAML front matter instead of manual HTML in the body. The layout handles rendering automatically.
 
-## Meeting front matter keys
+### Header & Navigation
+`heading`, `breadcrumb`, `meeting_tag`, `display_date`, `day_of_week`, `time`, `location`, `duration`, `prev`, `next`.
 
-| Key | Used by |
-|---|---|
-| `heading` | `<h1>` in meeting header; supports `<br>` and HTML entities via `\| safe` |
-| `breadcrumb` | base.njk nav right side |
-| `meeting_tag`, `display_date`, `day_of_week`, `time`, `location`, `duration` | meeting header metadata |
-| `has_video`, `video_url` | video sidebar card |
-| `has_transcript`, `drive_url` | Google Drive transcript card |
-| `docs[]` | meeting materials sidebar; each doc: `{ type, label, size, url }` |
-| `prev`, `next` | navigation card; each: `{ slug, label }` or `null` |
-| `stub` | controls copy in meeting.njk and "Highlights" vs "No transcript" on index cards |
+### Media & Attendance
+`has_video`, `video_url`, `board_attendance`.
 
-## Design system
+### Documents
+`docs[]`: each doc: `{ type, label, size, url }`. 
+Standard `type` values: `agenda`, `packet`, `min`, `pdf`, `xlsx`, `pptx`.
 
-CSS custom properties in `assets/style.css`:
+### Structured Content
+```yaml
+# 1. Votes & Actions
+votes:
+  - motion: "Formal motion text"
+    result: "Pass" # or "Fail"
+    count: "Unan." # or "7-0"
+    moved_2nd: "Mover / Seconder"
+
+# 2. Meeting Summary
+summary:
+  - topic: "Topic Label"
+    text: "1-2 sentence description."
+
+# 3. Transcript Highlights
+timeline:
+  - time: "H:MM:SS"
+    seconds: 300 # Total seconds for deep link
+    topic: "Topic Label"
+    desc: "1-2 sentence description."
 ```
---navy: #0d2240   --gold: #c8963e   --gold-light: #f0c87a
---cream: #faf7f2  --warm-gray: #e8e3da  --text: #1a1a2e
---muted: #6b6b7b  --rule: #ddd6c8   --green: #2d7a4f  --green-bg: #edf7f1
-```
-Fonts: Playfair Display (headings) + DM Sans (body), loaded from Google Fonts.
 
 ## Adding a new stub meeting
 
 1. Add an entry to `src/_data/meetings.json` (set `stub: true`, `topics: []`, `doc_count: 0`).
-2. Create `src/meetings/YYYY-MM-DD.njk` with front matter and placeholder body.
+2. Create `src/meetings/YYYY-MM-DD.njk` with front matter (including attendance placeholders) and an empty body.
 3. Update `prev`/`next` slugs on the adjacent meeting files.
-4. Run `npm run build` — the index card generates automatically.
+4. Run `npm run build`.
 
 ---
 
 ## Identifying New Meetings (Automation)
 
-The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetings and agendas directly via their public JSON APIs instead of scraping the HTML.
+The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetings and agendas directly via their public JSON APIs.
 
 ### Endpoints
 
 - **District Calendar (Meetings):**
   `https://thrillshare-cmsv2.services.thrillshare.com/api/v4/o/14619/cms/events?section_ids=249568`
-  Look for items with `"title": "School Board Meeting"` or `"Special Board Meeting"`.
 
 - **Board Agendas/News:**
   `https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249567/articles?filter_ids=482712`
-  This returns articles tagged "School Board". New agendas often appear here with links to Google Drive packets.
 
-- **School Board Webpage (Manual/Scrape):**
-  `https://www.spsdme.org/page/school-board`
-  Agendas are often listed directly in the "Meetings & Agendas" section, which might be updated before a News article is posted.
+- **Documents API:**
+  `https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249570/documents`
 
 ### Automated Workflow
 
-1. **Check for new dates:** Fetch the Events API. Compare `start_at` dates against `src/_data/meetings.json`.
-2. **Add stubs:** For any missing dates, create the `.njk` stub and update the JSON. Use the standard block structure in the stub body and ensure the front matter includes `layout: layouts/meeting.njk` and a `title`:
-
-   ```html
-   ---
-   layout: layouts/meeting.njk
-   title: "Month Day, Year — School Board Meeting — SPSD"
-   heading: "Meeting Title<br>Month Day, Year"
-   breadcrumb: "Mon Day, Year"
-   meeting_tag: "Meeting Type · Month Year"
-   display_date: "Month Day, Year"
-   day_of_week: "Day"
-   time: "6:00 PM"
-   location: "SPHS Lecture Hall"
-   has_video: false
-   has_transcript: false
-   stub: true
-   board_attendance:
-     - { name: "Rosemarie DeAngelis", status: "Present", role: "Board" }
-     - { name: "Tyler Smith", status: "Present", role: "Board" }
-     - { name: "Daniel Feller", status: "Present", role: "Board" }
-     - { name: "Claire Holman", status: "Present", role: "Board" }
-     - { name: "Eleni Richardson", status: "Present", role: "Board" }
-     - { name: "George Risch", status: "Present", role: "Board" }
-     - { name: "Angela Kabisa", status: "Present", role: "Student Rep" }
-     - { name: "Alex Davison", status: "Present", role: "Student Rep" }
-   prev: { slug: "YYYY-MM-DD", label: "Previous Date" }
-   next: { slug: "YYYY-MM-DD", label: "Next Date" }
-   ---
-
-   <div class="content-block">
-     <div class="section-head">Votes &amp; Actions</div>
-     <p style="font-size:.9rem; color:var(--muted); line-height:1.7;">Vote record coming soon.</p>
-   </div>
-
-   <div class="content-block">
-     <div class="section-head">Meeting Summary</div>
-     <div class="summary-intro">
-       Summary and transcript highlights for this meeting are coming soon. Meeting materials and video recording are available via the sidebar links.
-     </div>
-   </div>
-
-   <div class="content-block">
-     <div class="section-head">Transcript Highlights with Timestamps</div>
-     <p style="font-size:.82rem; color:var(--muted); line-height:1.6; margin-bottom:1.5rem; font-style:italic;">Note: Transcripts are generated from video auto-captions. While highly accurate, they are non-official and do not meet State Archivist record-keeping requirements.</p>
-     <p style="font-size:.9rem; color:var(--muted); line-height:1.7;">Timestamped highlights will be added when the transcript is processed.</p>
-   </div>
-   ```
-
-3. **Source Agendas:** Search for Google Drive links matching the meeting date across these sources:
-   - **Articles API:** Check the `content` HTML of recent "School Board" articles.
-   - **Webpage:** Scrape the "Meetings & Agendas" section of the direct URL.
-   - **Documents API:** Check the public documents feed for PDFs with matching dates: `https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249570/documents`
-4. **Update Stubs:** Add any found links to the stub's `docs[]` front matter and update `doc_count` in `src/_data/meetings.json`. 
-
-   Standard `type` values for `docs[]`:
-   - `agenda`: Meeting Agenda (Placeholder shown if missing)
-   - `packet`: Full Meeting Packet (Placeholder shown if missing)
-   - `min`: Meeting Minutes (Placeholder shown if missing)
-   - `pdf`: Other PDF materials
-   - `xlsx`: Excel sheets
-   - `pptx`: PowerPoint presentations
-
-### Sources of Truth
-
-- **Board Attendance:** Use the official [Board Members page](https://www.spsdme.org/page/members-of-the-board) for the roster. For individual meeting attendance (Present/Absent/Remote), use the **Meeting Minutes** PDF.
-- **Meeting Metadata:** Use the [Apptegy Events API](https://thrillshare-cmsv2.services.thrillshare.com/api/v4/o/14619/cms/events?section_ids=249568).
-- **Documents:** Use the [Apptegy Articles API](https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249567/articles?filter_ids=482712) and the direct [School Board page](https://www.spsdme.org/page/school-board).
+1. **Check for new dates:** Fetch the Events API.
+2. **Add stubs:** Use the standard structure in the front matter. Set `stub: true`.
+3. **Source Agendas:** Search for Google Drive links across the Articles API, the direct Board page, and the Documents API.
+4. **Update Stubs:** Add found links to `docs[]` and update `doc_count` in `src/_data/meetings.json`.
 
 ---
 
 ## Processing a meeting (stub → full)
 
-A stub has placeholder body content and `stub: true`. Processing it means sourcing materials from Google Drive, extracting content from the VTT transcript, and replacing the stub with real HTML.
+1. Source the VTT transcript and PDF materials from Google Drive.
+2. Read the VTT; extract summary, timeline highlights, and votes.
+3. Populate the front matter structured data (`summary`, `timeline`, `votes`).
+4. Update `stub: false` and `duration`.
+5. Empty the body of the `.njk` file.
+6. Verify proper nouns against authoritative PDFs.
 
-### Steps
+---
 
-1. Source the VTT transcript and PDF materials from Google Drive (see below)
-2. Read the entire VTT; extract summary, timeline highlights, and votes
-3. Cross-reference proper nouns against the PDF materials (PDFs are authoritative)
-4. Update `src/meetings/YYYY-MM-DD.njk` with full content
-5. Update `src/_data/meetings.json`: topics, doc_count, `stub: false`
+### Sources of Truth
 
-### Google Drive structure
+- **Board Attendance:** Official [Board Members page](https://www.spsdme.org/page/members-of-the-board) and **Meeting Minutes** PDF.
+- **Meeting Metadata:** [Apptegy Events API](https://thrillshare-cmsv2.services.thrillshare.com/api/v4/o/14619/cms/events?section_ids=249568).
+- **Video:** [SPC TV Vimeo channel](https://vimeo.com/spctv). Deep links use `#t=[seconds]s`.
 
-Two separate folder hierarchies, both owned by `web@spsdme.org`:
+---
 
-**Transcripts (VTT files)**
-```
-SchoolBoardMeetingTranscripts/  (id: 1qKRujrhJd1c8BW94A7-QGg9epc4y6n4g)
-  └── {YYYY}/                   (e.g., id: 1FMNBEhd-NCgaGyJkteSB10bNXJHHWrYi for "2026")
-        └── MM.DD.YY.vtt        (e.g., 05.11.26.vtt)
-```
+## Media Conventions
 
-VTT files cannot be read via `read_file_content` (unsupported MIME type). Use `download_file_content` instead, then decode the base64 `content` field:
-
-```bash
-python3 -c "import sys,json,base64; d=json.load(sys.stdin); print(base64.b64decode(d['content']).decode('utf-8'))" \
-  < downloaded.json > meeting.vtt
-```
-
-**Meeting materials (packets, slides)**
-```
-{YYYY.MM Month}/               (e.g., "2026.05 May", id: 1_KF4LHL2Iyq5Sed-XJfJpCx2xfDpTFCV)
-  └── MM.DD.YY/                (e.g., "05.11.26",    id: 1d5WbtRFHwDlr_QYfqfYG3iiA4tSldQrO)
-        ├── Month YYYY Meeting Packet.pdf   (e.g., "May 2026 Meeting Packet.pdf")
-        └── Board Slides M.DD.YY.pdf        (e.g., "Board Slides 5.11.26.pdf")
-```
-
-PDF metadata (including a content snippet) is readable via `get_file_metadata`. Full content via `read_file_content`. The snippet is usually sufficient for name-checking.
-
-Use `search_files` with a date-pattern query (e.g., `"05.11.26"`) when a direct file ID is not provided.
-
-### Source precedence
-
-VTT transcription makes errors on proper nouns. Always cross-check against PDFs.
-
-| Data | Primary source | Fallback |
-|---|---|---|
-| Speaker names, scholar names | Meeting packet / slides PDF | VTT |
-| Vote motions and movers | Meeting packet / slides PDF | VTT |
-| Timestamps | VTT | — |
-| Topics, discussion substance | VTT | Packet agenda |
-
-### What to extract from the VTT
-
-Read the entire VTT before summarizing — typically 4,000–6,000 lines. Extract:
-
-- **Summary** — one bullet per major topic, past tense, third person. Format: `<strong>Topic Label:</strong> 1–2 sentences.` Aim for 5–8 bullets.
-- **Topics** — 5–8 short strings for `meetings.json` `topics[]` (e.g., `"FY2027 Budget"`)
-- **Timeline highlights** — 8–15 key moments with cue start times (HH:MM:SS), topic label, 1–2 sentence description, speaker if identifiable. Each entry gets a "Jump to recording" deep link — convert the cue time to seconds and append `?start=SECONDS` to the media URL (see body template below).
-- **Votes and actions** — each formal motion: what was voted on, result, mover/seconder
-
-### Front matter changes
-
-- `stub: false`
-- `duration: "H hr MM min"` (from VTT first to last cue time)
-- `video_url` — update from the generic playlist URL to the specific media URL (see TelVue section below)
-- `docs:` — replace placeholder entries with real Google Drive links; keep `has_transcript: false` unless a human-edited transcript document exists in Drive
-
-**Doc types** (controls the sidebar badge):
-
-| `type` | Badge | Use for |
-|---|---|---|
-| `agenda` | AGD | Meeting packet / agenda |
-| `min` | MIN | Approved minutes |
-| `pdf` | PDF | Slides, supplemental reports |
-
-Doc entry format: `{ type: agenda, label: "Meeting Packet — May 11, 2026", size: "PDF · 2.6 MB", url: "..." }`
-
-Get file size from `get_file_metadata` → `fileSize` (bytes); convert to KB or MB.
-
-### Body template
-
-```html
-<div class="content-block">
-  <div class="section-head">Meeting Summary</div>
-  <div class="summary-intro">
-    <ul class="summary-bullets">
-      <li><strong>Topic Label:</strong> 1–2 sentence description.</li>
-      <li><strong>Topic Label:</strong> 1–2 sentence description.</li>
-    </ul>
-  </div>
-</div>
-
-<div class="content-block">
-  <div class="section-head">Transcript Highlights with Timestamps</div>
-  <ul class="timeline">
-    <li class="tl-item">
-      <div class="tl-time">
-        <a href="[vimeo_url]#t=[seconds]s" target="_blank" class="tl-time-btn">
-          <svg viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1.5 4l4 2-4 2V6z"/></svg>
-          H:MM:SS
-        </a>
-      </div>
-      <div class="tl-body">
-        <div class="tl-topic">[Topic label]</div>
-        <div class="tl-desc">[1–2 sentence description]</div>
-      </div>
-    </li>
-  </ul>
-</div>
-
-<div class="content-block">
-  <div class="section-head">Votes &amp; Actions</div>
-  <table class="vote-table">
-    <thead>
-      <tr><th>Motion</th><th>Result</th><th>Moved / 2nd</th></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>[Motion description]</td>
-        <td>
-          <div class="vote-result">
-            <span class="vote-chip pass">Pass</span>
-            <span class="vote-count">Unan.</span>
-          </div>
-        </td>
-        <td class="vote-tally">Smith / Feller</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-  Use `vote-chip pass` (green) or `vote-chip fail` (red) on the result chip. For the tally, use `vote-count` (e.g., `Unan.` or `5–2`).
-
-Note: `.tl-link` is currently `display:none` pending confirmation of TelVue's `?start=` parameter support. The markup should still be written — re-enabling is a one-line CSS change.
-
-### Finding the TelVue media URL
-
-The generic playlist URL used on stub pages is:
-```
-https://videoplayer.telvue.com/player/NzN-Z2CpIDNbXMWB16nIzGKjRlHJozGq/playlists/4004
-```
-
-Each recording has a direct media URL for use as `video_url` and in deep links:
-```
-https://videoplayer.telvue.com/player/NzN-Z2CpIDNbXMWB16nIzGKjRlHJozGq/playlists/4004/media/[MEDIA_ID]
-```
-
-To find the media ID: fetch the playlist URL and match the video title by date.
+### Vimeo Deep-Linking
 
 Timestamp deep links use `#t=[SECONDS]s` (e.g. `https://vimeo.com/12345678#t=300s`). Convert VTT cue times: `(H × 3600) + (M × 60) + S`. Verify a link on the live page when processing a new meeting.
