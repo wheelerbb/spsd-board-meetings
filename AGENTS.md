@@ -273,12 +273,16 @@ Get file size from `get_file_metadata` → `fileSize` (bytes); convert to KB or 
   <div class="section-head">Transcript Highlights with Timestamps</div>
   <ul class="timeline">
     <li class="tl-item">
-      <div class="tl-time">H:MM:SS</div>
+      <div class="tl-time">
+        <a href="[vimeo_url]#t=[seconds]s" target="_blank" class="tl-time-btn">
+          <svg viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1.5 4l4 2-4 2V6z"/></svg>
+          H:MM:SS
+        </a>
+      </div>
       <div class="tl-body">
         <div class="tl-topic">[Topic label]</div>
         <div class="tl-desc">[1–2 sentence description]</div>
-        <a href="[vimeo_url]#t=[seconds]s" target="_blank" class="tl-link"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1.5 4l4 2-4 2V6z"/></svg> Jump to recording</a>
-        </div>
+      </div>
     </li>
   </ul>
 </div>

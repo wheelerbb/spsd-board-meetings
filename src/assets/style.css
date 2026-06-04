@@ -176,22 +176,22 @@ nav a.nav-link:hover { color:var(--gold-light); }
 
 /* TIMELINE */
 .timeline { list-style:none; }
-.tl-item { display:grid; grid-template-columns:80px 1fr; gap:1rem; margin-bottom:.3rem; }
+.tl-item { display:grid; grid-template-columns:85px 1fr; gap:1.2rem; margin-bottom:.8rem; }
 .tl-item:last-child { margin-bottom:0; }
-.tl-time {
-  font-size:.75rem; font-weight:500; color:var(--muted);
-  font-variant-numeric:tabular-nums; padding-top:.15rem; text-align:right;
+
+.tl-time-btn {
+  display:flex; align-items:center; justify-content:center; gap:.4rem;
+  background:var(--navy); color:#fff; text-decoration:none;
+  padding:.35rem .6rem; border-radius:4px; font-size:.72rem;
+  font-weight:600; font-variant-numeric:tabular-nums;
+  transition:background .2s; border:none; width:100%;
 }
+.tl-time-btn:hover { background:var(--gold); }
+.tl-time-btn svg { width:10px; height:10px; fill:currentColor; }
+
 .tl-body { background:#fff; border:1px solid var(--rule); border-radius:5px; padding:.9rem 1.1rem; }
 .tl-topic { font-weight:500; font-size:.9rem; margin-bottom:.3rem; color:var(--navy); }
 .tl-desc { font-size:.8rem; color:var(--muted); line-height:1.55; }
-.tl-link {
-  display:flex; align-items:center; gap:.3rem;
-  margin-top:.5rem; font-size:.75rem; color:var(--gold);
-  text-decoration:none; font-weight:500;
-}
-.tl-link:hover { text-decoration:underline; }
-.tl-link svg { width:12px; height:12px; }
 
 /* VOTE TABLE */
 .vote-table { width:100%; border-collapse:collapse; font-size:.85rem; table-layout: auto; }
@@ -250,14 +250,14 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .doc-size { font-size:.7rem; color:var(--muted); margin-top:.15rem; }
 
 /* ATTENDANCE */
-.att-section-label { font-size:.65rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:1rem 0 .4rem; border-bottom:1px solid var(--rule); padding-bottom:.2rem; }
+.att-section-label { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; color:#000; font-weight:700; margin:1.2rem 0 .5rem; border-bottom:1px solid var(--rule); padding-bottom:.25rem; }
 .att-section-label:first-child { margin-top:0; }
-.att-grid { display:flex; flex-direction:column; gap:.3rem; }
-.att-item { display:flex; align-items:center; gap:.5rem; font-size:.78rem; color:var(--text); }
-.att-status { width:14px; height:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
-.att-status.present::before { content:'✓'; color:var(--green); font-weight:900; font-size:.9rem; }
-.att-status.absent::before  { content:'✕'; color:#c0392b; font-weight:900; font-size:.8rem; }
-.att-status.remote::before  { content:'🌐'; font-size:.7rem; }
+.att-grid { display:flex; flex-direction:column; gap:.4rem; }
+.att-item { display:flex; align-items:center; gap:.6rem; font-size:.8rem; color:var(--text); }
+.att-status { width:16px; height:16px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:2px; }
+.att-status.present::before { content:'✓'; color:var(--green); font-weight:900; font-size:1rem; }
+.att-status.absent::before  { content:'✕'; color:#c0392b; font-weight:900; font-size:.9rem; }
+.att-status.remote::before  { content:'🌐'; font-size:.75rem; }
 .video-btn {
   display:flex; align-items:center; justify-content:center; gap:.7rem;
   background:var(--navy); color:#fff; text-decoration:none;
@@ -311,11 +311,15 @@ footer a { color:var(--gold-light); text-decoration:none; }
   /* Meeting detail */
   .meeting-header { padding:1.75rem 1.25rem 1.5rem; }
   .meeting-meta { gap:1rem; }
-  .page-body { padding:1.25rem 1.25rem; gap:1.25rem; }
+  .page-body { padding:1.25rem 1.25rem; gap:1.25rem; display: flex; flex-direction: column; }
+  .main-column { order: 1; }
+  .sidebar { order: 2; }
+  .disclosure-block { order: 3; }
+  
   .section-head { font-size:1.05rem; }
   .summary-intro { padding:1rem 1.1rem; }
   .vote-table td, .vote-table th { padding: .6rem .5rem; }
-  .tl-item { grid-template-columns:56px 1fr; gap:.6rem; }
+  .tl-item { grid-template-columns:75px 1fr; gap:.8rem; }
 
   /* Footer */
   footer { padding:1.5rem 1.25rem; }
