@@ -84,6 +84,28 @@ Fonts: Playfair Display (headings) + DM Sans (body), loaded from Google Fonts.
 
 ---
 
+## Identifying New Meetings (Automation)
+
+The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetings and agendas directly via their public JSON APIs instead of scraping the HTML.
+
+### Endpoints
+
+- **District Calendar (Meetings):**
+  `https://thrillshare-cmsv2.services.thrillshare.com/api/v4/o/14619/cms/events?section_ids=249568`
+  Look for items with `"title": "School Board Meeting"` or `"Special Board Meeting"`.
+
+- **Board Agendas/News:**
+  `https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249567/articles?filter_ids=482712`
+  This returns articles tagged "School Board". New agendas often appear here with links to Google Drive packets.
+
+### Automated Workflow
+
+1. **Check for new dates:** Fetch the Events API. Compare `start_at` dates against `src/_data/meetings.json`.
+2. **Add stubs:** For any missing dates, create the `.njk` stub and update the JSON.
+3. **Check for agendas:** Fetch the Articles API. Match article titles/dates to existing stubs. Extract Google Drive links from the `content` HTML and add to the stub's `docs[]` front matter.
+
+---
+
 ## Processing a meeting (stub → full)
 
 A stub has placeholder body content and `stub: true`. Processing it means sourcing materials from Google Drive, extracting content from the VTT transcript, and replacing the stub with real HTML.

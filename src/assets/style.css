@@ -142,6 +142,7 @@ nav a.nav-link:hover { color:var(--gold-light); }
 
 /* PAGE BODY (detail) */
 .page-body { max-width:900px; margin:0 auto; padding:2.5rem; display:grid; grid-template-columns:1fr 280px; gap:2.5rem; }
+.page-body > * { min-width: 0; }
 @media(max-width:720px) { .page-body { grid-template-columns:1fr; } }
 
 .section-head {
@@ -154,6 +155,7 @@ nav a.nav-link:hover { color:var(--gold-light); }
   font-size:.95rem; line-height:1.75; color:var(--text);
   background:#fff; border-radius:6px; border:1px solid var(--rule);
   padding:1.4rem 1.6rem; margin-bottom:1.5rem;
+  overflow-wrap: break-word;
 }
 .summary-bullets { list-style:none; padding:0; margin:0; }
 .summary-bullets li {
@@ -197,8 +199,9 @@ nav a.nav-link:hover { color:var(--gold-light); }
   text-align:left; padding:.6rem .8rem; font-size:.7rem;
   letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
   border-bottom:2px solid var(--rule);
+  overflow-wrap: break-word;
 }
-.vote-table td { padding:.65rem .8rem; border-bottom:1px solid var(--rule); }
+.vote-table td { padding:.65rem .8rem; border-bottom:1px solid var(--rule); overflow-wrap: break-word; }
 .vote-table tr:last-child td { border-bottom:none; }
 .vote-pass { color:var(--green); font-weight:600; font-size:.8rem; }
 .vote-fail { color:#b0392b; font-weight:600; font-size:.8rem; }
@@ -269,6 +272,7 @@ footer a { color:var(--gold-light); text-decoration:none; }
   .nav-logo-text, .nav-logo-sub { display:none; }
   .nav-links { display:none; }
   .breadcrumb { font-size:.72rem; gap:.3rem; }
+  .breadcrumb span { display: none; } /* Hide separator and current page title on mobile */
 
   /* Index */
   .hero { padding:2.5rem 1.25rem 2rem; }

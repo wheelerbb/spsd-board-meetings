@@ -1,5 +1,47 @@
 [
   {
+    "slug": "2026-08-17",
+    "school_year": "2026-2027",
+    "date": "2026-08-17",
+    "display_date": "August 17, 2026",
+    "day_of_week": "Monday",
+    "type": "Regular",
+    "title": "August Regular Meeting",
+    "topics": [],
+    "doc_count": 0,
+    "has_video": false,
+    "has_transcript": false,
+    "stub": true
+  },
+  {
+    "slug": "2026-07-13",
+    "school_year": "2026-2027",
+    "date": "2026-07-13",
+    "display_date": "July 13, 2026",
+    "day_of_week": "Monday",
+    "type": "Regular",
+    "title": "July Regular Meeting",
+    "topics": [],
+    "doc_count": 0,
+    "has_video": false,
+    "has_transcript": false,
+    "stub": true
+  },
+  {
+    "slug": "2026-06-04",
+    "school_year": "2025-2026",
+    "date": "2026-06-04",
+    "display_date": "June 4, 2026",
+    "day_of_week": "Thursday",
+    "type": "Special",
+    "title": "Special Board Meeting",
+    "topics": [],
+    "doc_count": 0,
+    "has_video": false,
+    "has_transcript": false,
+    "stub": true
+  },
+  {
     "slug": "2026-05-27",
     "school_year": "2025-2026",
     "date": "2026-05-27",
