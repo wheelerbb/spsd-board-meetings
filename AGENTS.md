@@ -122,14 +122,14 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
    has_transcript: false
    stub: true
    board_attendance:
-     - { name: "Rosemarie DeAngelis", status: "Present" }
-     - { name: "Tyler Smith", status: "Present" }
-     - { name: "Daniel Feller", status: "Present" }
-     - { name: "Claire Holman", status: "Present" }
-     - { name: "Eleni Richardson", status: "Present" }
-     - { name: "George Risch", status: "Present" }
-     - { name: "Angela Kabisa", status: "Present" }
-     - { name: "Alex Davison", status: "Present" }
+     - { name: "Rosemarie DeAngelis", status: "Present", role: "Board" }
+     - { name: "Tyler Smith", status: "Present", role: "Board" }
+     - { name: "Daniel Feller", status: "Present", role: "Board" }
+     - { name: "Claire Holman", status: "Present", role: "Board" }
+     - { name: "Eleni Richardson", status: "Present", role: "Board" }
+     - { name: "George Risch", status: "Present", role: "Board" }
+     - { name: "Angela Kabisa", status: "Present", role: "Student Rep" }
+     - { name: "Alex Davison", status: "Present", role: "Student Rep" }
    prev: { slug: "YYYY-MM-DD", label: "Previous Date" }
    next: { slug: "YYYY-MM-DD", label: "Next Date" }
    ---
@@ -277,8 +277,8 @@ Get file size from `get_file_metadata` → `fileSize` (bytes); convert to KB or 
       <div class="tl-body">
         <div class="tl-topic">[Topic label]</div>
         <div class="tl-desc">[1–2 sentence description]</div>
-        <a href="[video_media_url]?start=[seconds]" target="_blank" class="tl-link"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1.5 4l4 2-4 2V6z"/></svg> Jump to recording</a>
-      </div>
+        <a href="[vimeo_url]#t=[seconds]s" target="_blank" class="tl-link"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1.5 4l4 2-4 2V6z"/></svg> Jump to recording</a>
+        </div>
     </li>
   </ul>
 </div>
@@ -322,4 +322,4 @@ https://videoplayer.telvue.com/player/NzN-Z2CpIDNbXMWB16nIzGKjRlHJozGq/playlists
 
 To find the media ID: fetch the playlist URL and match the video title by date.
 
-Timestamp deep links use `?start=SECONDS` (integer). Convert VTT cue times: `(H × 3600) + (M × 60) + S`. The `?start=` parameter is unconfirmed in TelVue's public docs — verify a link on the live page when processing a new meeting.
+Timestamp deep links use `#t=[SECONDS]s` (e.g. `https://vimeo.com/12345678#t=300s`). Convert VTT cue times: `(H × 3600) + (M × 60) + S`. Verify a link on the live page when processing a new meeting.

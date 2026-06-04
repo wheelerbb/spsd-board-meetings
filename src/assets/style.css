@@ -186,7 +186,7 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .tl-topic { font-weight:500; font-size:.9rem; margin-bottom:.3rem; color:var(--navy); }
 .tl-desc { font-size:.8rem; color:var(--muted); line-height:1.55; }
 .tl-link {
-  display:none; align-items:center; gap:.3rem;
+  display:flex; align-items:center; gap:.3rem;
   margin-top:.5rem; font-size:.75rem; color:var(--gold);
   text-decoration:none; font-weight:500;
 }
@@ -250,12 +250,14 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .doc-size { font-size:.7rem; color:var(--muted); margin-top:.15rem; }
 
 /* ATTENDANCE */
-.att-grid { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; }
-.att-item { display:flex; align-items:center; gap:.4rem; font-size:.78rem; color:var(--text); }
-.att-status { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-.att-status.present { background:var(--green); }
-.att-status.absent { background:#c0392b; }
-.att-status.remote { background:var(--gold); }
+.att-section-label { font-size:.65rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:1rem 0 .4rem; border-bottom:1px solid var(--rule); padding-bottom:.2rem; }
+.att-section-label:first-child { margin-top:0; }
+.att-grid { display:flex; flex-direction:column; gap:.3rem; }
+.att-item { display:flex; align-items:center; gap:.5rem; font-size:.78rem; color:var(--text); }
+.att-status { width:14px; height:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.att-status.present::before { content:'✓'; color:var(--green); font-weight:900; font-size:.9rem; }
+.att-status.absent::before  { content:'✕'; color:#c0392b; font-weight:900; font-size:.8rem; }
+.att-status.remote::before  { content:'🌐'; font-size:.7rem; }
 .video-btn {
   display:flex; align-items:center; justify-content:center; gap:.7rem;
   background:var(--navy); color:#fff; text-decoration:none;
