@@ -6,10 +6,16 @@ module.exports = function (eleventyConfig) {
     array.filter((item) => item[key] == value)
   );
 
-  // Map doc type to the short icon label shown in the sidebar
+  // Map doc type to the short icon label shown in the sidebar (file type only)
   eleventyConfig.addFilter("docIcon", (type) => {
-    const labels = { agenda: "AGD", min: "MIN", pdf: "PDF" };
+    const labels = { agenda: "PDF", min: "PDF" };
     return labels[type] || type.toUpperCase();
+  });
+
+  // Normalize doc type to a CSS class representing the file format
+  eleventyConfig.addFilter("docClass", (type) => {
+    if (["agenda", "min"].includes(type)) return "pdf";
+    return type.toLowerCase();
   });
 
   return {

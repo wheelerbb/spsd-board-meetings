@@ -54,7 +54,7 @@ layout: layouts/base.njk
       <div class="sidebar-card-body">
         {% for doc in docs %}
         <a href="{{ doc.url }}" target="_blank" class="doc-link">
-          <div class="doc-icon {{ doc.type }}">{{ doc.type | docIcon }}</div>
+          <div class="doc-icon {{ doc.type | docClass }}">{{ doc.type | docIcon }}</div>
           <div>
             <div class="doc-name">{{ doc.label }}</div>
             {% if doc.size %}<div class="doc-size">{{ doc.size }}</div>{% endif %}

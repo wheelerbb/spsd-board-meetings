@@ -229,8 +229,8 @@ nav a.nav-link:hover { color:var(--gold-light); }
   font-size:.55rem; font-weight:700; color:var(--muted); letter-spacing:.03em;
 }
 .doc-icon.pdf  { background:#fdecea; color:#c0392b; }
-.doc-icon.agenda { background:#e8f0fe; color:#1a56db; }
-.doc-icon.min  { background:#e8fdf1; color:#1b7a4b; }
+.doc-icon.xlsx { background:#e8fdf1; color:#1b7a4b; }
+.doc-icon.pptx { background:#fff5e6; color:#d35400; }
 .doc-name { font-size:.82rem; font-weight:500; line-height:1.3; }
 .doc-size { font-size:.7rem; color:var(--muted); margin-top:.15rem; }
 .video-btn {
