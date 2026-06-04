@@ -121,6 +121,14 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
    has_video: false
    has_transcript: false
    stub: true
+   board_attendance:
+     - { name: "Rosemarie DeAngelis", status: "Present" }
+     - { name: "Elizabethe Richardson", status: "Present" }
+     - { name: "Molly Holman", status: "Present" }
+     - { name: "Jennifer Smith", status: "Present" }
+     - { name: "Caitlin Faller", status: "Present" }
+     - { name: "Matthew Perkins", status: "Present" }
+     - { name: "Jeffrey MacDonald", status: "Present" }
    prev: { slug: "YYYY-MM-DD", label: "Previous Date" }
    next: { slug: "YYYY-MM-DD", label: "Next Date" }
    ---
@@ -147,7 +155,15 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
    - **Articles API:** Check the `content` HTML of recent "School Board" articles.
    - **Webpage:** Scrape the "Meetings & Agendas" section of the direct URL.
    - **Documents API:** Check the public documents feed for PDFs with matching dates: `https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249570/documents`
-4. **Update Stubs:** Add any found links to the stub's `docs[]` front matter and update `doc_count` in `src/_data/meetings.json`.
+4. **Update Stubs:** Add any found links to the stub's `docs[]` front matter and update `doc_count` in `src/_data/meetings.json`. 
+
+   Standard `type` values for `docs[]`:
+   - `agenda`: Meeting Agenda (Placeholder shown if missing)
+   - `packet`: Full Meeting Packet (Placeholder shown if missing)
+   - `min`: Meeting Minutes (Placeholder shown if missing)
+   - `pdf`: Other PDF materials
+   - `xlsx`: Excel sheets
+   - `pptx`: PowerPoint presentations
 
 ---
 
