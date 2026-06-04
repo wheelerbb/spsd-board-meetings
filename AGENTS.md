@@ -101,9 +101,26 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
 ### Automated Workflow
 
 1. **Check for new dates:** Fetch the Events API. Compare `start_at` dates against `src/_data/meetings.json`.
-2. **Add stubs:** For any missing dates, create the `.njk` stub and update the JSON. Use the standard block structure in the stub body:
+2. **Add stubs:** For any missing dates, create the `.njk` stub and update the JSON. Use the standard block structure in the stub body and ensure the front matter includes `layout: layouts/meeting.njk` and a `title`:
 
    ```html
+   ---
+   layout: layouts/meeting.njk
+   title: "Month Day, Year — School Board Meeting — SPSD"
+   heading: "Meeting Title<br>Month Day, Year"
+   breadcrumb: "Mon Day, Year"
+   meeting_tag: "Meeting Type · Month Year"
+   display_date: "Month Day, Year"
+   day_of_week: "Day"
+   time: "6:00 PM"
+   location: "SPHS Lecture Hall"
+   has_video: false
+   has_transcript: false
+   stub: true
+   prev: { slug: "YYYY-MM-DD", label: "Previous Date" }
+   next: { slug: "YYYY-MM-DD", label: "Next Date" }
+   ---
+
    <div class="content-block">
      <div class="section-head">Votes &amp; Actions</div>
      <p style="font-size:.9rem; color:var(--muted); line-height:1.7;">Vote record coming soon.</p>
