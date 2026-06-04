@@ -194,18 +194,30 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .tl-link svg { width:12px; height:12px; }
 
 /* VOTE TABLE */
-.vote-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+.vote-table { width:100%; border-collapse:collapse; font-size:.85rem; table-layout: fixed; }
 .vote-table th {
   text-align:left; padding:.6rem .8rem; font-size:.7rem;
   letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
   border-bottom:2px solid var(--rule);
-  overflow-wrap: break-word;
 }
-.vote-table td { padding:.65rem .8rem; border-bottom:1px solid var(--rule); overflow-wrap: break-word; }
+.vote-table th:nth-child(1) { width: 60%; }
+.vote-table th:nth-child(2) { width: 15%; }
+.vote-table th:nth-child(3) { width: 25%; }
+
+.vote-table td { padding:.8rem .8rem; border-bottom:1px solid var(--rule); vertical-align: top; overflow-wrap: break-word; }
 .vote-table tr:last-child td { border-bottom:none; }
-.vote-pass { color:var(--green); font-weight:600; font-size:.8rem; }
-.vote-fail { color:#b0392b; font-weight:600; font-size:.8rem; }
-.vote-tally { font-variant-numeric:tabular-nums; }
+
+.vote-result { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.vote-chip {
+  font-size: .62rem; font-weight: 700; text-transform: uppercase;
+  padding: 2px 5px; border-radius: 3px; letter-spacing: .04em;
+  display: inline-block; line-height: 1;
+}
+.vote-chip.pass { background: var(--green-bg); color: var(--green); border: 1px solid #a8d5bc; }
+.vote-chip.fail { background: #fdecea; color: #c0392b; border: 1px solid #ebccd1; }
+.vote-count { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.2; }
+
+.vote-tally { font-variant-numeric:tabular-nums; font-size: .8rem; line-height: 1.4; }
 
 /* SIDEBAR */
 .sidebar-card { background:#fff; border:1px solid var(--rule); border-radius:6px; overflow:hidden; margin-bottom:1.5rem; }

@@ -263,20 +263,24 @@ Get file size from `get_file_metadata` → `fileSize` (bytes); convert to KB or 
   <div class="section-head">Votes &amp; Actions</div>
   <table class="vote-table">
     <thead>
-      <tr><th>Motion</th><th>Result</th><th>Moved / Seconded</th></tr>
+      <tr><th>Motion</th><th>Result</th><th>Moved / 2nd</th></tr>
     </thead>
     <tbody>
       <tr>
         <td>[Motion description]</td>
-        <td><span class="vote-pass">Unanimous</span></td>
+        <td>
+          <div class="vote-result">
+            <span class="vote-chip pass">Pass</span>
+            <span class="vote-count">Unan.</span>
+          </div>
+        </td>
         <td class="vote-tally">Smith / Feller</td>
       </tr>
     </tbody>
   </table>
 </div>
-```
 
-Use `vote-pass` (green) or `vote-fail` (red) on the result span. For roll-call votes, put the tally in the result cell (e.g., `5–2`).
+  Use `vote-chip pass` (green) or `vote-chip fail` (red) on the result chip. For the tally, use `vote-count` (e.g., `Unan.` or `5–2`).
 
 Note: `.tl-link` is currently `display:none` pending confirmation of TelVue's `?start=` parameter support. The markup should still be written — re-enabling is a one-line CSS change.
 
