@@ -194,27 +194,28 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .tl-link svg { width:12px; height:12px; }
 
 /* VOTE TABLE */
-.vote-table { width:100%; border-collapse:collapse; font-size:.85rem; table-layout: fixed; }
+.vote-table { width:100%; border-collapse:collapse; font-size:.85rem; table-layout: auto; }
 .vote-table th {
   text-align:left; padding:.6rem .8rem; font-size:.7rem;
   letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
   border-bottom:2px solid var(--rule);
 }
-.vote-table th:nth-child(1) { width: 60%; }
-.vote-table th:nth-child(2) { width: 15%; }
-.vote-table th:nth-child(3) { width: 25%; }
+.vote-table th:nth-child(1) { width: 100%; }
+.vote-table th:nth-child(2),
+.vote-table th:nth-child(3) { white-space: nowrap; padding-right: 1.5rem; }
+.vote-table th:last-child { padding-right: .8rem; }
 
 .vote-table td { padding:.8rem .8rem; border-bottom:1px solid var(--rule); vertical-align: top; overflow-wrap: break-word; }
 .vote-table tr:last-child td { border-bottom:none; }
 
 .vote-result { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .vote-chip {
-  font-size: .62rem; font-weight: 700; text-transform: uppercase;
-  padding: 2px 5px; border-radius: 3px; letter-spacing: .04em;
-  display: inline-block; line-height: 1;
+  font-size: .62rem; font-weight: 800; text-transform: uppercase;
+  padding: 3px 6px; border-radius: 3px; letter-spacing: .06em;
+  display: inline-block; line-height: 1; color: #fff;
 }
-.vote-chip.pass { background: var(--green-bg); color: var(--green); border: 1px solid #a8d5bc; }
-.vote-chip.fail { background: #fdecea; color: #c0392b; border: 1px solid #ebccd1; }
+.vote-chip.pass { background: var(--green); }
+.vote-chip.fail { background: #c0392b; }
 .vote-count { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.2; }
 
 .vote-tally { font-variant-numeric:tabular-nums; font-size: .8rem; line-height: 1.4; }
@@ -301,6 +302,7 @@ footer a { color:var(--gold-light); text-decoration:none; }
   .page-body { padding:1.25rem 1.25rem; gap:1.25rem; }
   .section-head { font-size:1.05rem; }
   .summary-intro { padding:1rem 1.1rem; }
+  .vote-table td, .vote-table th { padding: .6rem .5rem; }
   .tl-item { grid-template-columns:56px 1fr; gap:.6rem; }
 
   /* Footer */
