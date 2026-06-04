@@ -101,7 +101,27 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
 ### Automated Workflow
 
 1. **Check for new dates:** Fetch the Events API. Compare `start_at` dates against `src/_data/meetings.json`.
-2. **Add stubs:** For any missing dates, create the `.njk` stub and update the JSON.
+2. **Add stubs:** For any missing dates, create the `.njk` stub and update the JSON. Use the standard block structure in the stub body:
+
+   ```html
+   <div class="content-block">
+     <div class="section-head">Votes &amp; Actions</div>
+     <p style="font-size:.9rem; color:var(--muted); line-height:1.7;">Vote record coming soon.</p>
+   </div>
+
+   <div class="content-block">
+     <div class="section-head">Meeting Summary</div>
+     <div class="summary-intro">
+       Summary and transcript highlights for this meeting are coming soon. Meeting materials and video recording are available via the sidebar links.
+     </div>
+   </div>
+
+   <div class="content-block">
+     <div class="section-head">Transcript Highlights with Timestamps</div>
+     <p style="font-size:.9rem; color:var(--muted); line-height:1.7;">Timestamped highlights will be added when the transcript is processed.</p>
+   </div>
+   ```
+
 3. **Check for agendas:** Fetch the Articles API. Match article titles/dates to existing stubs. Extract Google Drive links from the `content` HTML and add to the stub's `docs[]` front matter.
 
 ---
