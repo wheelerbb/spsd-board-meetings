@@ -123,12 +123,13 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
    stub: true
    board_attendance:
      - { name: "Rosemarie DeAngelis", status: "Present" }
-     - { name: "Elizabethe Richardson", status: "Present" }
-     - { name: "Molly Holman", status: "Present" }
-     - { name: "Jennifer Smith", status: "Present" }
-     - { name: "Caitlin Faller", status: "Present" }
-     - { name: "Matthew Perkins", status: "Present" }
-     - { name: "Jeffrey MacDonald", status: "Present" }
+     - { name: "Tyler Smith", status: "Present" }
+     - { name: "Daniel Feller", status: "Present" }
+     - { name: "Claire Holman", status: "Present" }
+     - { name: "Eleni Richardson", status: "Present" }
+     - { name: "George Risch", status: "Present" }
+     - { name: "Angela Kabisa", status: "Present" }
+     - { name: "Alex Davison", status: "Present" }
    prev: { slug: "YYYY-MM-DD", label: "Previous Date" }
    next: { slug: "YYYY-MM-DD", label: "Next Date" }
    ---
@@ -147,6 +148,7 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
 
    <div class="content-block">
      <div class="section-head">Transcript Highlights with Timestamps</div>
+     <p style="font-size:.82rem; color:var(--muted); line-height:1.6; margin-bottom:1.5rem; font-style:italic;">Note: Transcripts are generated from video auto-captions. While highly accurate, they are non-official and do not meet State Archivist record-keeping requirements.</p>
      <p style="font-size:.9rem; color:var(--muted); line-height:1.7;">Timestamped highlights will be added when the transcript is processed.</p>
    </div>
    ```
@@ -164,6 +166,12 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
    - `pdf`: Other PDF materials
    - `xlsx`: Excel sheets
    - `pptx`: PowerPoint presentations
+
+### Sources of Truth
+
+- **Board Attendance:** Use the official [Board Members page](https://www.spsdme.org/page/members-of-the-board) for the roster. For individual meeting attendance (Present/Absent/Remote), use the **Meeting Minutes** PDF.
+- **Meeting Metadata:** Use the [Apptegy Events API](https://thrillshare-cmsv2.services.thrillshare.com/api/v4/o/14619/cms/events?section_ids=249568).
+- **Documents:** Use the [Apptegy Articles API](https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249567/articles?filter_ids=482712) and the direct [School Board page](https://www.spsdme.org/page/school-board).
 
 ---
 
