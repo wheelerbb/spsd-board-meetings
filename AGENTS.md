@@ -98,6 +98,10 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
   `https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249567/articles?filter_ids=482712`
   This returns articles tagged "School Board". New agendas often appear here with links to Google Drive packets.
 
+- **School Board Webpage (Manual/Scrape):**
+  `https://www.spsdme.org/page/school-board`
+  Agendas are often listed directly in the "Meetings & Agendas" section, which might be updated before a News article is posted.
+
 ### Automated Workflow
 
 1. **Check for new dates:** Fetch the Events API. Compare `start_at` dates against `src/_data/meetings.json`.
@@ -139,7 +143,11 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
    </div>
    ```
 
-3. **Check for agendas:** Fetch the Articles API. Match article titles/dates to existing stubs. Extract Google Drive links from the `content` HTML and add to the stub's `docs[]` front matter.
+3. **Source Agendas:** Search for Google Drive links matching the meeting date across these sources:
+   - **Articles API:** Check the `content` HTML of recent "School Board" articles.
+   - **Webpage:** Scrape the "Meetings & Agendas" section of the direct URL.
+   - **Documents API:** Check the public documents feed for PDFs with matching dates: `https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249570/documents`
+4. **Update Stubs:** Add any found links to the stub's `docs[]` front matter and update `doc_count` in `src/_data/meetings.json`.
 
 ---
 
