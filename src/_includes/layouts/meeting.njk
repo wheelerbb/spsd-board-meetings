@@ -21,6 +21,21 @@ layout: layouts/base.njk
       </div>
       {% endif %}
     </div>
+
+    {# HEADER NAVIGATION #}
+    <div style="display:flex; justify-content:space-between; margin-top:1.5rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,.1);">
+      {% if prev %}
+      <a href="{{ ('/meetings/' + prev.slug + '/') | url }}" style="color:var(--gold-light); text-decoration:none; font-size:.85rem; font-weight:500;">← {{ prev.label }}</a>
+      {% else %}
+      <span style="color:rgba(255,255,255,.3); font-size:.85rem;">← Oldest meeting</span>
+      {% endif %}
+      
+      {% if next %}
+      <a href="{{ ('/meetings/' + next.slug + '/') | url }}" style="color:var(--gold-light); text-decoration:none; font-size:.85rem; font-weight:500;">{{ next.label }} →</a>
+      {% else %}
+      <span style="color:rgba(255,255,255,.3); font-size:.85rem;">Next meeting TBD →</span>
+      {% endif %}
+    </div>
   </div>
 </div>
 
@@ -112,21 +127,7 @@ layout: layouts/base.njk
 
   <aside class="sidebar">
 
-    {% if has_video %}
-    <div class="sidebar-card">
-      <div class="sidebar-card-head">📹 Video Recording</div>
-      <div class="sidebar-card-body">
-        <p style="font-size:.8rem; color:var(--muted); margin-bottom:.8rem; line-height:1.5;">
-          Video recordings provided by <a href="https://vimeo.com/spctv" target="_blank" style="color:var(--gold);">SPC TV</a>. Use the play buttons in the highlights section to jump to specific agenda items.
-        </p>
-        <a href="{{ video_url }}" target="_blank" class="video-btn">
-          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1.5 4l4 2-4 2V6z"/></svg>
-          Watch on Vimeo
-        </a>
-      </div>
-    </div>
-    {% endif %}
-
+    {# 1. MEETING MATERIALS #}
     <div class="sidebar-card">
       <div class="sidebar-card-head">📄 Meeting Materials</div>
       <div class="sidebar-card-body">
@@ -140,19 +141,15 @@ layout: layouts/base.njk
           {% endif %}
         {% endfor %}
 
-        {# 1. Agenda #}
+        {# Agenda (only if found) #}
         {% if agendaDoc %}
         <a href="{{ agendaDoc.url }}" target="_blank" class="doc-link">
           <div class="doc-icon {{ agendaDoc.type | docClass }}">{{ agendaDoc.type | docIcon }}</div>
           <div><div class="doc-name">{{ agendaDoc.label }}</div>{% if agendaDoc.size %}<div class="doc-size">{{ agendaDoc.size }}</div>{% endif %}</div>
         </a>
-        {% else %}
-        <div class="doc-link" style="cursor:default; opacity:.5;">
-          <div class="doc-icon none">AGD</div><div class="doc-name none">Agenda not found</div>
-        </div>
         {% endif %}
 
-        {# 2. Packet #}
+        {# Meeting Packet (with placeholder) #}
         {% if packetDoc %}
         <a href="{{ packetDoc.url }}" target="_blank" class="doc-link">
           <div class="doc-icon {{ packetDoc.type | docClass }}">{{ packetDoc.type | docIcon }}</div>
@@ -164,7 +161,7 @@ layout: layouts/base.njk
         </div>
         {% endif %}
 
-        {# 3. Minutes #}
+        {# Minutes (with placeholder) #}
         {% if minDoc %}
         <a href="{{ minDoc.url }}" target="_blank" class="doc-link">
           <div class="doc-icon {{ minDoc.type | docClass }}">{{ minDoc.type | docIcon }}</div>
@@ -176,7 +173,7 @@ layout: layouts/base.njk
         </div>
         {% endif %}
 
-        {# 4. Additional Materials #}
+        {# Additional Materials #}
         {% for d in docs %}
           {% if d != agendaDoc and d != packetDoc and d != minDoc %}
           <a href="{{ d.url }}" target="_blank" class="doc-link">
@@ -190,12 +187,13 @@ layout: layouts/base.njk
       </div>
     </div>
 
+    {# 2. MEETING ATTENDANCE #}
     {% if board_attendance %}
     <div class="sidebar-card">
       <div class="sidebar-card-head">👥 Meeting Attendance</div>
       <div class="sidebar-card-body">
         
-        <div class="att-section-label">Board</div>
+        <div class="att-section-label">BOARD</div>
         <div class="att-grid">
           {% for member in board_attendance %}
             {% if member.role == 'Board' or not member.role %}
@@ -211,7 +209,7 @@ layout: layouts/base.njk
         {% for member in board_attendance %}{% if member.role == 'Student Rep' %}{% set hasStudentReps = true %}{% endif %}{% endfor %}
         
         {% if hasStudentReps %}
-        <div class="att-section-label">Student Reps</div>
+        <div class="att-section-label" style="margin-top:1.2rem;">STUDENT REPS</div>
         <div class="att-grid">
           {% for member in board_attendance %}
             {% if member.role == 'Student Rep' %}
@@ -224,6 +222,22 @@ layout: layouts/base.njk
         </div>
         {% endif %}
 
+      </div>
+    </div>
+    {% endif %}
+
+    {# 3. VIDEO RECORDING #}
+    {% if has_video %}
+    <div class="sidebar-card">
+      <div class="sidebar-card-head">📹 Video Recording</div>
+      <div class="sidebar-card-body">
+        <p style="font-size:.8rem; color:var(--muted); margin-bottom:.8rem; line-height:1.5;">
+          Video recordings provided by <a href="https://vimeo.com/spctv" target="_blank" style="color:var(--gold);">SPC TV</a>. Use the play buttons in the highlights section to jump to specific agenda items.
+        </p>
+        <a href="{{ video_url }}" target="_blank" class="video-btn">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1.5 4l4 2-4 2V6z"/></svg>
+          Watch on Vimeo
+        </a>
       </div>
     </div>
     {% endif %}
@@ -242,20 +256,6 @@ layout: layouts/base.njk
       </div>
     </div>
     {% endif %}
-
-    <div style="background:#fff; border:1px solid var(--rule); border-radius:6px; padding:1rem 1.1rem;">
-      <div style="font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:.8rem;">Navigate Meetings</div>
-      {% if prev %}
-      <a href="{{ ('/meetings/' + prev.slug + '/') | url }}" style="display:flex; align-items:center; gap:.5rem; font-size:.82rem; color:var(--navy); text-decoration:none; padding:.5rem 0; border-bottom:1px solid var(--rule);">← {{ prev.label }}</a>
-      {% else %}
-      <span style="display:flex; align-items:center; gap:.5rem; font-size:.82rem; color:var(--muted); padding:.5rem 0; border-bottom:1px solid var(--rule);">← Oldest meeting</span>
-      {% endif %}
-      {% if next %}
-      <a href="{{ ('/meetings/' + next.slug + '/') | url }}" style="display:flex; align-items:center; gap:.5rem; font-size:.82rem; color:var(--navy); text-decoration:none; padding:.5rem 0; justify-content:flex-end;">{{ next.label }} →</a>
-      {% else %}
-      <span style="display:flex; align-items:center; gap:.5rem; font-size:.82rem; color:var(--muted); padding:.5rem 0; justify-content:flex-end;">Next meeting TBD</span>
-      {% endif %}
-    </div>
 
   </aside>
 
