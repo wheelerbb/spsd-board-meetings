@@ -106,7 +106,16 @@ nav a.nav-link:hover { color:var(--gold-light); }
 }
 .card-body { padding:1.2rem 1.4rem; flex:1; }
 .card-title { font-family:'Playfair Display',serif; font-size:1.05rem; font-weight:600; color:var(--navy); margin-bottom:.5rem; line-height:1.35; }
-.card-topics { font-size:.8rem; color:var(--muted); line-height:1.6; }
+.card-topics { display:flex; flex-wrap:wrap; gap:6px; margin-top:.7rem; }
+.topic-chip {
+  background:rgba(200,150,62,.1); color:var(--gold); border:1px solid rgba(200,150,62,.3);
+  font-size:.65rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+  padding:3px 6px; border-radius:3px; white-space:nowrap;
+  z-index:2; position:relative; transition:all .2s;
+  cursor: pointer;
+}
+.topic-chip:hover { background:var(--gold); color:#fff; }
+.topic-chip.active { background:var(--gold); color:#fff; border-color:var(--gold); }
 .card-footer { padding:.85rem 1.4rem; border-top:1px solid var(--rule); display:flex; gap:1.2rem; }
 .card-icon-link {
   display:flex; align-items:center; gap:.35rem;

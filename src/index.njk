@@ -2,13 +2,61 @@
 layout: layouts/base.njk
 title: "School Board Meetings — South Portland School Department"
 pageScript: |
+  let currentYear = 'all';
+  let currentTopic = 'all';
+
   function filterYear(year, btn) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    currentYear = year;
+    applyFilters();
+  }
+
+  function filterTopic(topic, btn) {
+    document.querySelectorAll('.topic-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTopic = topic;
+    applyFilters();
+  }
+
+  function applyFilters() {
+    let visibleCount = 0;
+    
+    // Filter individual cards
+    document.querySelectorAll('.meeting-card').forEach(card => {
+      const cardYear = card.dataset.year;
+      const cardTopics = (card.dataset.topics || "").split(",");
+      
+      const matchYear = (currentYear === 'all' || cardYear === currentYear);
+      const matchTopic = (currentTopic === 'all' || cardTopics.includes(currentTopic));
+      
+      if (matchYear && matchTopic) {
+        card.style.display = '';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    // Hide empty year sections
     document.querySelectorAll('.year-section').forEach(sec => {
-      sec.style.display = (year === 'all' || sec.dataset.year === year) ? '' : 'none';
+      const hasVisibleCards = Array.from(sec.querySelectorAll('.meeting-card')).some(c => c.style.display !== 'none');
+      sec.style.display = hasVisibleCards ? '' : 'none';
     });
   }
+
+  // Prevent card click when clicking a topic chip inside it
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('topic-chip')) {
+      e.preventDefault();
+      e.stopPropagation();
+      const topic = e.target.dataset.topic;
+      
+      // Find the corresponding filter button and click it
+      const filterBtn = Array.from(document.querySelectorAll('.topic-filter-btn')).find(b => b.dataset.topic === topic);
+      if (filterBtn) filterBtn.click();
+    }
+  });
 ---
 
 <div class="hero">
@@ -22,11 +70,33 @@ pageScript: |
 
 <div class="filter-bar">
   <span class="filter-label">School Year</span>
-  <button class="filter-btn active" onclick="filterYear('all',this)">All</button>
+  <button class="filter-btn year-btn active" onclick="filterYear('all',this)">All</button>
   {% for sy in years %}
-  <button class="filter-btn" onclick="filterYear('{{ sy }}',this)">{{ sy }}</button>
+  <button class="filter-btn year-btn" onclick="filterYear('{{ sy }}',this)">{{ sy }}</button>
   {% endfor %}
 </div>
+
+{# Extract unique topics across all meetings #}
+{% set all_topics = [] %}
+{% for m in meetings %}
+  {% if m.topics %}
+    {% for topic in m.topics %}
+      {% if topic not in all_topics %}
+        {% set _ = all_topics.push(topic) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endfor %}
+
+{% if all_topics.length > 0 %}
+<div class="filter-bar" style="border-top: none; padding-top: 0;">
+  <span class="filter-label">Filter by Topic</span>
+  <button class="filter-btn topic-filter-btn active" data-topic="all" onclick="filterTopic('all',this)">All Topics</button>
+  {% for topic in all_topics | sort %}
+  <button class="filter-btn topic-filter-btn" data-topic="{{ topic }}" onclick="filterTopic('{{ topic }}',this)">{{ topic }}</button>
+  {% endfor %}
+</div>
+{% endif %}
 
 <main class="main" id="meetingList">
   {% for sy in years %}
@@ -34,14 +104,20 @@ pageScript: |
     <div class="year-label">{{ sy }} School Year</div>
     <div class="meetings-grid">
       {% for m in meetings | where("school_year", sy) | sort(true, false, "date") %}
-      <a href="{{ ('/meetings/' + m.slug + '/') | url }}" class="meeting-card">
+      <a href="{{ ('/meetings/' + m.slug + '/') | url }}" class="meeting-card" data-year="{{ sy }}" data-topics="{{ m.topics | join(',') if m.topics else '' }}">
         <div class="card-top">
           <div class="card-date">{{ m.display_date }}</div>
           <div class="card-badge" data-type="{{ m.type }}">{{ m.type }}</div>
         </div>
         <div class="card-body">
           <div class="card-title">{{ m.title }}</div>
-          <div class="card-topics">{{ m.topics | join(" · ") }}</div>
+          {% if m.topics and m.topics.length > 0 %}
+          <div class="card-topics">
+            {% for topic in m.topics %}
+            <span class="topic-chip" data-topic="{{ topic }}">{{ topic }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
         </div>
         <div class="card-footer">
           <span class="card-icon-link">
