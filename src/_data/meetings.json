@@ -71,7 +71,7 @@
       "Policy"
     ],
     "doc_count": 2,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": false
   },
@@ -161,7 +161,7 @@
       "Policy"
     ],
     "doc_count": 3,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -195,7 +195,7 @@
       "Policy"
     ],
     "doc_count": 3,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -209,7 +209,7 @@
     "title": "Board Workshop \u2014 Non-Biased Training for Hiring",
     "topics": [],
     "doc_count": 2,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -229,7 +229,7 @@
       "Equity"
     ],
     "doc_count": 3,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -249,7 +249,7 @@
       "Equity"
     ],
     "doc_count": 3,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -283,7 +283,7 @@
       "Policy"
     ],
     "doc_count": 4,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -303,7 +303,7 @@
       "Equity"
     ],
     "doc_count": 3,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -317,7 +317,7 @@
     "title": "Special Meeting",
     "topics": [],
     "doc_count": 2,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -331,7 +331,7 @@
     "title": "February Regular Meeting",
     "topics": [],
     "doc_count": 3,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -345,7 +345,7 @@
     "title": "Emergency Board Meeting",
     "topics": [],
     "doc_count": 2,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -359,7 +359,7 @@
     "title": "Board Workshop \u2014 FOAA",
     "topics": [],
     "doc_count": 2,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -373,7 +373,7 @@
     "title": "January Regular Meeting",
     "topics": [],
     "doc_count": 3,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -387,7 +387,7 @@
     "title": "Board Workshop \u2014 Robert's Rules of Order",
     "topics": [],
     "doc_count": 2,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -401,7 +401,7 @@
     "title": "Board Workshop and Special Meeting",
     "topics": [],
     "doc_count": 2,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -421,7 +421,7 @@
       "Transportation"
     ],
     "doc_count": 3,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -437,7 +437,7 @@
       "Superintendent Search Presentations",
       "Firm Selection (Zeal Education Group)"
     ],
-    "doc_count": 3,
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
     "stub": false
@@ -456,7 +456,7 @@
       "Adult Ed Top Performer",
       "Bruce Cribby Remembrance"
     ],
-    "doc_count": 4,
+    "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
     "stub": false
@@ -471,7 +471,7 @@
     "title": "Special Meeting",
     "topics": [],
     "doc_count": 2,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -485,7 +485,7 @@
     "title": "Board Workshop",
     "topics": [],
     "doc_count": 2,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -498,7 +498,7 @@
     "type": "Regular",
     "title": "November Regular Meeting",
     "topics": [],
-    "doc_count": 4,
+    "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -512,7 +512,7 @@
     "type": "Regular",
     "title": "October Regular Meeting",
     "topics": [],
-    "doc_count": 4,
+    "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -527,7 +527,7 @@
     "title": "Board Workshop",
     "topics": [],
     "doc_count": 2,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -540,7 +540,7 @@
     "type": "Regular",
     "title": "September Regular Meeting",
     "topics": [],
-    "doc_count": 4,
+    "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -555,7 +555,7 @@
     "title": "Board Workshop",
     "topics": [],
     "doc_count": 1,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -568,7 +568,7 @@
     "type": "Regular",
     "title": "Opening of School Year",
     "topics": [],
-    "doc_count": 4,
+    "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -583,7 +583,7 @@
     "title": "Board Workshop",
     "topics": [],
     "doc_count": 1,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -597,7 +597,7 @@
     "title": "July Regular Meeting",
     "topics": [],
     "doc_count": 1,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -611,7 +611,7 @@
     "title": "Board Workshop",
     "topics": [],
     "doc_count": 1,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -625,7 +625,7 @@
     "title": "Special Meeting",
     "topics": [],
     "doc_count": 1,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -638,7 +638,7 @@
     "type": "Special",
     "title": "Special Meeting",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -652,7 +652,7 @@
     "type": "Regular",
     "title": "June Regular Meeting",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -666,7 +666,7 @@
     "type": "Special",
     "title": "Special Meeting",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -680,7 +680,7 @@
     "type": "Special",
     "title": "Special Meeting",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -694,7 +694,7 @@
     "type": "Regular",
     "title": "Budget Adoption & Superintendent Evaluation",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -708,7 +708,7 @@
     "type": "Special",
     "title": "Special Meeting",
     "topics": [],
-    "doc_count": 1,
+    "doc_count": 0,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -722,7 +722,7 @@
     "type": "Regular",
     "title": "FY2026 Budget Workshop",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -736,7 +736,7 @@
     "type": "Special",
     "title": "Special Meeting",
     "topics": [],
-    "doc_count": 1,
+    "doc_count": 0,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -750,7 +750,7 @@
     "type": "Workshop",
     "title": "Budget Workshop III and Special Meeting",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -765,7 +765,7 @@
     "title": "Special Meeting",
     "topics": [],
     "doc_count": 1,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -778,7 +778,7 @@
     "type": "Workshop",
     "title": "Budget Workshop II and Special Meeting",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 0,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -793,7 +793,7 @@
     "title": "Budget Workshop I",
     "topics": [],
     "doc_count": 0,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -806,7 +806,7 @@
     "type": "Regular",
     "title": "March Regular Meeting",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -820,7 +820,7 @@
     "type": "Regular",
     "title": "Strategic Plan Mid-Year Review",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -835,7 +835,7 @@
     "title": "Board Workshop / Retreat",
     "topics": [],
     "doc_count": 0,
-    "has_video": true,
+    "has_video": false,
     "has_transcript": false,
     "stub": true
   },
@@ -848,7 +848,7 @@
     "type": "Workshop",
     "title": "State of the Schools",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -862,7 +862,7 @@
     "type": "Regular",
     "title": "January Regular Meeting",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -876,7 +876,7 @@
     "type": "Special",
     "title": "Special Meeting",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -890,7 +890,7 @@
     "type": "Regular",
     "title": "December Regular Meeting",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -904,7 +904,7 @@
     "type": "Inauguration",
     "title": "School Board Inauguration",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -918,7 +918,7 @@
     "type": "Regular",
     "title": "Technology & AI Policy Discussion",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -932,7 +932,7 @@
     "type": "Regular",
     "title": "October Regular Meeting",
     "topics": [],
-    "doc_count": 3,
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -946,7 +946,7 @@
     "type": "Regular",
     "title": "Back to School & Equity Report",
     "topics": [],
-    "doc_count": 3,
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -960,7 +960,7 @@
     "type": "Regular",
     "title": "Opening of School Year",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -974,7 +974,7 @@
     "type": "Regular",
     "title": "July Regular Meeting",
     "topics": [],
-    "doc_count": 3,
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -988,7 +988,7 @@
     "type": "Regular",
     "title": "June Regular Meeting",
     "topics": [],
-    "doc_count": 3,
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1002,7 +1002,7 @@
     "type": "Workshop",
     "title": "Board Workshop and Special Meeting",
     "topics": [],
-    "doc_count": 3,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1016,7 +1016,7 @@
     "type": "Regular",
     "title": "FY2025 Budget Vote",
     "topics": [],
-    "doc_count": 3,
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1030,7 +1030,7 @@
     "type": "Regular",
     "title": "April Regular Meeting",
     "topics": [],
-    "doc_count": 3,
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1044,7 +1044,7 @@
     "type": "Workshop",
     "title": "Budget Workshop III",
     "topics": [],
-    "doc_count": 4,
+    "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1058,7 +1058,7 @@
     "type": "Workshop",
     "title": "Budget Workshop II",
     "topics": [],
-    "doc_count": 3,
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1072,7 +1072,7 @@
     "type": "Workshop",
     "title": "Budget Workshop I",
     "topics": [],
-    "doc_count": 2,
+    "doc_count": 1,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1086,7 +1086,7 @@
     "type": "Regular",
     "title": "March Regular Meeting",
     "topics": [],
-    "doc_count": 4,
+    "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1100,7 +1100,7 @@
     "type": "Regular",
     "title": "February Regular Meeting",
     "topics": [],
-    "doc_count": 3,
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1114,7 +1114,7 @@
     "type": "Workshop",
     "title": "State of the Schools",
     "topics": [],
-    "doc_count": 3,
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1128,7 +1128,7 @@
     "type": "Regular",
     "title": "January Regular Meeting",
     "topics": [],
-    "doc_count": 4,
+    "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1142,7 +1142,7 @@
     "type": "Regular",
     "title": "December Regular Meeting",
     "topics": [],
-    "doc_count": 4,
+    "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1156,7 +1156,7 @@
     "type": "Inauguration",
     "title": "School Board Inauguration",
     "topics": [],
-    "doc_count": 3,
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1170,7 +1170,7 @@
     "type": "Regular",
     "title": "Facilities Master Plan Presentation",
     "topics": [],
-    "doc_count": 4,
+    "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1184,7 +1184,7 @@
     "type": "Regular",
     "title": "October Regular Meeting",
     "topics": [],
-    "doc_count": 4,
+    "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1198,7 +1198,7 @@
     "type": "Regular",
     "title": "New Student Information System & Enrollment",
     "topics": [],
-    "doc_count": 3,
+    "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
     "stub": true
@@ -1212,7 +1212,7 @@
     "type": "Regular",
     "title": "Opening of School Year",
     "topics": [],
-    "doc_count": 64,
+    "doc_count": 63,
     "has_video": true,
     "has_transcript": false,
     "stub": true
