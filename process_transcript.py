@@ -38,11 +38,19 @@ def process_transcript(vtt_path):
     with open(vtt_path, 'r') as f:
         transcript = f.read()
 
+    # Load standardized topics library
+    topics_path = 'src/_data/topics.json'
+    allowed_tags = []
+    if os.path.exists(topics_path):
+        with open(topics_path, 'r') as f:
+            allowed_tags = json.load(f)
+
     prompt = f"""
     Analyze the following school board meeting transcript. Extract the formal votes, a high-level meeting summary, a chronological timeline of key events, and a list of standardized topic tags.
     
     Guidelines:
-    - Tags: Provide 3-5 standardized, recurring high-level topic tags (e.g., 'FY2026 Budget', 'Superintendent Search', 'Policy', 'Facilities', 'Personnel', 'Contracts', 'Equity'). Be consistent with these broad categories.
+    - Tags: Select 3-5 tags from the following standardized list that best represent this meeting: {allowed_tags}. 
+      DO NOT invent new tags. Use these exact strings.
     - Votes: Extract the exact motion, result, tally (use 'Unan.' for unanimous), and the movers (LastName / LastName).
     - Summary: Provide 5-8 bullet points of the most significant topics discussed or decided.
     - Timeline: Extract 10-15 key moments with their exact starting timestamps in H:MM:SS format and the total seconds.
