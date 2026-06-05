@@ -78,7 +78,7 @@ title: "Data Status — School Board Meeting Archive"
           <td>
             {% set found = false %}
             {% for d in m.data.docs %}
-              {% if 'minutes' in d.label | lower or 'summary' in d.label | lower %}
+              {% if 'minutes' in d.label | lower %}
                 <a href="{{ d.url }}" target="_blank" class="status-link" title="{{ d.label }}">{{ d.label }}</a>
                 {% set found = true %}
               {% endif %}
@@ -88,7 +88,7 @@ title: "Data Status — School Board Meeting Archive"
           
           <td>
             {% if m.data.has_video %}
-              <a href="{{ m.data.video_url }}" target="_blank" class="status-link">Vimeo/TelVue</a>
+              <a href="{{ m.data.video_url }}" target="_blank" class="status-link">Vimeo</a>
             {% else %}
               <span class="status-pill none">None</span>
             {% endif %}
@@ -108,7 +108,7 @@ title: "Data Status — School Board Meeting Archive"
             {% set misc_count = 0 %}
             {% for d in m.data.docs %}
               {% set label = d.label | lower %}
-              {% if 'agenda' not in label and 'packet' not in label and 'minutes' not in label and 'summary' not in label %}
+              {% if 'agenda' not in label and 'packet' not in label and 'minutes' not in label %}
                 <li><a href="{{ d.url }}" target="_blank" class="status-link" title="{{ d.label }}">{{ d.label }}</a></li>
                 {% set misc_count = misc_count + 1 %}
               {% endif %}
@@ -122,7 +122,10 @@ title: "Data Status — School Board Meeting Archive"
             {% if m.data.stub %}
               <span class="status-pill stub">Stub</span>
             {% else %}
-              <span class="status-pill done" title="Extracted summary/timeline">Full Report</span>
+              <div class="status-pill done" title="Extracted summary/timeline">Full Report</div>
+              {% if m.data.processed_date %}
+                <div style="font-size: 0.6rem; color: var(--muted); margin-top: 2px;">{{ m.data.processed_date }}</div>
+              {% endif %}
             {% endif %}
           </td>
         </tr>

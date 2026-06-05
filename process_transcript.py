@@ -105,13 +105,22 @@ def update_meeting_file(njk_path, report_data):
 
     # We need to inject the YAML data into the front matter
     import yaml
+    from datetime import date
     
     match = re.match(r'^(---\s*\n.*?\n---\s*\n)(.*)', content, re.DOTALL)
     if not match: return
     
     fm_raw = match.group(1)
     fm_raw = fm_raw.replace('stub: true', 'stub: false')
+    fm_raw = fm_raw.replace('has_transcript: false', 'has_transcript: true')
     
+    # Add processed_date
+    today = date.today().isoformat()
+    if 'processed_date:' not in fm_raw:
+        fm_raw = fm_raw.replace('\n---', f'\nprocessed_date: "{today}"\n---', 1)
+    else:
+        fm_raw = re.sub(r'processed_date:.*', f'processed_date: "{today}"', fm_raw)
+
     # Extract tags before dumping the rest to YAML
     tags = report_data.pop('tags', [])
     
