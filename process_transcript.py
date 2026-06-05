@@ -49,8 +49,8 @@ def process_transcript(vtt_path):
     Analyze the following school board meeting transcript. Extract the formal votes, a high-level meeting summary, a chronological timeline of key events, and a list of standardized topic tags.
     
     Guidelines:
-    - Tags: Select 3-5 tags from the following standardized list that best represent this meeting: {allowed_tags}. 
-      DO NOT invent new tags. Use these exact strings.
+    - Tags: Select 3-5 high-level topic tags. Use the following standardized list as your primary source: {allowed_tags}. 
+      If a major, recurring topic is discussed that is NOT in this list, you may propose a NEW standardized shorthand tag (e.g., 'Child Development Services' or 'Grant Funding').
     - Votes: Extract the exact motion, result, tally (use 'Unan.' for unanimous), and the movers (LastName / LastName).
     - Summary: Provide 5-8 bullet points of the most significant topics discussed or decided.
     - Timeline: Extract 10-15 key moments with their exact starting timestamps in H:MM:SS format and the total seconds.
@@ -60,7 +60,7 @@ def process_transcript(vtt_path):
     """
 
     response = client.models.generate_content(
-        model='gemini-2.5-pro',
+        model='gemini-2.0-pro-exp-02-05',
         contents=prompt,
         config={
             'response_mime_type': 'application/json',
@@ -69,7 +69,19 @@ def process_transcript(vtt_path):
         },
     )
     
-    return json.loads(response.text)
+    report_data = json.loads(response.text)
+    
+    # Update the library if new tags were proposed
+    if os.path.exists(topics_path):
+        new_tags = [t for t in report_data.get('tags', []) if t not in allowed_tags]
+        if new_tags:
+            allowed_tags.extend(new_tags)
+            allowed_tags = sorted(list(set(allowed_tags)))
+            with open(topics_path, 'w') as f:
+                json.dump(allowed_tags, f, indent=2)
+            print(f"Updated library with new topics: {new_tags}")
+
+    return report_data
 
 def update_meeting_file(njk_path, report_data):
     with open(njk_path, 'r') as f:
