@@ -9,11 +9,13 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# Prioritize high-limit key
+api_key = os.getenv("GEMINI_PRO_API_KEY") or os.getenv("GEMINI_API_KEY")
+client = genai.Client(api_key=api_key)
+
 # Configuration
 DEFAULT_MODEL = 'gemini-2.5-pro'
 BACKUP_MODEL = 'gemini-2.5-flash'
-
-client = genai.Client()
 
 class Vote(BaseModel):
     motion: str = Field(description="The exact motion text")

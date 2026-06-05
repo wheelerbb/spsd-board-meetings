@@ -10,11 +10,13 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Configuration
-DEFAULT_MODEL = 'gemini-2.0-flash' # Flash is best for large batches to avoid massive costs while maintaining high quality
-MAX_WORKERS = 5 # Process 5 meetings at a time to stay safe on rate limits
+# Prioritize the high-limit API key for bulk processing
+api_key = os.getenv("GEMINI_PRO_API_KEY") or os.getenv("GEMINI_API_KEY")
+client = genai.Client(api_key=api_key)
 
-client = genai.Client()
+# Configuration
+DEFAULT_MODEL = 'gemini-2.0-flash' 
+MAX_WORKERS = 10 # Increase workers since we have a pro key
 
 class Vote(BaseModel):
     motion: str
