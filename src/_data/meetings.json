@@ -156,7 +156,13 @@
     "day_of_week": "Tuesday",
     "type": "Special",
     "title": "Special Budget Meeting",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Reconfiguration",
+      "Personnel",
+      "Facilities",
+      "Policy"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
