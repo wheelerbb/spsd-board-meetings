@@ -37,7 +37,7 @@
     "title": "Special Board Meeting",
     "topics": [],
     "doc_count": 2,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
@@ -51,7 +51,7 @@
     "title": "Executive Session & Special Meeting",
     "topics": [],
     "doc_count": 2,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
@@ -71,7 +71,7 @@
       "Policy"
     ],
     "doc_count": 2,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": false
   },
@@ -161,7 +161,7 @@
       "Policy"
     ],
     "doc_count": 3,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
@@ -195,7 +195,7 @@
       "Policy"
     ],
     "doc_count": 3,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
@@ -229,7 +229,7 @@
       "Equity"
     ],
     "doc_count": 3,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
@@ -249,7 +249,7 @@
       "Equity"
     ],
     "doc_count": 3,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
@@ -283,7 +283,7 @@
       "Policy"
     ],
     "doc_count": 4,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
@@ -303,7 +303,7 @@
       "Equity"
     ],
     "doc_count": 3,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
@@ -331,7 +331,7 @@
     "title": "February Regular Meeting",
     "topics": [],
     "doc_count": 3,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
@@ -373,7 +373,7 @@
     "title": "January Regular Meeting",
     "topics": [],
     "doc_count": 3,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
@@ -421,7 +421,7 @@
       "Transportation"
     ],
     "doc_count": 3,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
@@ -597,7 +597,7 @@
     "title": "July Regular Meeting",
     "topics": [],
     "doc_count": 1,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
@@ -793,7 +793,7 @@
     "title": "Budget Workshop I",
     "topics": [],
     "doc_count": 0,
-    "has_video": false,
+    "has_video": true,
     "has_transcript": false,
     "stub": true
   },
