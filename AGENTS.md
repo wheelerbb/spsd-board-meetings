@@ -124,9 +124,10 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
 ### Sources of Truth
 
 - **Board Attendance:** Official [Board Members page](https://www.spsdme.org/page/members-of-the-board) and **Meeting Minutes** PDF.
+- **Meeting Minutes:** **AUTHORITATIVE SOURCE.** Content from official Minutes (Votes, Actions, formal Summaries) MUST supersede and/or replace content extracted from raw transcripts. When processing a meeting, always prioritize the PDF Minutes if available.
 - **Meeting Metadata:** [Apptegy Events API](https://thrillshare-cmsv2.services.thrillshare.com/api/v4/o/14619/cms/events?section_ids=249568).
 - **Video:** [SPC TV Vimeo channel](https://vimeo.com/spctv). Deep links use `#t=[seconds]s`.
-- **Transcripts:** Download raw `.vtt` files from the [SchoolBoardMeetingTranscripts Google Drive Folder](https://drive.google.com/drive/folders/1qKRujrhJd1c8BW94A7-QGg9epc4y6n4g?usp=drive_link).
+- **Transcripts:** Download raw `.vtt` files from the [SchoolBoardMeetingTranscripts Google Drive Folder](https://drive.google.com/drive/folders/1qKRujrhJd1c8BW94A7-QGg9epc4y6n4g?usp=drive_link). Transcript-sourced data is for supplemental highlights and deep-linking only.
 
 ---
 

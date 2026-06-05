@@ -10,6 +10,7 @@ pageScript: |
     btn.classList.add('active');
     currentYear = year;
     applyFilters();
+    updateAvailableTopics();
   }
 
   function filterTopic(topic, btn) {
@@ -20,9 +21,6 @@ pageScript: |
   }
 
   function applyFilters() {
-    let visibleCount = 0;
-    
-    // Filter individual cards
     document.querySelectorAll('.meeting-card').forEach(card => {
       const cardYear = card.dataset.year;
       const cardTopics = (card.dataset.topics || "").split(",");
@@ -30,19 +28,39 @@ pageScript: |
       const matchYear = (currentYear === 'all' || cardYear === currentYear);
       const matchTopic = (currentTopic === 'all' || cardTopics.includes(currentTopic));
       
-      if (matchYear && matchTopic) {
-        card.style.display = '';
-        visibleCount++;
-      } else {
-        card.style.display = 'none';
-      }
+      card.style.display = (matchYear && matchTopic) ? '' : 'none';
     });
 
-    // Hide empty year sections
     document.querySelectorAll('.year-section').forEach(sec => {
       const hasVisibleCards = Array.from(sec.querySelectorAll('.meeting-card')).some(c => c.style.display !== 'none');
       sec.style.display = hasVisibleCards ? '' : 'none';
     });
+  }
+
+  function updateAvailableTopics() {
+    // Determine which topics are active in the currently visible year
+    const activeTopics = new Set();
+    document.querySelectorAll('.meeting-card').forEach(card => {
+      if (currentYear === 'all' || card.dataset.year === currentYear) {
+        const topics = (card.dataset.topics || "").split(",");
+        topics.forEach(t => { if(t) activeTopics.add(t); });
+      }
+    });
+
+    // Show/hide topic filter buttons based on active topics
+    document.querySelectorAll('.topic-filter-btn').forEach(btn => {
+      const topic = btn.dataset.topic;
+      if (topic === 'all') {
+        btn.style.display = '';
+      } else {
+        btn.style.display = activeTopics.has(topic) ? '' : 'none';
+      }
+    });
+    
+    // If current selected topic is no longer active, reset to 'all'
+    if (currentTopic !== 'all' && !activeTopics.has(currentTopic)) {
+      document.querySelector('.topic-filter-btn[data-topic="all"]').click();
+    }
   }
 
   // Prevent card click when clicking a topic chip inside it
@@ -51,8 +69,6 @@ pageScript: |
       e.preventDefault();
       e.stopPropagation();
       const topic = e.target.dataset.topic;
-      
-      // Find the corresponding filter button and click it
       const filterBtn = Array.from(document.querySelectorAll('.topic-filter-btn')).find(b => b.dataset.topic === topic);
       if (filterBtn) filterBtn.click();
     }
@@ -60,20 +76,23 @@ pageScript: |
 ---
 
 <div class="hero">
-  <div class="hero-eyebrow">South Portland School Department</div>
-  <h1>School Board<br>Meeting Archive</h1>
-  <p>Agendas, supporting materials, video recordings, and searchable transcripts for every School Board meeting.</p>
-  <div style="margin-top: 1.5rem; font-size: .85rem; color: var(--gold-light); max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.5; padding: 1.25rem; background: rgba(200,150,62,.1); border-radius: 6px; border: 1px solid var(--gold);">
-    <strong>Community Resource & AI Disclosure:</strong> This is a community-built resource and not an official SPSD website. Summaries are AI-generated and may contain errors; please defer to official materials and videos as the source of truth.
+  <div class="hero-inner">
+    <div class="hero-eyebrow">South Portland School Department</div>
+    <h1>Board Meeting Summaries &amp; Resources</h1>
+    <div style="margin-top: 1.5rem; font-size: .85rem; color: var(--gold-light); max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.5; padding: 1.25rem; background: rgba(200,150,62,0.1); border-radius: 6px; border: 1px solid var(--gold);">
+      <strong>Community Resource & AI Disclosure:</strong> This is a community-built resource and not an official SPSD website. Summaries are AI-generated and may contain errors; please defer to official materials and videos as the source of truth.
+    </div>
   </div>
 </div>
 
 <div class="filter-bar">
   <span class="filter-label">School Year</span>
-  <button class="filter-btn year-btn active" onclick="filterYear('all',this)">All</button>
-  {% for sy in years %}
-  <button class="filter-btn year-btn" onclick="filterYear('{{ sy }}',this)">{{ sy }}</button>
-  {% endfor %}
+  <div class="topics-container expanded">
+    <button class="filter-btn year-btn active" onclick="filterYear('all',this)">All Years</button>
+    {% for sy in years %}
+    <button class="filter-btn year-btn" onclick="filterYear('{{ sy }}',this)">{{ sy }}</button>
+    {% endfor %}
+  </div>
 </div>
 
 {# Extract unique topics across all meetings #}
@@ -88,15 +107,15 @@ pageScript: |
   {% endif %}
 {% endfor %}
 
-{% if all_topics.length > 0 %}
-<div class="filter-bar" style="border-top: none; padding-top: 0;">
-  <span class="filter-label">Filter by Topic</span>
-  <button class="filter-btn topic-filter-btn active" data-topic="all" onclick="filterTopic('all',this)">All Topics</button>
-  {% for topic in all_topics | sort %}
-  <button class="filter-btn topic-filter-btn" data-topic="{{ topic }}" onclick="filterTopic('{{ topic }}',this)">{{ topic }}</button>
-  {% endfor %}
+<div class="filter-bar topics-bar">
+  <span class="filter-label">Topics</span>
+  <div class="topics-container" id="topicFilterContainer">
+    <button class="filter-btn topic-filter-btn active" data-topic="all" onclick="filterTopic('all',this)">All Topics</button>
+    {% for topic in all_topics | sort %}
+    <button class="filter-btn topic-filter-btn" data-topic="{{ topic }}" onclick="filterTopic('{{ topic }}',this)">{{ topic }}</button>
+    {% endfor %}
+  </div>
 </div>
-{% endif %}
 
 <main class="main" id="meetingList">
   {% for sy in years %}

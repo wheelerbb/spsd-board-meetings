@@ -22,18 +22,18 @@ layout: layouts/base.njk
       {% endif %}
     </div>
 
-    {# HEADER NAVIGATION #}
+    {# HEADER NAVIGATION (Chronological: Left is Older, Right is Newer) #}
     <div style="display:flex; justify-content:space-between; margin-top:1.5rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,.1);">
-      {% if prev %}
-      <a href="{{ ('/meetings/' + prev.slug + '/') | url }}" style="color:var(--gold-light); text-decoration:none; font-size:.85rem; font-weight:500;">← {{ prev.label }}</a>
+      {% if next %}
+      <a href="{{ ('/meetings/' + next.slug + '/') | url }}" style="color:var(--gold-light); text-decoration:none; font-size:.85rem; font-weight:500;">← Older: {{ next.label }}</a>
       {% else %}
       <span style="color:rgba(255,255,255,.3); font-size:.85rem;">← Oldest meeting</span>
       {% endif %}
       
-      {% if next %}
-      <a href="{{ ('/meetings/' + next.slug + '/') | url }}" style="color:var(--gold-light); text-decoration:none; font-size:.85rem; font-weight:500;">{{ next.label }} →</a>
+      {% if prev %}
+      <a href="{{ ('/meetings/' + prev.slug + '/') | url }}" style="color:var(--gold-light); text-decoration:none; font-size:.85rem; font-weight:500;">Newer: {{ prev.label }} →</a>
       {% else %}
-      <span style="color:rgba(255,255,255,.3); font-size:.85rem;">Next meeting TBD →</span>
+      <span style="color:rgba(255,255,255,.3); font-size:.85rem;">Most recent meeting →</span>
       {% endif %}
     </div>
   </div>
