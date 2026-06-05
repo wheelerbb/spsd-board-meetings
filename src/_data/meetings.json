@@ -64,14 +64,11 @@
     "type": "Regular",
     "title": "May Regular Meeting",
     "topics": [
-      "Superintendent Search Update",
-      "Top Scholars Recognition",
-      "FY2026 Budget Status",
-      "MaineCare Billing Overview",
-      "Audit Remediation Plan",
-      "Elementary Reconfiguration / Kaler Closure",
-      "Educational Equity Policy (First Read)",
-      "Bus Safety Concerns"
+      "Superintendent Search",
+      "Personnel",
+      "FY2026 Budget",
+      "Reconfiguration",
+      "Policy"
     ],
     "doc_count": 2,
     "has_video": true,
@@ -190,7 +187,13 @@
     "day_of_week": "Thursday",
     "type": "Special",
     "title": "Special Budget Meeting",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Reconfiguration",
+      "Personnel",
+      "Facilities",
+      "Policy"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
@@ -218,7 +221,13 @@
     "day_of_week": "Monday",
     "type": "Special",
     "title": "Special Budget Meeting",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Kaler Closure",
+      "Reconfiguration",
+      "Personnel",
+      "Equity"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
@@ -232,7 +241,13 @@
     "day_of_week": "Monday",
     "type": "Workshop",
     "title": "Budget Workshop II",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Kaler Closure",
+      "Reconfiguration",
+      "Personnel",
+      "Equity"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
@@ -260,7 +275,13 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "March Regular Meeting",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Reconfiguration",
+      "Personnel",
+      "Equity",
+      "Policy"
+    ],
     "doc_count": 4,
     "has_video": true,
     "has_transcript": false,
@@ -274,7 +295,13 @@
     "day_of_week": "Monday",
     "type": "Workshop",
     "title": "Budget Workshop I",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Reconfiguration",
+      "Facilities",
+      "Personnel",
+      "Equity"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
@@ -386,7 +413,13 @@
     "day_of_week": "Wednesday",
     "type": "Workshop",
     "title": "Board Preliminary Budget Workshop",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Superintendent Search",
+      "Enrollment",
+      "Facilities",
+      "Transportation"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,

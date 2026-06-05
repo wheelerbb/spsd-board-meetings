@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import time
 from google import genai
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -8,8 +9,10 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# Initialize Gemini client
-# Note: Requires GEMINI_API_KEY environment variable to be set
+# Configuration
+DEFAULT_MODEL = 'gemini-2.5-pro'
+BACKUP_MODEL = 'gemini-2.5-flash'
+
 client = genai.Client()
 
 class Vote(BaseModel):
@@ -59,29 +62,42 @@ def process_transcript(vtt_path):
     {transcript}
     """
 
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=prompt,
-        config={
-            'response_mime_type': 'application/json',
-            'response_schema': MeetingReport,
-            'temperature': 0.1
-        },
-    )
-    
-    report_data = json.loads(response.text)
-    
-    # Update the library if new tags were proposed
-    if os.path.exists(topics_path):
-        new_tags = [t for t in report_data.get('tags', []) if t not in allowed_tags]
-        if new_tags:
-            allowed_tags.extend(new_tags)
-            allowed_tags = sorted(list(set(allowed_tags)))
-            with open(topics_path, 'w') as f:
-                json.dump(allowed_tags, f, indent=2)
-            print(f"Updated library with new topics: {new_tags}")
+    for model_name in [DEFAULT_MODEL, BACKUP_MODEL]:
+        print(f"Attempting with model: {model_name}")
+        for attempt in range(2):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config={
+                        'response_mime_type': 'application/json',
+                        'response_schema': MeetingReport,
+                        'temperature': 0.1
+                    },
+                )
+                report_data = json.loads(response.text)
+                
+                # Update the library if new tags were proposed
+                if os.path.exists(topics_path):
+                    new_tags = [t for t in report_data.get('tags', []) if t not in allowed_tags]
+                    if new_tags:
+                        allowed_tags.extend(new_tags)
+                        allowed_tags = sorted(list(set(allowed_tags)))
+                        with open(topics_path, 'w') as f:
+                            json.dump(allowed_tags, f, indent=2)
+                        print(f"Updated library with new topics: {new_tags}")
 
-    return report_data
+                return report_data
+            except Exception as e:
+                if "429" in str(e):
+                    wait_time = 60 * (attempt + 1)
+                    print(f"Rate limited (429). Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"Error with {model_name}: {e}")
+                    break
+                    
+    raise Exception("All models and retry attempts exhausted.")
 
 def update_meeting_file(njk_path, report_data):
     with open(njk_path, 'r') as f:
@@ -116,6 +132,7 @@ def update_meeting_file(njk_path, report_data):
         for m in meetings_data:
             if m['slug'] == date_slug:
                 m['topics'] = tags
+                m['stub'] = False
                 break
                 
         with open(json_path, 'w') as f:
