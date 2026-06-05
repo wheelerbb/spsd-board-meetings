@@ -60,7 +60,7 @@ def process_transcript(vtt_path):
     """
 
     response = client.models.generate_content(
-        model='gemini-2.0-pro-exp-02-05',
+        model='gemini-1.5-pro',
         contents=prompt,
         config={
             'response_mime_type': 'application/json',
