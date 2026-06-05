@@ -175,7 +175,12 @@ layout: layouts/base.njk
 
         {# Additional Materials #}
         {% for d in docs %}
-          {% if d != agendaDoc and d != packetDoc and d != minDoc %}
+          {% set isStandard = false %}
+          {% if agendaDoc and d.url == agendaDoc.url %}{% set isStandard = true %}{% endif %}
+          {% if packetDoc and d.url == packetDoc.url %}{% set isStandard = true %}{% endif %}
+          {% if minDoc and d.url == minDoc.url %}{% set isStandard = true %}{% endif %}
+          
+          {% if not isStandard %}
           <a href="{{ d.url }}" target="_blank" class="doc-link">
             <div class="doc-icon {{ d.type | docClass }}">{{ d.type | docIcon }}</div>
             <div><div class="doc-name">{{ d.label }}</div>{% if d.size %}<div class="doc-size">{{ d.size }}</div>{% endif %}</div>
