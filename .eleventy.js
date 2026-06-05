@@ -1,6 +1,11 @@
 module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets");
 
+  // Collection: All meetings from the meetings folder
+  eleventyConfig.addCollection("meetings", function (collectionApi) {
+    return collectionApi.getFilteredByGlob("src/meetings/*.njk");
+  });
+
   // Filter meetings by a data field value
   eleventyConfig.addFilter("where", (array, key, value) =>
     array.filter((item) => item[key] == value)

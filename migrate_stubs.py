@@ -35,7 +35,15 @@ attendance_yaml = """board_attendance:
   role: "Student Rep"
 """
 
-processed_files = ['2026-05-11.njk', '2026-05-27.njk', '2025-12-08.njk', '2025-12-10.njk']
+processed_files = [
+    '2026-05-11.njk', 
+    '2026-05-27.njk', 
+    '2026-04-29.njk', 
+    '2026-04-13.njk', 
+    '2026-04-07.njk', 
+    '2025-12-08.njk', 
+    '2025-12-10.njk'
+]
 
 directory = 'src/meetings/'
 count_converted = 0
