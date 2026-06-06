@@ -54,11 +54,17 @@
     "day_of_week": "Wednesday",
     "type": "Exec. Session",
     "title": "Executive Session & Special Meeting",
-    "topics": [],
+    "topics": [
+      "Superintendent Search",
+      "Kaler Closure",
+      "Reconfiguration",
+      "Personnel",
+      "Transportation"
+    ],
     "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": false
   },
   {
     "slug": "2026-05-11",
@@ -70,8 +76,8 @@
     "title": "May Regular Meeting",
     "topics": [
       "Superintendent Search",
+      "Student Recognition",
       "Personnel",
-      "FY2026 Budget",
       "Reconfiguration",
       "Policy"
     ],
@@ -161,14 +167,14 @@
     "topics": [
       "FY2027 Budget",
       "Reconfiguration",
+      "Kaler Closure",
       "Personnel",
-      "Facilities",
-      "Policy"
+      "Superintendent Search"
     ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": false
   },
   {
     "slug": "2026-04-06",
@@ -197,12 +203,12 @@
       "Reconfiguration",
       "Personnel",
       "Facilities",
-      "Policy"
+      "Equity"
     ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": false
   },
   {
     "slug": "2026-04-01",
@@ -236,7 +242,7 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": false
   },
   {
     "slug": "2026-03-23",
@@ -251,12 +257,12 @@
       "Kaler Closure",
       "Reconfiguration",
       "Personnel",
-      "Equity"
+      "Enrollment"
     ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": false
   },
   {
     "slug": "2026-03-17",
@@ -284,13 +290,13 @@
       "FY2027 Budget",
       "Reconfiguration",
       "Personnel",
-      "Equity",
-      "Policy"
+      "Superintendent Search",
+      "Facilities"
     ],
     "doc_count": 4,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": false
   },
   {
     "slug": "2026-03-02",
@@ -304,13 +310,13 @@
       "FY2027 Budget",
       "Reconfiguration",
       "Facilities",
-      "Personnel",
-      "Equity"
+      "Equity",
+      "Enrollment"
     ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": false
   },
   {
     "slug": "2026-02-24",
@@ -334,11 +340,17 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "February Regular Meeting",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Superintendent Search",
+      "Reconfiguration",
+      "Policy",
+      "Facilities"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": false
   },
   {
     "slug": "2026-01-24",
@@ -456,10 +468,11 @@
     "type": "Regular",
     "title": "December Regular Meeting",
     "topics": [
-      "SPESPA Contract Ratification",
-      "ELO Program Update",
-      "Adult Ed Top Performer",
-      "Bruce Cribby Remembrance"
+      "FY2025 Budget",
+      "Superintendent Search",
+      "Policy",
+      "Contracts",
+      "Personnel"
     ],
     "doc_count": 3,
     "has_video": true,
@@ -600,11 +613,17 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "July Regular Meeting",
-    "topics": [],
+    "topics": [
+      "Superintendent Search",
+      "Personnel",
+      "Facilities",
+      "Policy",
+      "FY2025 Budget"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": false
   },
   {
     "slug": "2025-07-10",

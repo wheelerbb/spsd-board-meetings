@@ -17,7 +17,7 @@ api_key = os.getenv("GEMINI_PRO_API_KEY") or os.getenv("GEMINI_API_KEY")
 # Configuration
 DEFAULT_MODEL = 'gemini-2.5-pro'
 BACKUP_MODEL = 'gemini-2.5-flash'
-MAX_WORKERS = 8 
+MAX_WORKERS = 4 
 
 client = None
 
@@ -106,6 +106,16 @@ def process_single_meeting(date_slug, vtt_path):
     if not os.path.exists(njk_path):
         return None
 
+    with open(njk_path, 'r') as f:
+        existing_content = f.read()
+    
+    # Skip if already processed (check for summary field in YAML)
+    if "summary:" in existing_content and "stub: false" in existing_content:
+        # Check if it was processed today to allow for refinement
+        if f'processed_date: "{time.strftime("%Y-%m-%d")}"' in existing_content:
+             print(f"Skipping {date_slug}: Already processed today.")
+             return None
+
     with open(vtt_path, 'r') as f:
         transcript = f.read()
 
@@ -123,7 +133,7 @@ def process_single_meeting(date_slug, vtt_path):
 
     Guidelines:
     - Tags: Select 3-5 high-level tags from: {allowed_tags}. Propose new shorthand tags only if needed.
-    - Votes: Extract exact motion, result, tally, and movers (LastName / LastName).
+    - Votes: Extract exact motion, result (Pass/Fail), tally, and movers (LastName / LastName).
     - Summary: 5-8 bullet points of significant discussion/decisions.
     - Timeline: 10-15 key moments with timestamps (H:MM:SS) and total seconds. 
       DO NOT include fractional seconds (e.g., use 0:01:05, NOT 0:01:05.400).
@@ -133,6 +143,9 @@ def process_single_meeting(date_slug, vtt_path):
     """
 
     try:
+        # Stagger to avoid rate limits
+        time.sleep(2)
+        
         response = client.models.generate_content(
             model=DEFAULT_MODEL,
             contents=prompt,
@@ -149,12 +162,9 @@ def process_single_meeting(date_slug, vtt_path):
             item['time'] = item['time'].split('.')[0]
 
         # Update NJK file
-        with open(njk_path, 'r') as f:
-            content = f.read()
-
         import yaml
         from datetime import date
-        match = re.match(r'^(---\s*\n.*?\n---\s*\n)(.*)', content, re.DOTALL)
+        match = re.match(r'^(---\s*\n.*?\n---\s*\n)(.*)', existing_content, re.DOTALL)
         if not match: return None
         
         fm_raw = match.group(1)
