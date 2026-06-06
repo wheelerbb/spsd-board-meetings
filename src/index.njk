@@ -94,11 +94,13 @@ pageScript: |
 
 <div class="filter-bar">
   <span class="filter-label">School Year</span>
-  <div class="topics-container expanded">
-    <button class="filter-btn year-btn active" onclick="filterYear('all',this)">All Years</button>
-    {% for sy in years %}
-    <button class="filter-btn year-btn" onclick="filterYear('{{ sy }}',this)">{{ sy }}</button>
-    {% endfor %}
+  <div class="filter-content">
+    <div class="topics-container expanded">
+      <button class="filter-btn year-btn active" onclick="filterYear('all',this)">All Years</button>
+      {% for sy in years %}
+      <button class="filter-btn year-btn" onclick="filterYear('{{ sy }}',this)">{{ sy }}</button>
+      {% endfor %}
+    </div>
   </div>
 </div>
 
@@ -115,19 +117,21 @@ pageScript: |
 {% endfor %}
 
 <div class="filter-bar topics-bar">
-  <div class="topics-row">
-    <span class="filter-label">Topics</span>
+  <span class="filter-label">Topics</span>
+  <div class="filter-content">
     <div class="topics-container" id="topicFilterContainer">
       <button class="filter-btn topic-filter-btn active" data-topic="all" onclick="filterTopic('all',this)">All Topics</button>
       {% for topic in all_topics %}
       <button class="filter-btn topic-filter-btn" data-topic="{{ topic }}" onclick="filterTopic('{{ topic }}',this)">{{ topic }}</button>
       {% endfor %}
     </div>
+    <div class="expand-row">
+      <button class="expand-toggle" onclick="toggleTopics(this)">
+        <span class="toggle-text">Show All Topics</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
   </div>
-  <button class="expand-toggle" onclick="toggleTopics(this)">
-    <span class="toggle-text">Show All Topics</span>
-    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4"/></svg>
-  </button>
 </div>
 
 <main class="main" id="meetingList">

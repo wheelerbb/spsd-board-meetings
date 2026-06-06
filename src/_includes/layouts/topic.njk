@@ -1,0 +1,101 @@
+---
+layout: layouts/base.njk
+---
+
+<div class="topic-hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Topic Explorer</div>
+    <h1>{{ topic }}</h1>
+  </div>
+</div>
+
+<main class="main" style="padding-top: 0;">
+
+  <div class="topic-summary-box">
+    <div class="topic-status-label">Current Status &amp; Impact</div>
+    <div class="summary-text" style="font-size: 1.1rem; line-height: 1.6; color: var(--text);">
+      {{ topic_summary | safe }}
+    </div>
+    
+    {% set recent_votes = [] %}
+    {% for m in meetings | sort(true, false, "date") %}
+      {% if m.data.topics and topic in m.data.topics %}
+        {% if m.data.votes %}
+          {% for v in m.data.votes %}
+            {% if topic | lower in v.motion | lower %}
+              {% set _ = recent_votes.push({ vote: v, date: m.data.display_date, url: m.url }) %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+
+    {% if recent_votes.length > 0 %}
+    <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--rule);">
+      <h4 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1.25rem; color: var(--muted);">Key Resolutions &amp; Votes</h4>
+      <table class="vote-table" style="font-size: 0.85rem;">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Motion</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in recent_votes %}
+          <tr>
+            <td style="white-space: nowrap;"><a href="{{ item.url | url }}" style="color:var(--navy); font-weight:600;">{{ item.date }}</a></td>
+            <td>{{ item.vote.motion }}</td>
+            <td><span class="vote-chip {{ item.vote.result | lower }}">{{ item.vote.result }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="evolution-timeline">
+    <h3 style="font-family:'Playfair Display',serif; font-size: 1.8rem; margin-bottom: 2.5rem; text-align: center;">Topic Evolution</h3>
+    
+    {% for m in meetings | sort(true, false, "date") %}
+      {% if m.data.topics and topic in m.data.topics %}
+      <div class="evolution-item">
+        <div class="evolution-date">{{ m.data.display_date }}</div>
+        <h4 style="margin-bottom: 0.75rem;"><a href="{{ m.url | url }}" style="color:var(--navy); text-decoration:none;">{{ m.data.title }}</a></h4>
+        
+        <div style="color: var(--muted); line-height: 1.5; font-size: 0.95rem;">
+          {% if m.data.summary %}
+            {% for s in m.data.summary %}
+              {% if topic | lower in s.topic | lower or topic | lower in s.text | lower %}
+                <p>• {{ s.text }}</p>
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        </div>
+
+        {% set related_docs = [] %}
+        {% if m.data.docs %}
+          {% for d in m.data.docs %}
+            {% if topic | lower in d.label | lower %}
+              {% set _ = related_docs.push(d) %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+
+        {% if related_docs.length > 0 %}
+        <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+          {% for d in related_docs %}
+          <a href="{{ d.url }}" target="_blank" class="doc-link" style="padding: 6px 12px; font-size: 0.75rem;">
+            <div class="doc-icon {{ d.type | docClass }}">{{ d.type | docIcon }}</div>
+            {{ d.label }}
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+</main>

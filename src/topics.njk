@@ -1,0 +1,11 @@
+---
+pagination:
+  data: topics
+  size: 1
+  alias: topic
+permalink: "/topics/{{ topic | slugify }}/index.html"
+layout: layouts/topic.njk
+eleventyComputed:
+  title: "{{ topic }} — Topic Explorer — SPSD"
+  topic_summary: "{{ topic_summaries[topic] }}"
+---
