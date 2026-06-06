@@ -63,7 +63,13 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "May Regular Meeting",
-    "topics": [],
+    "topics": [
+      "Kaler Closure",
+      "Reconfiguration",
+      "Student Recognition",
+      "Superintendent Search",
+      "Transportation"
+    ],
     "doc_count": 2,
     "has_video": true,
     "has_transcript": true,
@@ -175,7 +181,10 @@
     "day_of_week": "Thursday",
     "type": "Special",
     "title": "Special Budget Meeting",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Reconfiguration"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -203,7 +212,10 @@
     "day_of_week": "Monday",
     "type": "Special",
     "title": "Special Budget Meeting",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Reconfiguration"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -217,7 +229,10 @@
     "day_of_week": "Monday",
     "type": "Workshop",
     "title": "Budget Workshop II",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Special Education"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -245,7 +260,11 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "March Regular Meeting",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Reconfiguration",
+      "Superintendent Search"
+    ],
     "doc_count": 4,
     "has_video": true,
     "has_transcript": true,
@@ -259,7 +278,11 @@
     "day_of_week": "Monday",
     "type": "Workshop",
     "title": "Budget Workshop I",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Reconfiguration",
+      "Special Education"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -287,7 +310,11 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "February Regular Meeting",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Reconfiguration",
+      "Superintendent Search"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -329,7 +356,12 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "January Regular Meeting",
-    "topics": [],
+    "topics": [
+      "Equity",
+      "FY2027 Budget",
+      "Facilities",
+      "Superintendent Search"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -371,7 +403,12 @@
     "day_of_week": "Wednesday",
     "type": "Workshop",
     "title": "Board Preliminary Budget Workshop",
-    "topics": [],
+    "topics": [
+      "Equity",
+      "FY2027 Budget",
+      "Reconfiguration",
+      "Superintendent Search"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -399,7 +436,10 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "December Regular Meeting",
-    "topics": [],
+    "topics": [
+      "FY2025 Budget",
+      "Superintendent Search"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -441,7 +481,11 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "November Regular Meeting",
-    "topics": [],
+    "topics": [
+      "FY2026 Budget",
+      "Facilities",
+      "Student Recognition"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -539,7 +583,9 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "July Regular Meeting",
-    "topics": [],
+    "topics": [
+      "Facilities"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -581,7 +627,10 @@
     "day_of_week": "Wednesday",
     "type": "Special",
     "title": "Special Meeting",
-    "topics": [],
+    "topics": [
+      "FY2025 Budget",
+      "Superintendent Search"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -595,7 +644,9 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "June Regular Meeting",
-    "topics": [],
+    "topics": [
+      "Facilities"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -609,7 +660,9 @@
     "day_of_week": "Tuesday",
     "type": "Special",
     "title": "Special Meeting",
-    "topics": [],
+    "topics": [
+      "FY2026 Budget"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -623,7 +676,9 @@
     "day_of_week": "Tuesday",
     "type": "Special",
     "title": "Special Meeting",
-    "topics": [],
+    "topics": [
+      "Student Recognition"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -637,7 +692,9 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "Budget Adoption & Superintendent Evaluation",
-    "topics": [],
+    "topics": [
+      "FY2025 Budget"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -651,7 +708,11 @@
     "day_of_week": "Wednesday",
     "type": "Special",
     "title": "Special Meeting",
-    "topics": [],
+    "topics": [
+      "Athletics",
+      "FY2026 Budget",
+      "Special Education"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -679,7 +740,9 @@
     "day_of_week": "Monday",
     "type": "Special",
     "title": "Special Meeting",
-    "topics": [],
+    "topics": [
+      "FY2026 Budget"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -693,7 +756,9 @@
     "day_of_week": "Monday",
     "type": "Workshop",
     "title": "Budget Workshop III and Special Meeting",
-    "topics": [],
+    "topics": [
+      "FY2026 Budget"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -721,7 +786,10 @@
     "day_of_week": "Monday",
     "type": "Workshop",
     "title": "Budget Workshop II and Special Meeting",
-    "topics": [],
+    "topics": [
+      "FY2025 Budget",
+      "Student Recognition"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -735,7 +803,9 @@
     "day_of_week": "Monday",
     "type": "Workshop",
     "title": "Budget Workshop I",
-    "topics": [],
+    "topics": [
+      "FY2026 Budget"
+    ],
     "doc_count": 0,
     "has_video": true,
     "has_transcript": true,
@@ -749,7 +819,10 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "March Regular Meeting",
-    "topics": [],
+    "topics": [
+      "FY2026 Budget",
+      "Student Recognition"
+    ],
     "doc_count": 4,
     "has_video": true,
     "has_transcript": true,
@@ -763,7 +836,9 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "Strategic Plan Mid-Year Review",
-    "topics": [],
+    "topics": [
+      "FY2026 Budget"
+    ],
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
@@ -805,7 +880,9 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "January Regular Meeting",
-    "topics": [],
+    "topics": [
+      "Facilities"
+    ],
     "doc_count": 4,
     "has_video": true,
     "has_transcript": true,
@@ -819,7 +896,9 @@
     "day_of_week": "Wednesday",
     "type": "Special",
     "title": "Special Meeting",
-    "topics": [],
+    "topics": [
+      "Athletics"
+    ],
     "doc_count": 4,
     "has_video": true,
     "has_transcript": true,

@@ -38,7 +38,6 @@ pageScript: |
   }
 
   function updateAvailableTopics() {
-    // Determine which topics are active in the currently visible year
     const activeTopics = new Set();
     document.querySelectorAll('.meeting-card').forEach(card => {
       if (currentYear === 'all' || card.dataset.year === currentYear) {
@@ -47,7 +46,6 @@ pageScript: |
       }
     });
 
-    // Show/hide topic filter buttons based on active topics
     document.querySelectorAll('.topic-filter-btn').forEach(btn => {
       const topic = btn.dataset.topic;
       if (topic === 'all') {
@@ -57,9 +55,8 @@ pageScript: |
       }
     });
     
-    // If current selected topic is no longer active, reset to 'all'
     if (currentTopic !== 'all' && !activeTopics.has(currentTopic)) {
-      document.querySelector('.topic-filter-btn[data-topic="all"]').click();
+      filterTopic('all', document.querySelector('.topic-filter-btn[data-topic="all"]'));
     }
   }
 
@@ -70,7 +67,6 @@ pageScript: |
     btn.querySelector('.toggle-text').textContent = container.classList.contains('expanded') ? 'Show Less' : 'Show All Topics';
   }
 
-  // Prevent card click when clicking a topic chip inside it
   document.addEventListener('click', function(e) {
     if (e.target.classList.contains('topic-chip')) {
       e.preventDefault();
@@ -128,7 +124,6 @@ pageScript: |
     <div class="expand-row">
       <button class="expand-toggle" onclick="toggleTopics(this)">
         <span class="toggle-text">Show All Topics</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
     </div>
   </div>

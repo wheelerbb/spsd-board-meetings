@@ -62,42 +62,46 @@ nav a.nav-link:hover { color:var(--gold-light); }
 /* FILTER BARS (index) */
 .filter-bar {
   background:#fff; border-bottom:1px solid var(--rule);
-  padding:1.2rem 2.5rem;
+  padding:1rem 2.5rem;
   display:flex; gap:0; align-items:flex-start;
 }
 .filter-label { 
-  font-size:.75rem; letter-spacing:.15em; text-transform:uppercase; 
-  color:var(--muted); font-weight:700; width:160px; padding-top: 8px;
+  font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; 
+  color:var(--muted); font-weight:700; width:160px; padding-top: 10px;
 }
 .filter-content { flex: 1; }
 
-.topics-bar { padding-bottom: 1.5rem; }
+.topics-bar { padding-top: 1.5rem; }
 .topics-container { 
   display: flex; flex-wrap: wrap; gap: 10px; 
   max-height: 4.8rem; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
 }
-.topics-container.expanded { max-height: 15rem; }
+.topics-container.expanded { max-height: 20rem; }
 
 .filter-btn {
-  background:none; border:1px solid #ddd; border-radius:6px;
-  padding:.45rem 1.1rem; font-size:.82rem; font-weight:600; font-family:'DM Sans',sans-serif;
+  background:none; border:1.5px solid #e0e0e0; border-radius:6px;
+  padding:.45rem 1.1rem; font-size:.85rem; font-weight:700; font-family:'DM Sans',sans-serif;
   cursor:pointer; color:var(--navy); transition:all .2s;
   background: #fff;
 }
-.filter-btn:hover { border-color:var(--gold); color:var(--gold); }
+.filter-btn:hover { border-color:var(--gold); }
 .filter-btn.active { background:var(--navy); border-color:var(--navy); color:#fff; }
 
-.expand-row { margin-top: 1rem; display: flex; }
+.expand-row { margin-top: 1.25rem; display: flex; }
 .expand-toggle {
-  background: #fff; border: 1.5px solid var(--rule); color: var(--navy); 
-  font-size: 0.75rem; font-weight: 700; border-radius: 4px;
-  cursor: pointer; padding: 6px 12px;
-  display: flex; align-items: center; gap: 8px;
-  transition: all 0.2s;
+  background: #fff; border: 1.5px solid #333; color: #000; 
+  font-size: 0.85rem; font-weight: 400; border-radius: 4px;
+  cursor: pointer; padding: 4px 8px;
+  display: flex; align-items: center; gap: 4px;
+  font-family: inherit;
 }
-.expand-toggle:hover { border-color: var(--gold); color: var(--gold); }
-.expand-toggle svg { opacity: 0.6; transition: transform 0.3s; }
-.expand-toggle.active svg { transform: rotate(180deg); }
+.expand-toggle::after {
+  content: '▼'; font-size: 0.6rem; margin-left: 4px;
+}
+.expand-toggle.active::after {
+  content: '▲';
+}
+
 
 /* TOPIC EXPLORER STYLES */
 .topic-hero { background: var(--warm-gray); padding: 4rem 2.5rem; border-bottom: 1px solid var(--rule); }

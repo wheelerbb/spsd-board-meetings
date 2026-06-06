@@ -98,12 +98,16 @@ def post_process():
     for topic in new_lib:
         # Gather chronological evidence
         evidence = []
-        for m in sorted(meetings_data, key=lambda x: x.get('date', '')):
+        # Sort by date, handle missing date field
+        sorted_m_data = sorted(meetings_data, key=lambda x: str(x.get('date', x.get('slug', ''))))
+        
+        for m in sorted_m_data:
             if topic in m.get('topics', []):
                 summary_bullets = m.get('summary', [])
                 topic_bullets = [b['text'] for b in summary_bullets if topic.lower() in b['topic'].lower() or topic.lower() in b['text'].lower()]
                 if topic_bullets:
-                    evidence.append(f"Date: {m['date']}\n" + "\n".join(topic_bullets))
+                    m_date = m.get('date', m.get('slug', 'Unknown Date'))
+                    evidence.append(f"Date: {m_date}\n" + "\n".join(topic_bullets))
         
         if len(evidence) < 1: continue # Skip if no evidence
         
