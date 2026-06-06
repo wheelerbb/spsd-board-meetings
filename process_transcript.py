@@ -218,5 +218,12 @@ if __name__ == "__main__":
         report = process_transcript(vtt)
         update_meeting_file(njk, report)
         print(f"Successfully updated {njk}")
+        
+        # Trigger post-processing for topic summaries
+        print("Refreshing Topic Explorer data...")
+        import subprocess
+        subprocess.run(["python3", "generate_topic_summaries.py"], check=True)
+        print("Topic Explorer updated.")
+        
     except Exception as e:
         print(f"Error: {e}")
