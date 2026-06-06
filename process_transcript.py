@@ -1,3 +1,4 @@
+import sys
 import os
 import json
 import re
@@ -6,16 +7,37 @@ from google import genai
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Check for local auth flag
+USE_LOCAL_AUTH = "--local-auth" in sys.argv
+if USE_LOCAL_AUTH:
+    sys.argv.remove("--local-auth")
+    print("Using local/browser-based credentials (skipping .env)")
+else:
+    load_dotenv()
 
-# Prioritize high-limit key
+# Prioritize high-limit key, otherwise try standard, otherwise fall back to local auth
 api_key = os.getenv("GEMINI_PRO_API_KEY") or os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key)
+
+if USE_LOCAL_AUTH:
+    # Try to use Application Default Credentials
+    import google.auth
+    try:
+        credentials, project = google.auth.default()
+        client = genai.Client(credentials=credentials, project=project, location='us-central1', vertexai=True)
+        print(f"Using Vertex AI with local credentials (Project: {project})")
+    except Exception as e:
+        print(f"Failed to load local credentials: {e}")
+        sys.exit(1)
+elif api_key and "your_" not in api_key:
+    client = genai.Client(api_key=api_key)
+    print("Using explicit API Key from .env")
+else:
+    client = genai.Client()
+    print("No API Key found, using standard Client initialization (may fail)")
 
 # Configuration
-DEFAULT_MODEL = 'gemini-2.5-pro'
-BACKUP_MODEL = 'gemini-2.5-flash'
+DEFAULT_MODEL = 'gemini-2.0-flash'
+BACKUP_MODEL = 'gemini-1.5-flash'
 
 class Vote(BaseModel):
     motion: str = Field(description="The exact motion text")
@@ -66,40 +88,38 @@ def process_transcript(vtt_path):
 
     for model_name in [DEFAULT_MODEL, BACKUP_MODEL]:
         print(f"Attempting with model: {model_name}")
-        for attempt in range(2):
-            try:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config={
-                        'response_mime_type': 'application/json',
-                        'response_schema': MeetingReport,
-                        'temperature': 0.1
-                    },
-                )
-                report_data = json.loads(response.text)
-                
-                # Update the library if new tags were proposed
-                if os.path.exists(topics_path):
-                    new_tags = [t for t in report_data.get('tags', []) if t not in allowed_tags]
-                    if new_tags:
-                        allowed_tags.extend(new_tags)
-                        allowed_tags = sorted(list(set(allowed_tags)))
-                        with open(topics_path, 'w') as f:
-                            json.dump(allowed_tags, f, indent=2)
-                        print(f"Updated library with new topics: {new_tags}")
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config={
+                    'response_mime_type': 'application/json',
+                    'response_schema': MeetingReport,
+                    'temperature': 0.1
+                },
+            )
+            report_data = json.loads(response.text)
+            
+            # Update the library if new tags were proposed
+            if os.path.exists(topics_path):
+                new_tags = [t for t in report_data.get('tags', []) if t not in allowed_tags]
+                if new_tags:
+                    allowed_tags.extend(new_tags)
+                    allowed_tags = sorted(list(set(allowed_tags)))
+                    with open(topics_path, 'w') as f:
+                        json.dump(allowed_tags, f, indent=2)
+                    print(f"Updated library with new topics: {new_tags}")
 
-                return report_data
-            except Exception as e:
-                if "429" in str(e):
-                    wait_time = 60 * (attempt + 1)
-                    print(f"Rate limited (429). Retrying in {wait_time}s...")
-                    time.sleep(wait_time)
-                else:
-                    print(f"Error with {model_name}: {e}")
-                    break
-                    
-    raise Exception("All models and retry attempts exhausted.")
+            return report_data
+        except Exception as e:
+            if "429" in str(e):
+                print(f"Rate limited (429). Exiting script.")
+                sys.exit(1)
+            else:
+                print(f"Error with {model_name}: {e}")
+                # Move to next model
+                
+    raise Exception("All models exhausted or error encountered.")
 
 def update_meeting_file(njk_path, report_data):
     with open(njk_path, 'r') as f:
