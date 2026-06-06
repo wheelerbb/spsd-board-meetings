@@ -63,6 +63,13 @@ pageScript: |
     }
   }
 
+  function toggleTopics(btn) {
+    const container = document.getElementById('topicFilterContainer');
+    container.classList.toggle('expanded');
+    btn.classList.toggle('active');
+    btn.querySelector('.toggle-text').textContent = container.classList.contains('expanded') ? 'Show Less' : 'Show All Topics';
+  }
+
   // Prevent card click when clicking a topic chip inside it
   document.addEventListener('click', function(e) {
     if (e.target.classList.contains('topic-chip')) {
@@ -108,13 +115,19 @@ pageScript: |
 {% endfor %}
 
 <div class="filter-bar topics-bar">
-  <span class="filter-label">Topics</span>
-  <div class="topics-container" id="topicFilterContainer">
-    <button class="filter-btn topic-filter-btn active" data-topic="all" onclick="filterTopic('all',this)">All Topics</button>
-    {% for topic in all_topics %}
-    <button class="filter-btn topic-filter-btn" data-topic="{{ topic }}" onclick="filterTopic('{{ topic }}',this)">{{ topic }}</button>
-    {% endfor %}
+  <div class="topics-row">
+    <span class="filter-label">Topics</span>
+    <div class="topics-container" id="topicFilterContainer">
+      <button class="filter-btn topic-filter-btn active" data-topic="all" onclick="filterTopic('all',this)">All Topics</button>
+      {% for topic in all_topics %}
+      <button class="filter-btn topic-filter-btn" data-topic="{{ topic }}" onclick="filterTopic('{{ topic }}',this)">{{ topic }}</button>
+      {% endfor %}
+    </div>
   </div>
+  <button class="expand-toggle" onclick="toggleTopics(this)">
+    <span class="toggle-text">Show All Topics</span>
+    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4"/></svg>
+  </button>
 </div>
 
 <main class="main" id="meetingList">
@@ -172,4 +185,3 @@ pageScript: |
   </section>
   {% endfor %}
 </main>
-

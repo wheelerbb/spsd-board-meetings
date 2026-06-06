@@ -97,8 +97,10 @@ title: "Data Status — School Board Meeting Archive"
           <td>
             {% if m.data.has_transcript %}
               <span class="status-pill done">VTT Processed</span>
+            {% elif m.data.has_vtt_source %}
+              <span class="status-pill stub">VTT Pending</span>
             {% else %}
-              <span class="status-pill none">Pending</span>
+              <span class="status-pill none">No VTT Source</span>
             {% endif %}
           </td>
           
