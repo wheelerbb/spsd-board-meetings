@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from google import genai
@@ -10,13 +11,49 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Prioritize the high-limit API key for bulk processing
+# Prioritize high-limit key, otherwise try standard, otherwise fall back to local auth
 api_key = os.getenv("GEMINI_PRO_API_KEY") or os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key)
 
 # Configuration
-DEFAULT_MODEL = 'gemini-2.0-flash' 
-MAX_WORKERS = 10 # Increase workers since we have a pro key
+DEFAULT_MODEL = 'gemini-2.5-pro'
+BACKUP_MODEL = 'gemini-2.5-flash'
+MAX_WORKERS = 8 
+
+client = None
+
+# Try to use Application Default Credentials (Vertex AI)
+import google.auth
+try:
+    credentials, project = google.auth.default()
+    client = genai.Client(credentials=credentials, project=project, location='us-central1', vertexai=True)
+    print(f"Using Vertex AI with local credentials (Project: {project})")
+except Exception as e:
+    if api_key and "your_" not in api_key:
+        client = genai.Client(api_key=api_key)
+        print("Using explicit API Key from .env")
+        DEFAULT_MODEL = 'gemini-2.0-flash' # Fallback to faster model for key-based
+    else:
+        print(f"Failed to load local credentials: {e}")
+        sys.exit(1)
+
+GLOSSARY = """
+- Kaler Elementary School (NOT Caler)
+- Dyer Elementary School
+- Skillin Elementary School (NOT Skillen)
+- Brown Elementary School
+- Small Elementary School
+- Mahoney Middle School
+- Memorial Middle School
+- South Portland High School (SPHS)
+- SPSD (South Portland School Department)
+- SPBoE (South Portland Board of Education)
+- SPESPA (South Portland Education Support Professionals Association)
+- SPTA (South Portland Teachers Association)
+- APC (Administrative Policy Committee)
+- MSMA (Maine School Management Association)
+- NESDEC (New England School Development Council)
+- Zeal Education Group
+"""
 
 class Vote(BaseModel):
     motion: str
@@ -41,32 +78,20 @@ class MeetingReport(BaseModel):
     timeline: list[TimelineItem]
 
 def get_transcript_mapping():
-    """Maps meeting slugs (YYYY-MM-DD) to their local VTT file paths."""
     mapping = {}
     base_dir = "static/transcripts"
-    
-    # Walk through transcripts directory
     for root, _, files in os.walk(base_dir):
         for f in files:
             if not f.endswith('.vtt'): continue
-            
-            # Extract date from filename
-            # Handles: spboe_YYYYMMDD.vtt, 04.07.26.vtt, "South Portland Board of Education - March 9 2026.vtt"
             path = os.path.join(root, f)
-            
-            # Try YYYYMMDD
             m = re.search(r'(\d{4})(\d{2})(\d{2})', f)
             if m:
                 mapping[f"{m.group(1)}-{m.group(2)}-{m.group(3)}"] = path
                 continue
-                
-            # Try MM.DD.YY
             m = re.search(r'(\d{2})\.(\d{2})\.(\d{2})', f)
             if m:
                 mapping[f"20{m.group(3)}-{m.group(1)}-{m.group(2)}"] = path
                 continue
-                
-            # Try "Month Day Year"
             months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
             m = re.search(rf'({"|".join(months)}) (\d{{1,2}}) (\d{{4}})', f)
             if m:
@@ -74,20 +99,16 @@ def get_transcript_mapping():
                 dt = datetime.strptime(f"{m.group(1)} {m.group(2)} {m.group(3)}", "%B %d %Y")
                 mapping[dt.strftime("%Y-%m-%d")] = path
                 continue
-                
     return mapping
 
 def process_single_meeting(date_slug, vtt_path):
     njk_path = f"src/meetings/{date_slug}.njk"
     if not os.path.exists(njk_path):
-        return f"Skipping {date_slug}: NJK file not found."
+        return None
 
-    print(f"Starting: {date_slug}")
-    
     with open(vtt_path, 'r') as f:
         transcript = f.read()
 
-    # Load standardized topics library
     topics_path = 'src/_data/topics.json'
     allowed_tags = []
     if os.path.exists(topics_path):
@@ -97,11 +118,15 @@ def process_single_meeting(date_slug, vtt_path):
     prompt = f"""
     Analyze the following school board meeting transcript. Extract formal votes, high-level summary, timeline, and topic tags.
     
+    IMPORTANT: Use the following Glossary for correct spelling:
+    {GLOSSARY}
+
     Guidelines:
-    - Tags: Select 3-5 from {allowed_tags}. Propose new shorthand tags only if major topics are missing.
-    - Votes: Extract exact motion, result (Pass/Fail), tally, and movers (LastName / LastName).
+    - Tags: Select 3-5 high-level tags from: {allowed_tags}. Propose new shorthand tags only if needed.
+    - Votes: Extract exact motion, result, tally, and movers (LastName / LastName).
     - Summary: 5-8 bullet points of significant discussion/decisions.
-    - Timeline: 10-15 key moments with timestamps (H:MM:SS) and total seconds.
+    - Timeline: 10-15 key moments with timestamps (H:MM:SS) and total seconds. 
+      DO NOT include fractional seconds (e.g., use 0:01:05, NOT 0:01:05.400).
 
     Transcript:
     {transcript}
@@ -119,15 +144,18 @@ def process_single_meeting(date_slug, vtt_path):
         )
         report_data = json.loads(response.text)
         
-        # 1. Update NJK file
+        # Clean timestamps
+        for item in report_data.get('timeline', []):
+            item['time'] = item['time'].split('.')[0]
+
+        # Update NJK file
         with open(njk_path, 'r') as f:
             content = f.read()
 
         import yaml
         from datetime import date
-        
         match = re.match(r'^(---\s*\n.*?\n---\s*\n)(.*)', content, re.DOTALL)
-        if not match: return f"Error {date_slug}: Front matter not found."
+        if not match: return None
         
         fm_raw = match.group(1)
         body = match.group(2)
@@ -144,59 +172,49 @@ def process_single_meeting(date_slug, vtt_path):
         tags = report_data.pop('tags', [])
         report_yaml = yaml.dump(report_data, sort_keys=False, default_flow_style=False)
         
-        # Clean up existing votes/summary/timeline if present to avoid duplication
         fm_raw = re.sub(r'\nvotes:.*?(?=\n\w+:|\n---)', '', fm_raw, flags=re.DOTALL)
         fm_raw = re.sub(r'\nsummary:.*?(?=\n\w+:|\n---)', '', fm_raw, flags=re.DOTALL)
         fm_raw = re.sub(r'\ntimeline:.*?(?=\n\w+:|\n---)', '', fm_raw, flags=re.DOTALL)
 
         new_fm = fm_raw.replace('\n---', '\n' + report_yaml.strip() + '\n---', 1)
-        
         with open(njk_path, 'w') as f:
             f.write(new_fm + body)
 
-        # 2. Update Global Metadata (Partial update to avoid race conditions in parallel)
-        # We will return the tags to be updated at the end to avoid file locking issues
         return {"slug": date_slug, "tags": tags, "status": "Success"}
 
     except Exception as e:
+        if "429" in str(e):
+            print(f"Rate limited on {date_slug}. Stopping batch.")
+            os._exit(1)
         return {"slug": date_slug, "status": f"Error: {e}"}
 
 def run_fast_loop():
     mapping = get_transcript_mapping()
-    
-    # Filter out already processed if desired, but for now we'll process all available 2026/2025
     to_process = {k: v for k, v in mapping.items() if "2026" in k or "2025" in k}
     
     print(f"Found {len(to_process)} meetings to process.")
-    
     results = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(process_single_meeting, slug, path): slug for slug, path in to_process.items()}
         for future in as_completed(futures):
-            results.append(future.result())
+            res = future.result()
+            if res:
+                results.append(res)
+                print(f"Completed: {res['slug']} - {res['status']}")
 
-    # Final global update
+    # Update meetings.json
     json_path = 'src/_data/meetings.json'
     with open(json_path, 'r') as f:
         meetings_data = json.load(f)
-        
     for res in results:
-        if isinstance(res, dict) and res.get('status') == 'Success':
+        if res.get('status') == 'Success':
             for m in meetings_data:
                 if m['slug'] == res['slug']:
                     m['topics'] = res['tags']
                     m['stub'] = False
                     break
-    
     with open(json_path, 'w') as f:
         json.dump(meetings_data, f, indent=2)
-
-    print("\n--- FAST LOOP COMPLETE ---")
-    for res in results:
-        if isinstance(res, dict):
-            print(f"{res['slug']}: {res['status']}")
-        else:
-            print(res)
 
 if __name__ == "__main__":
     run_fast_loop()

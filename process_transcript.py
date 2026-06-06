@@ -45,6 +45,25 @@ else:
     client = genai.Client()
     print("No API Key found, using standard Client initialization (may fail)")
 
+GLOSSARY = """
+- Kaler Elementary School (NOT Caler)
+- Dyer Elementary School
+- Skillin Elementary School (NOT Skillen)
+- Brown Elementary School
+- Small Elementary School
+- Mahoney Middle School
+- Memorial Middle School
+- South Portland High School (SPHS)
+- SPSD (South Portland School Department)
+- SPBoE (South Portland Board of Education)
+- SPESPA (South Portland Education Support Professionals Association)
+- SPTA (South Portland Teachers Association)
+- APC (Administrative Policy Committee)
+- MSMA (Maine School Management Association)
+- NESDEC (New England School Development Council)
+- Zeal Education Group
+"""
+
 class Vote(BaseModel):
     motion: str = Field(description="The exact motion text")
     result: str = Field(description="'Pass' or 'Fail'")
@@ -81,12 +100,16 @@ def process_transcript(vtt_path):
     prompt = f"""
     Analyze the following school board meeting transcript. Extract the formal votes, a high-level meeting summary, a chronological timeline of key events, and a list of standardized topic tags.
     
+    IMPORTANT: Use the following Glossary for correct spelling:
+    {GLOSSARY}
+
     Guidelines:
     - Tags: Select 3-5 high-level topic tags. Use the following standardized list as your primary source: {allowed_tags}. 
-      If a major, recurring topic is discussed that is NOT in this list, you may propose a NEW standardized shorthand tag (e.g., 'Child Development Services' or 'Grant Funding').
+      If a major, recurring topic is discussed that is NOT in this list, you may propose a NEW standardized shorthand tag.
     - Votes: Extract the exact motion, result, tally (use 'Unan.' for unanimous), and the movers (LastName / LastName).
     - Summary: Provide 5-8 bullet points of the most significant topics discussed or decided.
-    - Timeline: Extract 10-15 key moments with their exact starting timestamps in H:MM:SS format and the total seconds.
+    - Timeline: Extract 10-15 key moments with their exact starting timestamps in H:MM:SS format and the total seconds. 
+      DO NOT include fractional seconds (e.g., use 0:01:05, NOT 0:01:05.400).
 
     Transcript:
     {transcript}
@@ -106,6 +129,10 @@ def process_transcript(vtt_path):
             )
             report_data = json.loads(response.text)
             
+            # Post-process: strip fractional seconds if any slipped through
+            for item in report_data.get('timeline', []):
+                item['time'] = item['time'].split('.')[0]
+            
             # Update the library if new tags were proposed
             if os.path.exists(topics_path):
                 new_tags = [t for t in report_data.get('tags', []) if t not in allowed_tags]
@@ -123,7 +150,6 @@ def process_transcript(vtt_path):
                 sys.exit(1)
             else:
                 print(f"Error with {model_name}: {e}")
-                # Move to next model
                 
     raise Exception("All models exhausted or error encountered.")
 
@@ -131,7 +157,6 @@ def update_meeting_file(njk_path, report_data):
     with open(njk_path, 'r') as f:
         content = f.read()
 
-    # We need to inject the YAML data into the front matter
     import yaml
     from datetime import date
     
@@ -139,26 +164,30 @@ def update_meeting_file(njk_path, report_data):
     if not match: return
     
     fm_raw = match.group(1)
+    body = match.group(2)
+    
     fm_raw = fm_raw.replace('stub: true', 'stub: false')
     fm_raw = fm_raw.replace('has_transcript: false', 'has_transcript: true')
     
-    # Add processed_date
     today = date.today().isoformat()
     if 'processed_date:' not in fm_raw:
         fm_raw = fm_raw.replace('\n---', f'\nprocessed_date: "{today}"\n---', 1)
     else:
         fm_raw = re.sub(r'processed_date:.*', f'processed_date: "{today}"', fm_raw)
 
-    # Extract tags before dumping the rest to YAML
     tags = report_data.pop('tags', [])
-    
     report_yaml = yaml.dump(report_data, sort_keys=False, default_flow_style=False)
+    
+    fm_raw = re.sub(r'\nvotes:.*?(?=\n\w+:|\n---)', '', fm_raw, flags=re.DOTALL)
+    fm_raw = re.sub(r'\nsummary:.*?(?=\n\w+:|\n---)', '', fm_raw, flags=re.DOTALL)
+    fm_raw = re.sub(r'\ntimeline:.*?(?=\n\w+:|\n---)', '', fm_raw, flags=re.DOTALL)
+
     new_fm = fm_raw.replace('\n---', '\n' + report_yaml.strip() + '\n---', 1)
     
     with open(njk_path, 'w') as f:
-        f.write(new_fm)
+        f.write(new_fm + body)
 
-    # Update meetings.json with the tags
+    # Update meetings.json
     date_slug = os.path.basename(njk_path).replace('.njk', '')
     json_path = 'src/_data/meetings.json'
     
@@ -176,7 +205,6 @@ def update_meeting_file(njk_path, report_data):
             json.dump(meetings_data, f, indent=2)
 
 
-import sys
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: python3 process_transcript.py <vtt_file> <njk_file>")
