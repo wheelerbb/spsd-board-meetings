@@ -35,16 +35,11 @@
     "day_of_week": "Thursday",
     "type": "Special",
     "title": "Special Board Meeting",
-    "topics": [
-      "Kaler Closure",
-      "Personnel",
-      "Contracts",
-      "Superintendent Search"
-    ],
+    "topics": [],
     "doc_count": 2,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2026-05-27",
@@ -54,17 +49,11 @@
     "day_of_week": "Wednesday",
     "type": "Exec. Session",
     "title": "Executive Session & Special Meeting",
-    "topics": [
-      "Superintendent Search",
-      "Kaler Closure",
-      "Reconfiguration",
-      "Personnel",
-      "Transportation"
-    ],
+    "topics": [],
     "doc_count": 2,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2026-05-11",
@@ -74,17 +63,11 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "May Regular Meeting",
-    "topics": [
-      "Superintendent Search",
-      "Student Recognition",
-      "Personnel",
-      "Reconfiguration",
-      "Policy"
-    ],
+    "topics": [],
     "doc_count": 2,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2026-04-29",
@@ -164,17 +147,11 @@
     "day_of_week": "Tuesday",
     "type": "Special",
     "title": "Special Budget Meeting",
-    "topics": [
-      "FY2027 Budget",
-      "Reconfiguration",
-      "Kaler Closure",
-      "Personnel",
-      "Superintendent Search"
-    ],
+    "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2026-04-06",
@@ -198,17 +175,11 @@
     "day_of_week": "Thursday",
     "type": "Special",
     "title": "Special Budget Meeting",
-    "topics": [
-      "FY2027 Budget",
-      "Reconfiguration",
-      "Personnel",
-      "Facilities",
-      "Equity"
-    ],
+    "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2026-04-01",
@@ -232,17 +203,11 @@
     "day_of_week": "Monday",
     "type": "Special",
     "title": "Special Budget Meeting",
-    "topics": [
-      "FY2027 Budget",
-      "Kaler Closure",
-      "Reconfiguration",
-      "Personnel",
-      "Equity"
-    ],
+    "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2026-03-23",
@@ -252,17 +217,11 @@
     "day_of_week": "Monday",
     "type": "Workshop",
     "title": "Budget Workshop II",
-    "topics": [
-      "FY2027 Budget",
-      "Kaler Closure",
-      "Reconfiguration",
-      "Personnel",
-      "Enrollment"
-    ],
+    "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2026-03-17",
@@ -286,17 +245,11 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "March Regular Meeting",
-    "topics": [
-      "FY2027 Budget",
-      "Reconfiguration",
-      "Personnel",
-      "Superintendent Search",
-      "Facilities"
-    ],
+    "topics": [],
     "doc_count": 4,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2026-03-02",
@@ -306,17 +259,11 @@
     "day_of_week": "Monday",
     "type": "Workshop",
     "title": "Budget Workshop I",
-    "topics": [
-      "FY2027 Budget",
-      "Reconfiguration",
-      "Facilities",
-      "Equity",
-      "Enrollment"
-    ],
+    "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2026-02-24",
@@ -340,17 +287,11 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "February Regular Meeting",
-    "topics": [
-      "FY2027 Budget",
-      "Superintendent Search",
-      "Reconfiguration",
-      "Policy",
-      "Facilities"
-    ],
+    "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2026-01-24",
@@ -391,8 +332,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2026-01-07",
@@ -430,17 +371,11 @@
     "day_of_week": "Wednesday",
     "type": "Workshop",
     "title": "Board Preliminary Budget Workshop",
-    "topics": [
-      "FY2027 Budget",
-      "Superintendent Search",
-      "Enrollment",
-      "Facilities",
-      "Transportation"
-    ],
+    "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-12-10",
@@ -450,14 +385,11 @@
     "day_of_week": "Wednesday",
     "type": "Workshop",
     "title": "Board Workshop and Special Meeting",
-    "topics": [
-      "Superintendent Search Presentations",
-      "Firm Selection (Zeal Education Group)"
-    ],
+    "topics": [],
     "doc_count": 2,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-12-08",
@@ -467,17 +399,11 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "December Regular Meeting",
-    "topics": [
-      "FY2025 Budget",
-      "Superintendent Search",
-      "Policy",
-      "Contracts",
-      "Personnel"
-    ],
+    "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-12-03",
@@ -518,8 +444,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-10-06",
@@ -532,8 +458,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-09-15",
@@ -560,8 +486,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-08-20",
@@ -613,17 +539,11 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "July Regular Meeting",
-    "topics": [
-      "Superintendent Search",
-      "Personnel",
-      "Facilities",
-      "Policy",
-      "FY2025 Budget"
-    ],
+    "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-07-10",
@@ -664,8 +584,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-06-09",
@@ -678,8 +598,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-06-03",
@@ -692,8 +612,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-05-27",
@@ -706,8 +626,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-05-12",
@@ -720,8 +640,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-04-30",
@@ -734,8 +654,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-04-14",
@@ -748,8 +668,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-04-07",
@@ -762,8 +682,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-03-31",
@@ -776,8 +696,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-03-27",
@@ -804,8 +724,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-03-17",
@@ -818,8 +738,8 @@
     "topics": [],
     "doc_count": 0,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-03-10",
@@ -832,8 +752,8 @@
     "topics": [],
     "doc_count": 4,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-02-24",
@@ -846,8 +766,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-02-03",
@@ -874,8 +794,8 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-01-13",
@@ -888,8 +808,8 @@
     "topics": [],
     "doc_count": 4,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2025-01-08",
@@ -902,8 +822,8 @@
     "topics": [],
     "doc_count": 4,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false
   },
   {
     "slug": "2024-12-09",

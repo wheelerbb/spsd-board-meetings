@@ -11,11 +11,12 @@ import google.auth
 try:
     credentials, project = google.auth.default()
     client = genai.Client(credentials=credentials, project=project, location='us-central1', vertexai=True)
-    model_name = 'gemini-2.5-pro'
+    model_name = 'gemini-2.0-flash'
 except:
     api_key = os.getenv("GEMINI_PRO_API_KEY") or os.getenv("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key)
-    model_name = 'gemini-1.5-flash' 
+    model_name = 'gemini-2.0-flash' 
+
 
 def generate_summaries():
     meetings_data = []

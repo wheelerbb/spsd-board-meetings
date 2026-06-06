@@ -20,8 +20,8 @@ api_key = os.getenv("GEMINI_PRO_API_KEY") or os.getenv("GEMINI_API_KEY")
 
 # Configuration
 if USE_LOCAL_AUTH:
-    DEFAULT_MODEL = 'gemini-2.5-pro'
-    BACKUP_MODEL = 'gemini-2.5-flash'
+    DEFAULT_MODEL = 'gemini-2.5-flash'
+    BACKUP_MODEL = 'gemini-2.5-pro'
 else:
     DEFAULT_MODEL = 'gemini-2.0-flash'
     BACKUP_MODEL = 'gemini-1.5-flash'
@@ -135,7 +135,8 @@ def process_transcript(vtt_path):
             
             # Update the library if new tags were proposed
             if os.path.exists(topics_path):
-                new_tags = [t for t in report_data.get('tags', []) if t not in allowed_tags]
+                blacklist = ['Personnel', 'Contracts']
+                new_tags = [t for t in report_data.get('tags', []) if t not in allowed_tags and t not in blacklist]
                 if new_tags:
                     allowed_tags.extend(new_tags)
                     allowed_tags = sorted(list(set(allowed_tags)))
