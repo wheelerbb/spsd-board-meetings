@@ -11,7 +11,8 @@
     "doc_count": 0,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2026-07-13",
@@ -25,7 +26,8 @@
     "doc_count": 0,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2026-06-04",
@@ -39,7 +41,8 @@
     "doc_count": 2,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2026-05-27",
@@ -53,7 +56,8 @@
     "doc_count": 2,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2026-05-11",
@@ -73,7 +77,8 @@
     "doc_count": 2,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2026-04-29",
@@ -101,7 +106,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2026-04-17",
@@ -115,7 +121,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2026-04-13",
@@ -143,7 +150,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2026-04-07",
@@ -157,7 +165,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2026-04-06",
@@ -171,7 +180,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2026-04-02",
@@ -188,7 +198,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2026-04-01",
@@ -202,7 +213,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2026-03-30",
@@ -219,7 +231,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2026-03-23",
@@ -236,7 +249,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2026-03-17",
@@ -250,7 +264,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2026-03-09",
@@ -268,7 +283,8 @@
     "doc_count": 4,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2026-03-02",
@@ -286,7 +302,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2026-02-24",
@@ -300,7 +317,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2026-02-09",
@@ -318,7 +336,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2026-01-24",
@@ -332,7 +351,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2026-01-14",
@@ -346,7 +366,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2026-01-12",
@@ -365,7 +386,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2026-01-07",
@@ -379,7 +401,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2025-12-22",
@@ -393,7 +416,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2025-12-17",
@@ -412,7 +436,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-12-10",
@@ -426,7 +451,8 @@
     "doc_count": 2,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-12-08",
@@ -443,7 +469,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-12-03",
@@ -457,7 +484,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2025-11-05",
@@ -471,7 +499,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2025-11-03",
@@ -489,7 +518,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-10-06",
@@ -517,7 +547,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2025-09-08",
@@ -531,7 +562,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-08-20",
@@ -545,7 +577,8 @@
     "doc_count": 1,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2025-08-18",
@@ -559,7 +592,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2025-07-30",
@@ -573,7 +607,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2025-07-14",
@@ -589,7 +624,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-07-10",
@@ -603,7 +639,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2025-07-01",
@@ -617,7 +654,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2025-06-18",
@@ -634,7 +672,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-06-09",
@@ -650,7 +689,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-06-03",
@@ -666,7 +706,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-05-27",
@@ -682,7 +723,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-05-12",
@@ -698,7 +740,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-04-30",
@@ -716,7 +759,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-04-14",
@@ -730,7 +774,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-04-07",
@@ -746,7 +791,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-03-31",
@@ -762,7 +808,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-03-27",
@@ -776,7 +823,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2025-03-24",
@@ -793,7 +841,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-03-17",
@@ -809,7 +858,8 @@
     "doc_count": 0,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-03-10",
@@ -826,7 +876,8 @@
     "doc_count": 4,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-02-24",
@@ -842,7 +893,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-02-03",
@@ -856,7 +908,8 @@
     "doc_count": 2,
     "has_video": false,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2025-01-27",
@@ -870,7 +923,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-01-13",
@@ -886,7 +940,8 @@
     "doc_count": 4,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2025-01-08",
@@ -902,7 +957,8 @@
     "doc_count": 4,
     "has_video": true,
     "has_transcript": true,
-    "stub": false
+    "stub": false,
+    "blurb": ""
   },
   {
     "slug": "2024-12-09",
@@ -916,7 +972,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-12-02",
@@ -930,7 +987,8 @@
     "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-11-12",
@@ -944,7 +1002,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-10-15",
@@ -958,7 +1017,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-09-09",
@@ -972,7 +1032,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-08-19",
@@ -986,7 +1047,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-07-08",
@@ -1000,7 +1062,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-06-10",
@@ -1014,7 +1077,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-05-30",
@@ -1028,7 +1092,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-05-13",
@@ -1042,7 +1107,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-04-08",
@@ -1056,7 +1122,8 @@
     "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-03-28",
@@ -1070,7 +1137,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-03-25",
@@ -1084,7 +1152,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-03-18",
@@ -1098,7 +1167,8 @@
     "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-03-11",
@@ -1112,7 +1182,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-02-12",
@@ -1126,7 +1197,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-01-22",
@@ -1140,7 +1212,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2024-01-08",
@@ -1154,7 +1227,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2023-12-11",
@@ -1168,7 +1242,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2023-12-04",
@@ -1182,7 +1257,8 @@
     "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2023-11-13",
@@ -1196,7 +1272,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2023-10-10",
@@ -1210,7 +1287,8 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2023-09-11",
@@ -1224,7 +1302,8 @@
     "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   },
   {
     "slug": "2023-08-21",
@@ -1238,6 +1317,7 @@
     "doc_count": 3,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": true,
+    "blurb": ""
   }
 ]

@@ -1,0 +1,36 @@
+---
+layout: layouts/base.njk
+title: "Topic Explorer Index — SPSD Board Meeting Archive"
+permalink: "/topics/index.html"
+---
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Thematic Archive</div>
+    <h1>Topic Explorer</h1>
+    <div style="margin-top: 1.5rem; font-size: .85rem; color: var(--gold-light); max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.5; padding: 1.25rem; background: rgba(200,150,62,0.1); border-radius: 6px; border: 1px solid var(--gold);">
+      Select a topic below to trace its evolution, view key resolutions, and see summaries of perspectives from the Board, Administration, Teachers, and Citizens.
+    </div>
+  </div>
+</div>
+
+<main class="main">
+  <div class="topics-grid">
+    {% for topic in topics | sort %}
+    <a href="{{ ('/topics/' + topic | slugify + '/') | url }}" class="topic-card">
+      <h2>{{ topic }}</h2>
+      <div class="topic-card-summary">
+        {% if topic_summaries[topic] %}
+          {{ topic_summaries[topic] | truncate(200) }}
+        {% else %}
+          No summary available for this topic yet.
+        {% endif %}
+      </div>
+      <div style="margin-top: 2rem; display: flex; align-items: center; gap: 0.5rem; color: var(--gold); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+        Explore Evolution
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</main>

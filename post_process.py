@@ -17,7 +17,7 @@ try:
 except:
     api_key = os.getenv("GEMINI_PRO_API_KEY") or os.getenv("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key)
-    model_name = 'gemini-2.0-flash'
+    model_name = 'gemini-1.5-flash'
 
 GLOSSARY = {
     "Caler": "Kaler",
@@ -26,7 +26,7 @@ GLOSSARY = {
     "Caler's": "Kaler's"
 }
 
-TOPIC_BLACKLIST = ["Personnel", "Contracts"]
+TOPIC_BLACKLIST = ["Personnel", "Contracts", "Finance", "Budget"] # Generic versions
 
 def post_process():
     meeting_dir = 'src/meetings/'
@@ -66,11 +66,17 @@ def post_process():
                     all_discovered_topics.update(data['topics'])
             except: pass
 
-    # 2. Update Topics Library (Respecting Blacklist)
+    # 2. Update Topics Library (Allow specific versions, filter generic)
     print("Updating topics library...")
     with open(topics_lib_path, 'r') as f: current_topics = json.load(f)
     
-    new_lib = sorted(list(set([t for t in all_discovered_topics if t not in TOPIC_BLACKLIST] + current_topics)))
+    # Filter: Allow "FY26 Personnel Reductions" but not "Personnel"
+    new_filtered_topics = []
+    for t in all_discovered_topics:
+        if t in TOPIC_BLACKLIST: continue
+        new_filtered_topics.append(t)
+
+    new_lib = sorted(list(set(new_filtered_topics + current_topics)))
     with open(topics_lib_path, 'w') as f: json.dump(new_lib, f, indent=2)
 
     # 3. Synchronize meetings.json
@@ -84,7 +90,7 @@ def post_process():
             g_meeting['stub'] = local_data.get('stub', True)
             g_meeting['topics'] = [t for t in local_data.get('topics', []) if t not in TOPIC_BLACKLIST]
             g_meeting['has_transcript'] = local_data.get('has_transcript', False)
-            # doc_count is already handled by scraper generally, but we can preserve it
+            g_meeting['blurb'] = local_data.get('blurb', '')
             
     with open(meetings_json_path, 'w') as f: json.dump(global_json, f, indent=2)
 
@@ -94,13 +100,10 @@ def post_process():
     if os.path.exists(summary_lib_path):
         with open(summary_lib_path, 'r') as f: summaries = json.load(f)
 
-    # We only summarize topics that appear in at least 2 meetings or are major
     for topic in new_lib:
-        # Gather chronological evidence
+        # Gather evidence
         evidence = []
-        # Sort by date, handle missing date field
         sorted_m_data = sorted(meetings_data, key=lambda x: str(x.get('date', x.get('slug', ''))))
-        
         for m in sorted_m_data:
             if topic in m.get('topics', []):
                 summary_bullets = m.get('summary', [])
@@ -109,7 +112,7 @@ def post_process():
                     m_date = m.get('date', m.get('slug', 'Unknown Date'))
                     evidence.append(f"Date: {m_date}\n" + "\n".join(topic_bullets))
         
-        if len(evidence) < 1: continue # Skip if no evidence
+        if not evidence: continue
         
         print(f"  Summarizing: {topic}...")
         prompt = f"""
@@ -119,8 +122,9 @@ def post_process():
         TASK:
         1. Write 2-3 paragraphs of 'Current Status & Impact'. 
         2. Start with the most recent developments, votes, or resolutions.
-        3. Trace the evolution of the topic across the provided meetings.
-        4. SPELING: Kaler (NOT Caler), Skillin (NOT Skillen).
+        3. Identify specific viewpoints or actions from these groups: Board, Administration, Teachers, Citizens.
+        4. Trace the evolution of the topic across the provided meetings.
+        5. SPELING: Kaler (NOT Caler), Skillin (NOT Skillen).
 
         Meeting Evidence:
         {"---".join(evidence)}

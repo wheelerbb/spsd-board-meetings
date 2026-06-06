@@ -142,6 +142,9 @@ pageScript: |
         </div>
         <div class="card-body">
           <div class="card-title">{{ m.title }}</div>
+          {% if m.blurb %}
+          <div class="card-blurb">{{ m.blurb }}</div>
+          {% endif %}
           {% if m.topics and m.topics.length > 0 %}
           <div class="card-topics">
             {% for topic in m.topics %}
