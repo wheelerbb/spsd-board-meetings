@@ -18,6 +18,16 @@ else:
 # Prioritize high-limit key, otherwise try standard, otherwise fall back to local auth
 api_key = os.getenv("GEMINI_PRO_API_KEY") or os.getenv("GEMINI_API_KEY")
 
+# Configuration
+if USE_LOCAL_AUTH:
+    DEFAULT_MODEL = 'gemini-2.5-pro'
+    BACKUP_MODEL = 'gemini-2.5-flash'
+else:
+    DEFAULT_MODEL = 'gemini-2.0-flash'
+    BACKUP_MODEL = 'gemini-1.5-flash'
+
+client = None
+
 if USE_LOCAL_AUTH:
     # Try to use Application Default Credentials
     import google.auth
@@ -34,10 +44,6 @@ elif api_key and "your_" not in api_key:
 else:
     client = genai.Client()
     print("No API Key found, using standard Client initialization (may fail)")
-
-# Configuration
-DEFAULT_MODEL = 'gemini-2.0-flash'
-BACKUP_MODEL = 'gemini-1.5-flash'
 
 class Vote(BaseModel):
     motion: str = Field(description="The exact motion text")

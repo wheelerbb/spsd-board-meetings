@@ -35,11 +35,16 @@
     "day_of_week": "Thursday",
     "type": "Special",
     "title": "Special Board Meeting",
-    "topics": [],
+    "topics": [
+      "Kaler Closure",
+      "Personnel",
+      "Contracts",
+      "Superintendent Search"
+    ],
     "doc_count": 2,
     "has_video": true,
     "has_transcript": false,
-    "stub": true
+    "stub": false
   },
   {
     "slug": "2026-05-27",
