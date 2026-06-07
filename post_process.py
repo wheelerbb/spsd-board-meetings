@@ -28,11 +28,35 @@ GLOSSARY = {
 
 TOPIC_BLACKLIST = ["Personnel", "Contracts", "Finance", "Budget"] # Generic versions
 
+def get_vtt_files():
+    vtt_dates = set()
+    base_dir = "static/transcripts"
+    if not os.path.exists(base_dir): return vtt_dates
+    for root, _, files in os.walk(base_dir):
+        for f in files:
+            if not f.endswith('.vtt'): continue
+            # Basic date extraction logic
+            m = re.search(r'(\d{4})(\d{2})(\d{2})', f)
+            if m: vtt_dates.add(f"{m.group(1)}-{m.group(2)}-{m.group(3)}")
+            elif re.search(r'(\d{2})\.(\d{2})\.(\d{2})', f):
+                dm = re.search(r'(\d{2})\.(\d{2})\.(\d{2})', f)
+                vtt_dates.add(f"20{dm.group(3)}-{dm.group(1)}-{dm.group(2)}")
+            else:
+                months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                m = re.search(rf'({"|".join(months)}) (\d{{1,2}}) (\d{{4}})', f)
+                if m:
+                    from datetime import datetime
+                    dt = datetime.strptime(f"{m.group(1)} {m.group(2)} {m.group(3)}", "%B %d %Y")
+                    vtt_dates.add(dt.strftime("%Y-%m-%d"))
+    return vtt_dates
+
 def post_process():
     meeting_dir = 'src/meetings/'
     topics_lib_path = 'src/_data/topics.json'
     meetings_json_path = 'src/_data/meetings.json'
     summary_lib_path = 'src/_data/topic_summaries.json'
+
+    vtt_files = get_vtt_files()
 
     # 1. Enforce Glossary & Extract Data for Sync
     print("Enforcing Glossary and scanning meetings...")
@@ -42,40 +66,41 @@ def post_process():
     for filename in os.listdir(meeting_dir):
         if not filename.endswith('.njk'): continue
         filepath = os.path.join(meeting_dir, filename)
+        date_slug = filename.replace('.njk', '')
         
         with open(filepath, 'r') as f: content = f.read()
         
-        # Glossary enforcement (surgically)
+        # Glossary enforcement
         original_content = content
         for wrong, right in GLOSSARY.items():
             content = content.replace(wrong, right)
         
+        # Inject VTT source status
+        has_vtt = date_slug in vtt_files
+        if 'has_vtt_source:' not in content:
+            content = re.sub(r'has_transcript:', f'has_vtt_source: {str(has_vtt).lower()}\nhas_transcript:', content)
+        else:
+            content = re.sub(r'has_vtt_source:.*', f'has_vtt_source: {str(has_vtt).lower()}', content)
+
         if content != original_content:
             with open(filepath, 'w') as f: f.write(content)
-            print(f"  Fixed typos in {filename}")
+            # print(f"  Updated {filename}")
 
         # Extract Front Matter
         match = re.search(r'^(---\s*\n(.*?)\n---\s*\n)', content, re.DOTALL)
         if match:
             try:
                 data = yaml.safe_load(match.group(2))
-                data['slug'] = filename.replace('.njk', '')
+                data['slug'] = date_slug
                 meetings_data.append(data)
-                # Track topics
                 if 'topics' in data:
                     all_discovered_topics.update(data['topics'])
             except: pass
 
-    # 2. Update Topics Library (Allow specific versions, filter generic)
+    # 2. Update Topics Library
     print("Updating topics library...")
     with open(topics_lib_path, 'r') as f: current_topics = json.load(f)
-    
-    # Filter: Allow "FY26 Personnel Reductions" but not "Personnel"
-    new_filtered_topics = []
-    for t in all_discovered_topics:
-        if t in TOPIC_BLACKLIST: continue
-        new_filtered_topics.append(t)
-
+    new_filtered_topics = [t for t in all_discovered_topics if t not in TOPIC_BLACKLIST]
     new_lib = sorted(list(set(new_filtered_topics + current_topics)))
     with open(topics_lib_path, 'w') as f: json.dump(new_lib, f, indent=2)
 
@@ -84,7 +109,6 @@ def post_process():
     with open(meetings_json_path, 'r') as f: global_json = json.load(f)
     
     for g_meeting in global_json:
-        # Find matching data from NJK
         local_data = next((m for m in meetings_data if m['slug'] == g_meeting['slug']), None)
         if local_data:
             g_meeting['stub'] = local_data.get('stub', True)
@@ -94,14 +118,13 @@ def post_process():
             
     with open(meetings_json_path, 'w') as f: json.dump(global_json, f, indent=2)
 
-    # 4. Generate Topic Summaries (Topic Explorer)
+    # 4. Generate Topic Summaries
     print("Generating high-level topic summaries...")
     summaries = {}
     if os.path.exists(summary_lib_path):
         with open(summary_lib_path, 'r') as f: summaries = json.load(f)
 
     for topic in new_lib:
-        # Gather evidence
         evidence = []
         sorted_m_data = sorted(meetings_data, key=lambda x: str(x.get('date', x.get('slug', ''))))
         for m in sorted_m_data:
@@ -122,14 +145,12 @@ def post_process():
         TASK:
         1. Write 2-3 paragraphs of 'Current Status & Impact'. 
         2. Start with the most recent developments, votes, or resolutions.
-        3. Identify specific viewpoints or actions from these groups: Board, Administration, Teachers, Citizens.
-        4. Trace the evolution of the topic across the provided meetings.
-        5. SPELING: Kaler (NOT Caler), Skillin (NOT Skillen).
+        3. Trace the evolution across these groups: Board, Administration, Teachers, Citizens.
+        4. SPELING: Kaler (NOT Caler), Skillin (NOT Skillen).
 
         Meeting Evidence:
         {"---".join(evidence)}
         """
-
         try:
             response = client.models.generate_content(model=model_name, contents=prompt, config={'temperature': 0.1})
             summaries[topic] = response.text

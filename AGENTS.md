@@ -77,6 +77,47 @@ timeline:
     desc: "1-2 sentence description."
 ```
 
+## Technical Processing Pipeline
+
+The archive uses a two-stage modular pipeline for ingesting and synthesizing board meeting data.
+
+### 1. Ingestion: `process_transcripts.py`
+This tool analyzes raw `.vtt` transcripts using Gemini (Vertex AI or AI Studio).
+- **Function:** Extracts formal votes, summary bullets, timeline highlights, and a meeting "blurb".
+- **Authentication:** Supports `--local-auth` (Vertex AI ADC) or standard API keys.
+- **Model Selection:** Automatically maps to provider-specific models (e.g., `gemini-2.5-pro` for Vertex).
+- **Concurrency:** Uses a ThreadPoolExecutor for parallel processing (default 4 workers for Vertex).
+
+### 2. Synthesis: `post_process.py`
+This maintenance tool synchronizes the global metadata and generates high-level thematic content.
+- **Glossary Enforcement:** Programmatically corrects common transcript misspellings (e.g., "Caler" → "Kaler").
+- **Topic Maintenance:** Updates the global topics library. It allows specific terms (e.g., "FY26 Personnel Reductions") but filters out generic blacklisted tags (e.g., "Personnel").
+- **Metadata Sync:** Synchronizes `src/_data/meetings.json` with the latest front matter from individual `.njk` files.
+- **Topic Explorer Generation:** Analyzes chronological evidence for every topic to generate the "Current Status & Impact" summaries.
+
+---
+
+## Conventions & Standards
+
+### Perspective Grouping
+When summarizing meeting discussions, identify viewpoints from these four groups to provide a balanced overview:
+1. **Board:** Elected members, their questions, and policy direction.
+2. **Administration:** The Superintendent and Directors; focus on recommendations and operational reports.
+3. **Teachers:** Staff members and Union representatives; focus on classroom impact and contract concerns.
+4. **Citizens:** Public comment, parents, and community members.
+
+### Topic Identification
+- **Specificity:** Avoid generic tags like "Budget" or "Personnel". Prefer specific, recurring themes like "FY2027 Budget" or "Kaler Closure".
+- **Substance:** Only tag topics that involve significant discussion, formal presentations, or board action. 
+- **Consistency:** Use `src/_data/topics.json` as the authoritative list. If a new major theme emerges across multiple meetings, the pipeline will propose it for addition.
+
+### SPELING & Terminology
+- **Schools:** Kaler, Dyer, Skillin, Brown, Small, Mahoney, Memorial.
+- **Groups:** SPESPA (Support Professionals), SPTA (Teachers).
+- **Phonetic Fixes:** Raw VTT files often misspell local names; always verify against the official Meeting Minutes PDF.
+
+---
+
 ## Adding a new stub meeting
 
 1. Add an entry to `src/_data/meetings.json` (set `stub: true`, `topics: []`, `doc_count: 0`).
