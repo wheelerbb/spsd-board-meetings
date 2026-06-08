@@ -144,14 +144,10 @@ def build_meeting_map(files):
 def generate_stubs(mapping):
     meeting_dir = 'src/meetings/'
     if not os.path.exists(meeting_dir): os.makedirs(meeting_dir)
-    
-    meetings_json_path = 'src/_data/meetings.json'
-    global_json = []
-    if os.path.exists(meetings_json_path):
-        with open(meetings_json_path, 'r') as f:
-            global_json = json.load(f)
-            
-    existing_slugs = [m['slug'] for m in global_json]
+
+    # meetings.json is derived at build time from .njk front matter (meetings.js).
+    # This function writes only .njk files; prev/next navigation is computed at
+    # build time by the meetingNav Eleventy filter.
     changes_made = 0
 
     for date_slug, new_docs in mapping.items():
@@ -200,25 +196,10 @@ def generate_stubs(mapping):
                 if added_any or len(unique_docs) < len(data.get('docs', [])):
                     print(f"Merged/Cleaned docs for meeting: {date_slug}")
                     data['docs'] = existing_docs
-                    # Use a custom Dumper to avoid some escaping if possible, 
-                    # but safe_dump is generally fine.
                     fm_yaml = yaml.dump(data, sort_keys=False, default_flow_style=False, allow_unicode=True)
                     with open(njk_path, 'w') as f:
                         f.write(f"---\n{fm_yaml}---\n{body}")
-                    
-                    # Update global json doc count
-                    found_in_json = False
-                    for g in global_json:
-                        if g['slug'] == date_slug:
-                            g['doc_count'] = len([d for d in existing_docs if d.get('type') != 'video'])
-                            changes_made += 1
-                            found_in_json = True
-                            break
-                    
-                    if not found_in_json:
-                        # If it's in NJK but not in JSON, we'll add it to JSON in the next block
-                        # (or just assume it's already there if existing_slugs is accurate)
-                        pass
+                    changes_made += 1
             continue
 
             
@@ -226,10 +207,6 @@ def generate_stubs(mapping):
         changes_made += 1
         
         dt = datetime.strptime(date_slug, "%Y-%m-%d")
-        year = dt.year
-        if dt.month >= 7: school_year = f"{year}-{year+1}"
-        else: school_year = f"{year-1}-{year}"
-        
         display_date = dt.strftime("%B %d, %Y").replace(" 0", " ")
         day_of_week = dt.strftime("%A")
         
@@ -267,26 +244,7 @@ def generate_stubs(mapping):
         with open(njk_path, 'w') as f:
             f.write(f"---\n{fm_yaml}---\n")
 
-        global_json.append({
-            "slug": date_slug,
-            "school_year": school_year,
-            "date": date_slug,
-            "display_date": display_date,
-            "day_of_week": day_of_week,
-            "type": mtype,
-            "title": title,
-            "topics": [],
-            "doc_count": len([d for d in new_docs if d['type'] != 'video']),
-            "has_video": False,
-            "has_transcript": False,
-            "stub": True,
-            "blurb": ""
-        })
-
     if changes_made > 0:
-        global_json.sort(key=lambda x: x['date'], reverse=True)
-        with open(meetings_json_path, 'w') as f:
-            json.dump(global_json, f, indent=2)
         print(f"Updated {changes_made} meetings in the archive.")
     else:
         print("No new updates found.")

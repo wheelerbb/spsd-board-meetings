@@ -1,2 +1,2 @@
-const meetings = require("./meetings.json");
-module.exports = [...new Set(meetings.map((m) => m.school_year))].sort().reverse();
+const getMeetings = require('./meetings.js');
+module.exports = [...new Set(getMeetings().map((m) => m.school_year))].sort().reverse();

@@ -11,7 +11,7 @@ Eleventy 3.x static site archiving South Portland School Department (SPSD) board
 ```
 src/
   _data/
-    meetings.json   ← source of truth for all meeting metadata
+    meetings.js     ← derives meeting metadata from .njk front matter at build time
     years.js        ← derives unique year list for index grouping
   _includes/layouts/
     base.njk        ← HTML shell: Google Fonts, stylesheet, nav, footer
@@ -24,7 +24,7 @@ src/
 
 ## Data model
 
-### `meetings.json` fields
+### Meeting metadata fields (derived by `src/_data/meetings.js` from .njk front matter)
 
 | Field | Type | Notes |
 |---|---|---|
@@ -124,9 +124,8 @@ When summarizing meeting discussions, identify viewpoints from these four groups
 
 ## Adding a new stub meeting
 
-1. Add an entry to `src/_data/meetings.json` (set `stub: true`, `topics: []`, `doc_count: 0`).
-2. Create `src/meetings/YYYY-MM-DD.njk` with front matter (including attendance placeholders) and an empty body.
-3. Run `npm run build` — prev/next navigation is derived automatically at build time (no manual updates needed).
+1. Create `src/meetings/YYYY-MM-DD.njk` with front matter (including attendance placeholders) and an empty body.
+2. Run `npm run build` — the index card and navigation are derived automatically from the .njk front matter.
 
 ---
 
@@ -150,7 +149,7 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
 1. **Check for new dates:** Fetch the Events API.
 2. **Add stubs:** Use the standard structure in the front matter. Set `stub: true`.
 3. **Source Agendas:** Search for Google Drive links across the Articles API, the direct Board page, and the Documents API.
-4. **Update Stubs:** Add found links to `docs[]` and update `doc_count` in `src/_data/meetings.json`.
+4. **Update Stubs:** Add found links to `docs[]` in the `.njk` front matter — `doc_count` is derived automatically at build time.
 
 ---
 

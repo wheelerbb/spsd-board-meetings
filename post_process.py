@@ -82,7 +82,6 @@ def synthesize_topic(topic, evidence, display_date):
 def post_process():
     meeting_dir = 'src/meetings/'
     topics_lib_path = 'src/_data/topics.json'
-    meetings_json_path = 'src/_data/meetings.json'
     summary_lib_path = 'src/_data/topic_summaries.json'
     hashes_lib_path = 'src/_data/topic_hashes.json'
 
@@ -126,32 +125,15 @@ def post_process():
     new_lib = sorted(list(topic_recent_dates.keys()), key=lambda x: topic_recent_dates[x], reverse=True)
     with open(topics_lib_path, 'w') as f: json.dump(new_lib, f, indent=2)
 
-    # 3. Sync meetings.json & Generate Missing Blurbs concurrently
-    print("Synchronizing meetings.json and generating blurbs...")
-    with open(meetings_json_path, 'r') as f: global_json = json.load(f)
-    
-    blurb_tasks = []
-    for g in global_json:
-        local = next((m for m in meetings_data if m['slug'] == g['slug']), None)
-        if local:
-            g['stub'] = local.get('stub', True)
-            g['topics'] = [t for t in local.get('topics', []) if t not in TOPIC_BLACKLIST]
-            g['has_transcript'] = local.get('has_transcript', False)
-            g['blurb'] = local.get('blurb', '')
-            
-            if not g['stub'] and not g['blurb'] and local.get('summary'):
-                blurb_tasks.append(local)
-
+    # 3. Generate Missing Blurbs (write directly to .njk files; meetings.json is derived at build time)
+    print("Generating blurbs for unprocessed meetings...")
+    blurb_tasks = [m for m in meetings_data
+                   if not m.get('stub') and not m.get('blurb') and m.get('summary')]
     if blurb_tasks:
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = {executor.submit(generate_blurb, local, meeting_dir): local for local in blurb_tasks}
             for future in as_completed(futures):
-                slug, blurb = future.result()
-                if blurb:
-                    for g in global_json:
-                        if g['slug'] == slug: g['blurb'] = blurb
-                        
-    with open(meetings_json_path, 'w') as f: json.dump(global_json, f, indent=2)
+                future.result()  # generate_blurb writes blurb back to the .njk file
 
     # 4. Generate Synthesized Summaries (Concurrent + Caching)
     print("Generating high-level topic summaries...")
