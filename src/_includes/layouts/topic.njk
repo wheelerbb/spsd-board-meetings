@@ -9,14 +9,14 @@ layout: layouts/base.njk
   </div>
 </div>
 
-<main class="main" style="padding-top: 0; background: #fdfdfd;">
+<main class="main main-topic">
 
   <div class="topic-summary-box">
     <div class="topic-status-label">Current Status &amp; Core Perspectives</div>
-    <div class="summary-text" style="font-size: 1.1rem; line-height: 1.7; color: var(--text); font-family: 'DM Sans', sans-serif;">
+    <div class="summary-text">
       {{ topic_summary | safe | replace('\n', '<br>') }}
     </div>
-    
+
     {% set recent_votes = [] %}
     {% for m in collections.all | sort(true, false, "date") %}
       {% if m.data.topics and topic in m.data.topics %}
@@ -31,9 +31,9 @@ layout: layouts/base.njk
     {% endfor %}
 
     {% if recent_votes.length > 0 %}
-    <div style="margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--rule);">
-      <h4 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.5rem; color: var(--muted); font-weight: 800;">Key Resolutions &amp; Votes</h4>
-      <table class="vote-table" style="font-size: 0.85rem; background: #fafafa; border-radius: 6px;">
+    <div class="topic-votes">
+      <div class="topic-votes-label">Key Resolutions &amp; Votes</div>
+      <table class="vote-table vote-table--topic">
         <thead>
           <tr>
             <th>Date</th>
@@ -44,8 +44,8 @@ layout: layouts/base.njk
         <tbody>
           {% for item in recent_votes %}
           <tr>
-            <td style="white-space: nowrap; font-weight: 700;"><a href="{{ item.url | url }}" style="color:var(--navy);">{{ item.date }}</a></td>
-            <td style="line-height: 1.5;">{{ item.vote.motion }}</td>
+            <td class="vote-date-cell"><a href="{{ item.url | url }}">{{ item.date }}</a></td>
+            <td>{{ item.vote.motion }}</td>
             <td><span class="vote-chip {{ item.vote.result | lower }}">{{ item.vote.result }}</span></td>
           </tr>
           {% endfor %}
@@ -55,22 +55,21 @@ layout: layouts/base.njk
     {% endif %}
   </div>
 
-  <div class="evolution-timeline" style="max-width: 900px; margin: 5rem auto; padding: 0 1.5rem;">
-    <h3 style="font-family:'Playfair Display',serif; font-size: 2.2rem; font-weight: 800; margin-bottom: 4rem; text-align: center; color: var(--navy);">Evolution of Discussion</h3>
-    
+  <div class="evolution-timeline">
+    <h3 class="evolution-section-title">Evolution of Discussion</h3>
+
     {% for m in collections.all | sort(true, false, "data.date") %}
       {% if m.data.topics and topic in m.data.topics %}
-      <div class="evolution-item" style="border-left: 2px solid var(--gold); padding-left: 2rem; position: relative; margin-bottom: 4rem;">
-        <div style="width: 12px; height: 12px; background: var(--gold); border-radius: 50%; position: absolute; left: -7px; top: 0;"></div>
-        <div class="evolution-date" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; margin-bottom: 0.5rem;">{{ m.data.display_date }}</div>
-        <h4 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 1.25rem;"><a href="{{ m.url | url }}" style="color:var(--navy); text-decoration:none;">{{ m.data.title }}</a></h4>
-        
-        <div style="color: var(--text); line-height: 1.7; font-size: 1.05rem;">
+      <div class="evolution-item">
+        <div class="evolution-date">{{ m.data.display_date }}</div>
+        <h4 class="evolution-meeting-title"><a href="{{ m.url | url }}">{{ m.data.title }}</a></h4>
+
+        <div class="evolution-body">
           {% if m.data.summary %}
             {% for s in m.data.summary %}
               {% if topic | lower in s.topic | lower or topic | lower in s.text | lower %}
-                <div style="margin-bottom: 1rem; padding: 1rem; background: #fff; border: 1px solid var(--rule); border-radius: 6px;">
-                  <strong style="color:var(--gold); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">{{ s.topic }}</strong> 
+                <div class="evolution-bullet">
+                  <span class="evolution-topic-label">{{ s.topic }}</span>
                   {{ s.text }}
                 </div>
               {% endif %}
@@ -88,9 +87,9 @@ layout: layouts/base.njk
         {% endif %}
 
         {% if related_docs.length > 0 %}
-        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap;">
+        <div class="evolution-docs">
           {% for d in related_docs %}
-          <a href="{{ d.url }}" target="_blank" class="doc-link" style="padding: 6px 12px; font-size: 0.75rem; border-color: var(--rule); background: #fff;">
+          <a href="{{ d.url }}" target="_blank" class="doc-link">
             <div class="doc-icon {{ d.type | docClass }}">{{ d.type | docIcon }}</div>
             {{ d.label }}
           </a>
@@ -103,4 +102,3 @@ layout: layouts/base.njk
   </div>
 
 </main>
-

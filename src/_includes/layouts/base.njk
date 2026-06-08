@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ title }}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ '/assets/style.css' | url }}">
 </head>
 <body>
@@ -37,13 +37,11 @@
 {{ content | safe }}
 
 <footer>
-  <p style="font-size:.85rem; color:var(--gold-light); margin-bottom:.5rem;"><strong>Community Resource</strong></p>
-  <p style="margin-bottom:.5rem;">This is a community-built resource and not an official SPSD website.</p>
-  
-  <p style="font-size:.85rem; color:var(--gold-light); margin-bottom:.5rem;"><strong>AI Disclosure</strong></p>
+  <p class="footer-label"><strong>Community Resource</strong></p>
+  <p>This is a community-built resource and not an official SPSD website.</p>
+  <p class="footer-label"><strong>AI Disclosure</strong></p>
   <p>Summaries are AI-generated and may contain errors; defer to official materials as the source of truth. Contact: <a href="mailto:sopoforward@gmail.com">sopoforward@gmail.com</a></p>
-  
-  <p style="margin-top:.75rem; font-size:.7rem; opacity:.5;">Linked materials hosted by SPSD · Videos on TelVue Connect · <a href="{{ '/status/' | url }}" style="color:inherit;">Data Status Dashboard</a></p>
+  <p class="footer-small">Linked materials hosted by SPSD · Videos on Vimeo (SPC TV) · <a href="{{ '/status/' | url }}">Data Status Dashboard</a></p>
 </footer>
 
 {% if pageScript %}
