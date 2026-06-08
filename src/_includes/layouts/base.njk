@@ -26,9 +26,10 @@
   </div>
   {% else %}
   <div class="nav-links">
+    <a href="{{ '/topics/' | url }}" class="nav-link" style="color:var(--gold); font-weight:700;">Topics Index</a>
     <a href="https://www.spsdme.org" class="nav-link">District Site</a>
     <a href="https://www.spsdme.org/page/school-board" class="nav-link">Board Page</a>
-    <a href="https://videoplayer.telvue.com/player/NzN-Z2CpIDNbXMWB16nIzGKjRlHJozGq/playlists/4004" class="nav-link">All Videos</a>
+    <a href="{{ '/status/' | url }}" class="nav-link">Status</a>
   </div>
   {% endif %}
 </nav>

@@ -13,19 +13,13 @@ from datetime import date
 # Load environment variables
 load_dotenv()
 
-# --- CONFIGURATION & PROVIDER-AWARE MODEL MAPPING ---
+# --- CONFIGURATION ---
 USE_LOCAL_AUTH = "--local-auth" in sys.argv
 if USE_LOCAL_AUTH: sys.argv.remove("--local-auth")
 
 MODEL_MAP = {
-    "vertex": {
-        "pro": "gemini-2.5-pro",
-        "flash": "gemini-2.5-flash"
-    },
-    "studio": {
-        "pro": "gemini-1.5-pro",
-        "flash": "gemini-2.0-flash"
-    }
+    "vertex": {"pro": "gemini-2.5-pro", "flash": "gemini-2.5-flash"},
+    "studio": {"pro": "gemini-1.5-pro", "flash": "gemini-2.0-flash"}
 }
 
 client = None
@@ -45,9 +39,8 @@ if USE_LOCAL_AUTH:
 elif api_key and "your_" not in api_key:
     client = genai.Client(api_key=api_key)
     provider = "studio"
-    print("Using explicit API Key from .env")
 else:
-    print("Error: No authentication method found. Use --local-auth or set GEMINI_API_KEY in .env")
+    print("Error: No authentication method found.")
     sys.exit(1)
 
 DEFAULT_MODEL = MODEL_MAP[provider]["pro"] 
@@ -55,24 +48,12 @@ MAX_WORKERS = 4 if provider == "vertex" else 1
 
 GLOSSARY = """
 - Kaler Elementary School (NOT Caler)
-- Dyer Elementary School
 - Skillin Elementary School (NOT Skillen)
-- Brown Elementary School
-- Small Elementary School
-- Mahoney Middle School
-- Memorial Middle School
-- South Portland High School (SPHS)
-- SPSD (South Portland School Department)
-- SPBoE (South Portland Board of Education)
-- SPESPA (South Portland Education Support Professionals Association)
-- SPTA (South Portland Teachers Association)
-- APC (Administrative Policy Committee)
-- MSMA (Maine School Management Association)
-- NESDEC (New England School Development Council)
-- Zeal Education Group
+- SPESPA (Support Professionals)
+- SPTA (Teachers)
 """
 
-# --- SCHEMA DEFINITION ---
+# --- SCHEMA ---
 class Vote(BaseModel):
     motion: str
     result: str
@@ -90,8 +71,8 @@ class TimelineItem(BaseModel):
     desc: str
 
 class MeetingReport(BaseModel):
-    blurb: str = Field(description="An extremely concise (1-2 sentence) summary for the landing page card.")
-    tags: list[str] = Field(description="3-5 high-level topic tags. Use specific names for personnel/contracts.")
+    blurb: str = Field(description="An extremely concise (1-2 sentence) summary.")
+    tags: list[str] = Field(description="3-5 high-level topic tags.")
     votes: list[Vote]
     summary: list[SummaryItem]
     timeline: list[TimelineItem]
@@ -133,20 +114,14 @@ def process_single_meeting(date_slug, vtt_path):
     Analyze the school board meeting transcript for {date_slug}. 
     Extract: blurb, formal votes, high-level summary bullets, timestamped timeline, and topic tags.
     
-    IMPORTANT Glossary:
-    {GLOSSARY}
-
-    PERSPECTIVE GROUPS for summary bullets:
-    1. Board (Elected members)
-    2. Administration (Superintendent, Directors)
-    3. Teachers (Staff, Union reps)
-    4. Citizens (Public comment, parents)
+    IMPORTANT: Identify perspectives from: Board, Administration, Teachers, Citizens.
+    Glossary: {GLOSSARY}
 
     Guidelines:
-    - Blurb: 1-2 sentence hook for the archive landing page.
-    - Tags: Select 3-5 high-level tags from: {allowed_tags}. Propose NEW ones only if major topics are missing. Be specific.
-    - Votes: Exact motion, result, count, and movers (LastName / LastName).
-    - Summary: 5-8 significant bullets. Use the perspective groups above to show the arc of the conversation.
+    - Blurb: 1-2 sentence hook for the landing page.
+    - Tags: Select 3-5 high-level tags from: {allowed_tags}.
+    - Votes: Exact motion, result, count, and movers.
+    - Summary: 5-8 bullets showing the arc of conversation.
     - Timeline: 10-15 key moments with timestamps (H:MM:SS) and total seconds.
 
     Transcript:
@@ -162,60 +137,41 @@ def process_single_meeting(date_slug, vtt_path):
         )
         report_data = json.loads(response.text)
         
-        # Write to NJK
+        # Load NJK
         with open(njk_path, 'r') as f: content = f.read()
-        match = re.match(r'^(---\s*\n.*?\n---\s*\n)(.*)', content, re.DOTALL)
+        match = re.match(r'^(---\s*\n(.*?)\n---\s*\n)(.*)', content, re.DOTALL)
         if not match: return None
-        fm_raw, body = match.group(1), match.group(2)
+        fm_text, body = match.group(2), match.group(3)
         
-        fm_raw = fm_raw.replace('stub: true', 'stub: false')
-        fm_raw = fm_raw.replace('has_transcript: false', 'has_transcript: true')
-        if 'processed_date:' not in fm_raw: fm_raw = fm_raw.replace('\n---', f'\nprocessed_date: "{date.today().isoformat()}"\n---', 1)
-        else: fm_raw = re.sub(r'processed_date:.*', f'processed_date: "{date.today().isoformat()}"', fm_raw)
+        data = yaml.safe_load(fm_text)
+        data['stub'] = False
+        data['has_transcript'] = True
+        data['processed_date'] = date.today().isoformat()
+        data['blurb'] = report_data.pop('blurb', '')
+        data['topics'] = report_data.pop('tags', [])
+        data.update(report_data) # votes, summary, timeline
 
-        if 'blurb:' not in fm_raw: fm_raw = fm_raw.replace('\n---', f'\nblurb: "{report_data["blurb"]}"\n---', 1)
-        else: fm_raw = re.sub(r'blurb:.*', f'blurb: "{report_data["blurb"]}"', fm_raw)
-
-        tags = report_data.pop('tags', [])
-        if 'topics:' not in fm_raw: fm_raw = fm_raw.replace('\n---', f'\ntopics: {json.dumps(tags)}\n---', 1)
-        else: fm_raw = re.sub(r'topics:.*', f'topics: {json.dumps(tags)}', fm_raw)
-
-        report_yaml = yaml.dump(report_data, sort_keys=False, default_flow_style=False)
-        for key in ['votes', 'summary', 'timeline']: fm_raw = re.sub(rf'\n{key}:.*?(?=\n\w+:|\n---)', '', fm_raw, flags=re.DOTALL)
-        new_fm = fm_raw.replace('\n---', '\n' + report_yaml.strip() + '\n---', 1)
-        
-        with open(njk_path, 'w') as f: f.write(new_fm + body)
+        new_fm = yaml.dump(data, sort_keys=False, default_flow_style=False)
+        with open(njk_path, 'w') as f: f.write('---\n' + new_fm + '---\n' + body)
         return {"slug": date_slug, "status": "Success"}
 
     except Exception as e:
-        if "429" in str(e): 
-            print("Rate limit reached. Exiting.")
-            os._exit(1)
+        if "429" in str(e): os._exit(1)
         return {"slug": date_slug, "status": f"Error: {e}"}
 
 def main():
     args = sys.argv[1:]
     mapping = get_transcript_mapping()
-    
-    if not args:
-        print("Usage: python3 process_transcripts.py <date_slug> OR --batch")
-        return
-
     to_process = {}
     if "--batch" in args:
         with open('src/_data/meetings.json', 'r') as f: meetings = json.load(f)
         for m in meetings:
-            if m['stub'] and m['slug'] in mapping:
-                to_process[m['slug']] = mapping[m['slug']]
+            if m['stub'] and m['slug'] in mapping: to_process[m['slug']] = mapping[m['slug']]
     else:
         for arg in args:
             if arg in mapping: to_process[arg] = mapping[arg]
-            else: print(f"Warning: No transcript found for {arg}")
-
-    if not to_process:
-        print("No meetings found for processing.")
-        return
-
+    
+    if not to_process: return
     print(f"Targeting {len(to_process)} meetings...")
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(process_single_meeting, slug, path): slug for slug, path in to_process.items()}

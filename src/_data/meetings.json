@@ -968,12 +968,18 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "December Regular Meeting",
-    "topics": [],
+    "topics": [
+      "Adult Education",
+      "K-4 Math Curriculum",
+      "Mental & Behavioral Health",
+      "Student Achievement",
+      "FY2026 Budget"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The South Portland Board of Education welcomed a new member and heard detailed reports on the district's successful efforts to reduce chronic absenteeism, the rapid growth and funding challenges of the Adult Education program, a proposal for a new K-4 math curriculum, and ongoing mental and behavioral health initiatives."
   },
   {
     "slug": "2024-12-02",
@@ -998,12 +1004,17 @@
     "day_of_week": "Tuesday",
     "type": "Regular",
     "title": "Technology & AI Policy Discussion",
-    "topics": [],
+    "topics": [
+      "Student Recognition",
+      "Snow Day Policy",
+      "Facilities",
+      "Service Employees Contract"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The board recognized a departing member and celebrated a student-led scholarship initiative for study abroad programs. Key discussions included changing the snow day policy to eliminate remote days and considering a new venue for high school graduation to accommodate more families."
   },
   {
     "slug": "2024-10-15",
@@ -1028,12 +1039,17 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "Back to School & Equity Report",
-    "topics": [],
+    "topics": [
+      "Student Mental Health",
+      "District Goals",
+      "Athletics",
+      "Student Achievement"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The board confronted a community in crisis, dedicating a significant portion of the meeting to discussing student mental health and suicide prevention in response to recent student deaths. The superintendent outlined a multi-faceted plan, while parents and board members made emotional pleas for urgent, expert-led intervention."
   },
   {
     "slug": "2024-08-19",
@@ -1043,12 +1059,17 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "Opening of School Year",
-    "topics": [],
+    "topics": [
+      "Student Achievement",
+      "District Goals",
+      "Facilities",
+      "Reconfiguration"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The school board reviewed successful student and staff summer programs, discussed extensive safety upgrades, and outlined district goals for the upcoming school year, including a new focus on strategic planning and reconfiguration."
   },
   {
     "slug": "2024-07-08",
@@ -1058,12 +1079,17 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "July Regular Meeting",
-    "topics": [],
+    "topics": [
+      "AI in Education",
+      "Student Data",
+      "Facilities",
+      "Athletics"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The board reviewed updates from the AI Steering Committee and positive student data from the high school. The main action was voting to send three bond referenda to the city council for facility improvements, including security upgrades, deferred maintenance, and a controversial renovation of the high school stadium complex featuring a synthetic turf field."
   },
   {
     "slug": "2024-06-10",
@@ -1073,12 +1099,18 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "June Regular Meeting",
-    "topics": [],
+    "topics": [
+      "Student Recognition",
+      "Athletics",
+      "Craig Uffington",
+      "Facilities",
+      "Community School Model"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The board celebrated numerous student achievements, including state championships for the track team, and discussed a potential $17 million bond for district-wide facility improvements, debating the environmental impact of a proposed artificial turf field."
   },
   {
     "slug": "2024-05-30",
@@ -1088,12 +1120,16 @@
     "day_of_week": "Thursday",
     "type": "Workshop",
     "title": "Board Workshop and Special Meeting",
-    "topics": [],
+    "topics": [
+      "SPHS",
+      "Equity",
+      "Service Employees Contract"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The South Portland Board of Education held a special meeting to approve key personnel appointments, including a new principal for the high school and a new district-wide Director of Diversity, Equity, and Inclusion. The board also entered an executive session to discuss collective bargaining with service employees."
   },
   {
     "slug": "2024-05-13",
@@ -1103,12 +1139,18 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "FY2025 Budget Vote",
-    "topics": [],
+    "topics": [
+      "Student Recognition",
+      "FY2025 Budget",
+      "Facilities",
+      "Reconfiguration",
+      "Equity"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The board celebrated numerous student and staff achievements, including the Top 20 Scholars of 2024, before unanimously passing the FY2025 budget. A significant portion of the meeting was dedicated to a complex and divided debate on the path forward for elementary school reconfiguration, ultimately resulting in votes to hire a consultant for analysis and establish a regular review of attendance zones."
   },
   {
     "slug": "2024-04-08",
@@ -1118,12 +1160,18 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "April Regular Meeting",
-    "topics": [],
+    "topics": [
+      "FY2025 Budget",
+      "Mental & Behavioral Health",
+      "Reconfiguration",
+      "Equity",
+      "Facilities"
+    ],
     "doc_count": 2,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The board recognized outstanding staff and approved a revised FY25 budget, which included funding for a new, debated mental health coordinator position. A lengthy workshop followed, focusing on the elementary school boundaries and configuration steering committee's recommendations to address significant inequities across the district's schools."
   },
   {
     "slug": "2024-03-28",
@@ -1133,12 +1181,17 @@
     "day_of_week": "Thursday",
     "type": "Workshop",
     "title": "Budget Workshop III",
-    "topics": [],
+    "topics": [
+      "FY2025 Budget",
+      "Equity",
+      "Athletics",
+      "Student Support Systems"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The Board of Education unanimously approved the FY2025 budget after a final presentation from the Superintendent, which also included discussions on a new partnership with JMG for Extended Learning Opportunities and addressing equity concerns in athletics."
   },
   {
     "slug": "2024-03-25",
@@ -1148,12 +1201,17 @@
     "day_of_week": "Monday",
     "type": "Workshop",
     "title": "Budget Workshop II",
-    "topics": [],
+    "topics": [
+      "FY2025 Budget",
+      "Special Education",
+      "Adult Education",
+      "Athletics"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The Board held a budget workshop for the FY2025 budget, featuring presentations from the Special Education, Adult Education, Athletics, Technology, and Operations departments. The Superintendent announced a plan to retain an SPHS art teacher position while also committing to continue the popular Extended Learning Opportunities (ELO) program despite the loss of grant funding for its coordinator."
   },
   {
     "slug": "2024-03-18",
@@ -1163,12 +1221,17 @@
     "day_of_week": "Monday",
     "type": "Workshop",
     "title": "Budget Workshop I",
-    "topics": [],
+    "topics": [
+      "FY2025 Budget",
+      "Student Support Systems",
+      "SPHS Art Teacher",
+      "Student Achievement"
+    ],
     "doc_count": 2,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The board held its first FY2025 budget workshop, where the Superintendent detailed a $69.5M proposal shaped by the loss of federal COVID funds. The meeting included extensive presentations on the district's Multi-Tiered Systems of Support (MTSS) and featured public comment urging the board to retain a high school art teacher position slated for elimination."
   },
   {
     "slug": "2024-03-11",
@@ -1178,12 +1241,18 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "March Regular Meeting",
-    "topics": [],
+    "topics": [
+      "FY2025 Budget",
+      "Student Recognition",
+      "Athletics",
+      "Equity",
+      "AI in Education"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The board celebrated the state champion SPHS Boys' Indoor Track team and received the Superintendent's proposed $69.4 million FY2025 budget, which represents a 3.82% school tax rate increase while navigating the loss of federal funds."
   },
   {
     "slug": "2024-02-12",
@@ -1193,12 +1262,18 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "February Regular Meeting",
-    "topics": [],
+    "topics": [
+      "Mohammed Abbi Hadley",
+      "Equity",
+      "Reconfiguration",
+      "Facilities",
+      "FY2025 Budget"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The board addressed the resignation of DEI Coordinator Mohammed Abbi Hadley, condemning the racism that led to his departure, and received a detailed report from the Elementary Boundaries and Configuration Steering Committee highlighting significant inequities across elementary schools and proposing both short and long-term solutions."
   },
   {
     "slug": "2024-01-22",
@@ -1208,12 +1283,18 @@
     "day_of_week": "Monday",
     "type": "Workshop",
     "title": "State of the Schools",
-    "topics": [],
+    "topics": [
+      "Student Data",
+      "Equity",
+      "Personnel: Mohammad Albi Hadley",
+      "Student Achievement",
+      "School Climate"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The board reviewed the annual State of the Schools report, which detailed significant demographic shifts, student achievement data, and school climate survey results. The meeting also addressed the recent resignation of the DEI director and concluded with a student and staff video on belonging."
   },
   {
     "slug": "2024-01-08",
@@ -1223,12 +1304,17 @@
     "day_of_week": "Monday",
     "type": "Regular",
     "title": "January Regular Meeting",
-    "topics": [],
+    "topics": [
+      "Student Recognition",
+      "FY2025 Budget",
+      "Facilities",
+      "Reconfiguration"
+    ],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true,
-    "blurb": ""
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The South Portland Board of Education celebrated School Board Recognition Month with student artwork and heard updates on the FY25 budget process and school safety initiatives. The board also approved several policies and was urged by a citizen to prepare for upcoming discussions on district reconfiguration."
   },
   {
     "slug": "2023-12-11",
