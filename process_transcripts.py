@@ -48,6 +48,8 @@ else:
 DEFAULT_MODEL = MODEL_MAP[provider]["pro"] 
 MAX_WORKERS = 4 if provider == "vertex" else 1
 
+CUTOFF_DATE = "2023-08-01"
+
 GLOSSARY = """
 - Kaler Elementary School (NOT Caler)
 - Skillin Elementary School (NOT Skillen)
@@ -88,17 +90,21 @@ def get_transcript_mapping():
             if not f.endswith('.vtt'): continue
             path = os.path.join(root, f)
             m = re.search(r'(\d{4})(\d{2})(\d{2})', f)
-            if m: mapping[f"{m.group(1)}-{m.group(2)}-{m.group(3)}"] = path
+            if m:
+                slug = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+                if slug >= CUTOFF_DATE: mapping[slug] = path
             elif re.search(r'(\d{2})\.(\d{2})\.(\d{2})', f):
                 dm = re.search(r'(\d{2})\.(\d{2})\.(\d{2})', f)
-                mapping[f"20{dm.group(3)}-{dm.group(1)}-{dm.group(2)}"] = path
+                slug = f"20{dm.group(3)}-{dm.group(1)}-{dm.group(2)}"
+                if slug >= CUTOFF_DATE: mapping[slug] = path
             else:
                 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
                 m = re.search(rf'({"|".join(months)}) (\d{{1,2}}) (\d{{4}})', f)
                 if m:
                     from datetime import datetime
                     dt = datetime.strptime(f"{m.group(1)} {m.group(2)} {m.group(3)}", "%B %d %Y")
-                    mapping[dt.strftime("%Y-%m-%d")] = path
+                    slug = dt.strftime("%Y-%m-%d")
+                    if slug >= CUTOFF_DATE: mapping[slug] = path
     return mapping
 
 def process_single_meeting(date_slug, vtt_path):

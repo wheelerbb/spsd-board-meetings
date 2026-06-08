@@ -12,6 +12,9 @@ load_dotenv()
 # The specific Drive folder provided
 FOLDER_ID = "0B42s0chw8f_lQmpaNU93ejYyWkU"
 
+# Do not create stubs for meetings before the 2023-2024 school year
+CUTOFF_DATE = "2023-08-01"
+
 def get_drive_service():
     """
     Since the folder is public, we can use an API key. 
@@ -152,6 +155,8 @@ def generate_stubs(mapping):
     changes_made = 0
 
     for date_slug, new_docs in mapping.items():
+        if date_slug < CUTOFF_DATE:
+            continue
         njk_path = os.path.join(meeting_dir, f"{date_slug}.njk")
         
         if os.path.exists(njk_path):
