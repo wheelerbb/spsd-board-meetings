@@ -23,22 +23,7 @@ module.exports = function (eleventyConfig) {
     return type.toLowerCase();
   });
 
-  // Compute prev/next navigation from the sorted meetings array.
-  // meetings is already sorted descending by date slug (YYYY-MM-DD string sort).
-  // 'prev' = chronologically newer (right arrow), 'next' = older (left arrow).
-  // Same-day slugs: undefined ordering — no two meetings currently share a date.
-  eleventyConfig.addFilter("meetingNav", (meetings, currentSlug) => {
-    const idx = meetings.findIndex((m) => m.slug === currentSlug);
-    if (idx === -1) return { prev: null, next: null };
-    return {
-      prev: idx > 0
-        ? { slug: meetings[idx - 1].slug, label: meetings[idx - 1].display_date }
-        : null,
-      next: idx < meetings.length - 1
-        ? { slug: meetings[idx + 1].slug, label: meetings[idx + 1].display_date }
-        : null,
-    };
-  });
+  eleventyConfig.addFilter("meetingNav", require("./src/_lib/meetingNav"));
 
   return {
     pathPrefix: process.env.PATH_PREFIX || "/spsd-board-meetings/",

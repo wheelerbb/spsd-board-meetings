@@ -32,7 +32,7 @@ function meetingType(tag) {
   return 'Regular';
 }
 
-module.exports = function () {
+function getMeetings() {
   const dir = path.join(__dirname, '../meetings');
 
   return fs.readdirSync(dir)
@@ -70,4 +70,8 @@ module.exports = function () {
     })
     .filter(Boolean)
     .sort((a, b) => b.date.localeCompare(a.date));
-};
+}
+
+module.exports = getMeetings;
+module.exports.schoolYear = schoolYear;
+module.exports.meetingType = meetingType;

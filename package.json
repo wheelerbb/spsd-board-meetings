@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "rm -rf _site && eleventy",
-    "start": "eleventy --serve"
+    "start": "eleventy --serve",
+    "test": "node test/meetingNav.test.js && node test/meetings.test.js"
   },
   "repository": {
     "type": "git",
