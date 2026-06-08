@@ -30,9 +30,11 @@ if USE_LOCAL_AUTH:
     import google.auth
     try:
         credentials, project = google.auth.default()
-        client = genai.Client(credentials=credentials, project=project, location='us-central1', vertexai=True)
+        # Force project to the new one if ADC doesn't provide it or to be explicit
+        project_id = 'spsd-board-meetings' 
+        client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
         provider = "vertex"
-        print(f"Using Vertex AI (Project: {project})")
+        print(f"Using Vertex AI (Project: {project_id})")
     except Exception as e:
         print(f"Failed to load local credentials: {e}")
         sys.exit(1)

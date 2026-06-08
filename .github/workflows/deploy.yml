@@ -1,12 +1,14 @@
-name: Deploy to GitHub Pages
+name: Automate, Build, and Deploy
 
 on:
+  schedule:
+    - cron: '0 8 * * *' # Run daily at 8:00 AM UTC
   push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -18,22 +20,66 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build:
+  process_and_build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 google-genai pydantic pyyaml python-dotenv
+          
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
+          
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+          
+      - name: Run Ingestion Pipeline
+        run: |
+          # 1. Scrape live site for new documents and create stubs
+          python sync_documents.py
+          
+          # 2. Process any unprocessed transcripts (if transcript files were pushed)
+          # Note: We rely on the local ADC auth set up by the previous step
+          python process_transcripts.py --batch --local-auth
+          
+          # 3. Post-process to update library, generate blurbs, and synthesize summaries
+          python post_process.py --local-auth
+          
+      - name: Commit Automated Changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add src/meetings/ src/_data/ master_material_map.json
+          # Only commit if there are changes
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-Update: Fetch latest meeting docs and synthesize summaries"
+          git push
+          
+      - name: Install NPM Dependencies
+        run: npm ci
+        
+      - name: Build Eleventy Site
+        run: npm run build
+        
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
   deploy:
-    needs: build
+    needs: process_and_build
     runs-on: ubuntu-latest
     environment:
       name: github-pages

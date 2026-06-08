@@ -14,7 +14,8 @@ provider = "studio"
 import google.auth
 try:
     credentials, project = google.auth.default()
-    client = genai.Client(credentials=credentials, project=project, location='us-central1', vertexai=True)
+    project_id = 'spsd-board-meetings'
+    client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
     model_name = 'gemini-2.5-flash'
     MAX_WORKERS = 4
 except:
