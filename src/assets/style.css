@@ -88,6 +88,11 @@ nav a.nav-link:hover { color:var(--gold-light); }
 }
 
 .filter-btn {
+  background:none; border:1.5px solid #e0e0e0; border-radius:6px;
+  padding:.45rem 1.1rem; font-size:.85rem; font-weight:700; font-family:'DM Sans',sans-serif;
+  cursor:pointer; color:var(--navy); transition:all .2s;
+  background: #fff;
+}
 .filter-btn:hover { border-color:var(--gold); }
 .filter-btn.active { background:var(--navy); border-color:var(--navy); color:#fff; }
 
