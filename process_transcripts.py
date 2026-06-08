@@ -174,15 +174,25 @@ def main():
     args = sys.argv[1:]
     mapping = get_transcript_mapping()
     to_process = {}
+    
     if "--batch" in args:
-        with open('src/_data/meetings.json', 'r') as f: meetings = json.load(f)
-        for m in meetings:
-            if m['stub'] and m['slug'] in mapping: to_process[m['slug']] = mapping[m['slug']]
+        meeting_dir = 'src/meetings/'
+        for filename in os.listdir(meeting_dir):
+            if not filename.endswith('.njk'): continue
+            slug = filename.replace('.njk', '')
+            if slug not in mapping: continue
+            
+            with open(os.path.join(meeting_dir, filename), 'r') as f:
+                content = f.read()
+                if 'stub: true' in content:
+                    to_process[slug] = mapping[slug]
     else:
         for arg in args:
             if arg in mapping: to_process[arg] = mapping[arg]
     
-    if not to_process: return
+    if not to_process:
+        print("No new meetings to process.")
+        return
     print(f"Targeting {len(to_process)} meetings...")
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(process_single_meeting, slug, path): slug for slug, path in to_process.items()}
