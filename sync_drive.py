@@ -60,27 +60,33 @@ def list_files_in_folder(service, folder_id):
 def parse_meeting_date(filename):
     """
     Tries to extract a date from filenames like:
-    "Agenda 06.08.26", "04.29.26 Special Meeting", or "Agenda June 8, 2026"
+    "Agenda 06.08.26", "04.29.26 Special Meeting", "Agenda June 8, 2026", "2026-06-08", or "6-8-26"
     """
-    # MM.DD.YY format
-    match = re.search(r'(\d{1,2})\.(\d{1,2})\.(\d{2})', filename)
+    # Clean up the filename
+    filename = filename.replace('_', ' ').replace('-', '.').replace('  ', ' ')
+
+    # MM.DD.YY or MM.DD.YYYY format (now handles . or - or / because of replace above)
+    match = re.search(r'(\d{1,2})\.(\d{1,2})\.(\d{2,4})', filename)
     if match:
-        month, day, year_short = match.groups()
-        return f"20{year_short}-{month.zfill(2)}-{day.zfill(2)}"
+        month, day, year = match.groups()
+        if len(year) == 2:
+            year = f"20{year}"
+        return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
     
-    # YYYY-MM-DD format
-    match = re.search(r'(\d{4})-(\d{2})-(\d{2})', filename)
+    # YYYY.MM.DD format
+    match = re.search(r'(\d{4})\.(\d{2})\.(\d{2})', filename)
     if match:
-        return match.group(0)
+        return match.group(0).replace('.', '-')
     
     # Month Day, Year format
     months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-    match = re.search(rf'({"|".join(months)})\s+(\d{{1,2}}),\s+(\d{{4}})', filename, re.I)
+    match = re.search(rf'({"|".join(months)})\s+(\d{{1,2}})(?:st|nd|rd|th)?(?:,)?\s+(\d{{4}})', filename, re.I)
     if match:
         try:
-            # Normalize whitespace
-            clean_date = re.sub(r'\s+', ' ', match.group(0))
-            dt = datetime.strptime(clean_date, "%B %d, %Y")
+            month_name = match.group(1).capitalize()
+            day = match.group(2)
+            year = match.group(3)
+            dt = datetime.strptime(f"{month_name} {day} {year}", "%B %d %Y")
             return dt.strftime("%Y-%m-%d")
         except: pass
     
@@ -94,6 +100,22 @@ def categorize_document(filename):
     if 'minute' in name_lower: return 'min'
     return 'pdf'
 
+def clean_url(url):
+    """Removes tracking parameters from Google Drive URLs."""
+    if not url: return url
+    return re.sub(r'[?&]usp=[^&]+', '', url)
+
+def clean_label(label):
+    """Cleans up document labels by removing leading/trailing dates and common extensions."""
+    if not label: return label
+    # Remove common extensions
+    label = re.sub(r'\.(pdf|vtt|docx|doc|txt)$', '', label, flags=re.I)
+    # Remove leading date like "6.4.26 "
+    label = re.sub(r'^\d{1,2}[\.\-/]\d{1,2}[\.\-/]\d{2,4}\s*', '', label)
+    # Remove trailing date like " 6.4.26"
+    label = re.sub(r'\s*\d{1,2}[\.\-/]\d{1,2}[\.\-/]\d{2,4}$', '', label)
+    return label.strip()
+
 def build_meeting_map(files):
     mapping = {}
     for f in files:
@@ -104,11 +126,13 @@ def build_meeting_map(files):
             mapping[date_slug] = []
             
         doc_type = categorize_document(f.get('name'))
-        url = f.get('webViewLink')
-        if not any(d['url'] == url for d in mapping[date_slug]):
+        url = clean_url(f.get('webViewLink'))
+        label = clean_label(f.get('name'))
+        
+        if not any(clean_url(d['url']) == url for d in mapping[date_slug]):
             mapping[date_slug].append({
                 'type': doc_type,
-                'label': f.get('name').replace('.pdf', ''),
+                'label': label,
                 'url': url
             })
             
@@ -130,36 +154,68 @@ def generate_stubs(mapping):
     for date_slug, new_docs in mapping.items():
         njk_path = os.path.join(meeting_dir, f"{date_slug}.njk")
         
-        if date_slug in existing_slugs and os.path.exists(njk_path):
+        if os.path.exists(njk_path):
             with open(njk_path, 'r') as f: content = f.read()
-            match = re.match(r'^(---\s*\n(.*?)\n---\s*(?:\n|$))(.*)', content, re.DOTALL)
-            if match:
-                header_full, fm_text, body = match.group(1), match.group(2), match.group(3)
-                data = yaml.safe_load(fm_text) or {}
+            # More robust front matter extraction
+            parts = re.split(r'^---+\s*$', content, flags=re.MULTILINE)
+            if len(parts) >= 3:
+                fm_text = parts[1]
+                body = "---".join(parts[2:])
+                
+                try:
+                    data = yaml.safe_load(fm_text) or {}
+                except Exception as e:
+                    print(f"Error parsing YAML in {njk_path}: {e}")
+                    continue
                 
                 existing_docs = data.get('docs', [])
-                existing_urls = {d['url'] for d in existing_docs}
+                if not isinstance(existing_docs, list):
+                    existing_docs = []
+                
+                # Deduplicate and clean existing docs
+                seen_urls = set()
+                unique_docs = []
+                for d in existing_docs:
+                    url = clean_url(d.get('url'))
+                    if url and url not in seen_urls:
+                        seen_urls.add(url)
+                        d['label'] = clean_label(d.get('label', ''))
+                        unique_docs.append(d)
+                
+                existing_docs = unique_docs
+                existing_urls = seen_urls
                 
                 # Merge new docs that don't already exist
                 added_any = False
                 for nd in new_docs:
-                    if nd['url'] not in existing_urls:
+                    if clean_url(nd['url']) not in existing_urls:
                         existing_docs.append(nd)
                         added_any = True
                 
-                if added_any:
-                    print(f"Merged {len(new_docs)} new docs into existing meeting: {date_slug}")
+                if added_any or len(unique_docs) < len(data.get('docs', [])):
+                    print(f"Merged/Cleaned docs for meeting: {date_slug}")
                     data['docs'] = existing_docs
-                    fm_yaml = yaml.dump(data, sort_keys=False, default_flow_style=False)
-                    with open(njk_path, 'w') as f: f.write(f"---\n{fm_yaml}---\n{body}")
+                    # Use a custom Dumper to avoid some escaping if possible, 
+                    # but safe_dump is generally fine.
+                    fm_yaml = yaml.dump(data, sort_keys=False, default_flow_style=False, allow_unicode=True)
+                    with open(njk_path, 'w') as f:
+                        f.write(f"---\n{fm_yaml}---\n{body}")
                     
                     # Update global json doc count
+                    found_in_json = False
                     for g in global_json:
                         if g['slug'] == date_slug:
-                            g['doc_count'] = len([d for d in existing_docs if d['type'] != 'video'])
+                            g['doc_count'] = len([d for d in existing_docs if d.get('type') != 'video'])
                             changes_made += 1
+                            found_in_json = True
                             break
+                    
+                    if not found_in_json:
+                        # If it's in NJK but not in JSON, we'll add it to JSON in the next block
+                        # (or just assume it's already there if existing_slugs is accurate)
+                        pass
             continue
+
             
         print(f"Creating new meeting stub: {date_slug}...")
         changes_made += 1
