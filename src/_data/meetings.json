@@ -157,8 +157,9 @@
     "topics": [],
     "doc_count": 3,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The Board voted to halt the elementary school reconfiguration for 2026-2027 and unanimously approved a 1% tax increase to seed the contingency fund, addressing an anticipated FY27 deficit. They also narrowed the superintendent search to two finalists and discussed the Kaler closure's impact."
   },
   {
     "slug": "2026-04-08",
