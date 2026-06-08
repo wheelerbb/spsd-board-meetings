@@ -22,6 +22,9 @@ layout: layouts/base.njk
       {% endif %}
     </div>
 
+    {%- set nav = meetings | meetingNav(page.fileSlug) -%}
+    {%- set prev = nav.prev -%}
+    {%- set next = nav.next -%}
     <div class="meeting-nav">
       {% if next %}
       <a href="{{ ('/meetings/' + next.slug + '/') | url }}" class="meeting-nav-link">← Older: {{ next.label }}</a>

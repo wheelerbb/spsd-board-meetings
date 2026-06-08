@@ -46,7 +46,7 @@ src/
 To keep meeting files maintainable, use structured data in the YAML front matter instead of manual HTML in the body. The layout handles rendering automatically.
 
 ### Header & Navigation
-`heading`, `breadcrumb`, `meeting_tag`, `display_date`, `day_of_week`, `time`, `location`, `duration`, `prev`, `next`.
+`heading`, `breadcrumb`, `meeting_tag`, `display_date`, `day_of_week`, `time`, `location`, `duration`.
 
 ### Media & Attendance
 `has_video`, `video_url`, `board_attendance`.
@@ -126,8 +126,7 @@ When summarizing meeting discussions, identify viewpoints from these four groups
 
 1. Add an entry to `src/_data/meetings.json` (set `stub: true`, `topics: []`, `doc_count: 0`).
 2. Create `src/meetings/YYYY-MM-DD.njk` with front matter (including attendance placeholders) and an empty body.
-3. Update `prev`/`next` slugs on the adjacent meeting files.
-4. Run `npm run build`.
+3. Run `npm run build` — prev/next navigation is derived automatically at build time (no manual updates needed).
 
 ---
 
