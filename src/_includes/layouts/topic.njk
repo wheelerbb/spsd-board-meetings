@@ -2,7 +2,7 @@
 layout: layouts/base.njk
 ---
 
-<div class="topic-hero">
+<div class="hero">
   <div class="hero-inner">
     <div class="hero-eyebrow">Topic Explorer</div>
     <h1>{{ topic }}</h1>
@@ -18,7 +18,7 @@ layout: layouts/base.njk
     </div>
     
     {% set recent_votes = [] %}
-    {% for m in meetings | sort(true, false, "date") %}
+    {% for m in collections.all | sort(true, false, "date") %}
       {% if m.data.topics and topic in m.data.topics %}
         {% if m.data.votes %}
           {% for v in m.data.votes %}
@@ -55,21 +55,23 @@ layout: layouts/base.njk
     {% endif %}
   </div>
 
-  <div class="evolution-timeline" style="max-width: 900px; margin: 5rem auto;">
+  <div class="evolution-timeline" style="max-width: 900px; margin: 5rem auto; padding: 0 1.5rem;">
     <h3 style="font-family:'Playfair Display',serif; font-size: 2.2rem; font-weight: 800; margin-bottom: 4rem; text-align: center; color: var(--navy);">Evolution of Discussion</h3>
     
-    {% for m in meetings | sort(true, false, "date") %}
+    {% for m in collections.all | sort(true, false, "data.date") %}
       {% if m.data.topics and topic in m.data.topics %}
-      <div class="evolution-item">
-        <div class="evolution-date">{{ m.data.display_date }}</div>
-        <h4 style="font-family: 'Playfair Display', serif; font-size: 1.4rem; margin-bottom: 1rem;"><a href="{{ m.url | url }}" style="color:var(--navy); text-decoration:none;">{{ m.data.title }}</a></h4>
+      <div class="evolution-item" style="border-left: 2px solid var(--gold); padding-left: 2rem; position: relative; margin-bottom: 4rem;">
+        <div style="width: 12px; height: 12px; background: var(--gold); border-radius: 50%; position: absolute; left: -7px; top: 0;"></div>
+        <div class="evolution-date" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; margin-bottom: 0.5rem;">{{ m.data.display_date }}</div>
+        <h4 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 1.25rem;"><a href="{{ m.url | url }}" style="color:var(--navy); text-decoration:none;">{{ m.data.title }}</a></h4>
         
-        <div style="color: var(--text); line-height: 1.65; font-size: 1.05rem;">
+        <div style="color: var(--text); line-height: 1.7; font-size: 1.05rem;">
           {% if m.data.summary %}
             {% for s in m.data.summary %}
               {% if topic | lower in s.topic | lower or topic | lower in s.text | lower %}
-                <div style="margin-bottom: 0.75rem;">
-                  <strong style="color:var(--gold); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">{{ s.topic }}:</strong> {{ s.text }}
+                <div style="margin-bottom: 1rem; padding: 1rem; background: #fff; border: 1px solid var(--rule); border-radius: 6px;">
+                  <strong style="color:var(--gold); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">{{ s.topic }}</strong> 
+                  {{ s.text }}
                 </div>
               {% endif %}
             {% endfor %}
@@ -88,7 +90,7 @@ layout: layouts/base.njk
         {% if related_docs.length > 0 %}
         <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap;">
           {% for d in related_docs %}
-          <a href="{{ d.url }}" target="_blank" class="doc-link" style="padding: 5px 10px; font-size: 0.72rem; border-color: var(--rule); background: #fff;">
+          <a href="{{ d.url }}" target="_blank" class="doc-link" style="padding: 6px 12px; font-size: 0.75rem; border-color: var(--rule); background: #fff;">
             <div class="doc-icon {{ d.type | docClass }}">{{ d.type | docIcon }}</div>
             {{ d.label }}
           </a>
