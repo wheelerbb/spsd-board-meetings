@@ -113,9 +113,28 @@ def generate_stubs(mapping):
     new_meetings_created = 0
 
     for date_slug, docs in mapping.items():
-        if date_slug in existing_slugs:
-            # Note: We could update existing meetings with new docs here, 
-            # but for now, we just create stubs for entirely new dates.
+        njk_path = os.path.join(meeting_dir, f"{date_slug}.njk")
+        
+        if date_slug in existing_slugs and os.path.exists(njk_path):
+            with open(njk_path, 'r') as f: content = f.read()
+            match = re.match(r'^(---\s*\n(.*?)\n---\s*(?:\n|$))(.*)', content, re.DOTALL)
+            if match:
+                fm_text, body = match.group(2), match.group(3)
+                data = yaml.safe_load(fm_text) or {}
+                
+                # Update if doc count is different
+                if len(data.get('docs', [])) != len(docs):
+                    print(f"Updating docs for existing meeting: {date_slug}")
+                    data['docs'] = docs
+                    fm_yaml = yaml.dump(data, sort_keys=False, default_flow_style=False)
+                    with open(njk_path, 'w') as f: f.write(f"---\n{fm_yaml}---\n{body}")
+                    
+                    # Update global json doc count
+                    for g in global_json:
+                        if g['slug'] == date_slug:
+                            g['doc_count'] = len(docs)
+                            new_meetings_created += 1 # Flag to trigger global json save
+                            break
             continue
             
         print(f"Creating new meeting stub: {date_slug}...")
