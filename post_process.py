@@ -110,9 +110,19 @@ def post_process():
                 if 'topics' in data: all_discovered_topics.update(data['topics'])
             except: pass
 
-    # 2. Topics Lib
+    # 2. Topics Lib (Sorted by recency)
     print("Updating topics library...")
-    new_lib = sorted([t for t in all_discovered_topics if t not in TOPIC_BLACKLIST])
+    # Find the most recent date for each topic
+    topic_recent_dates = {}
+    for m in meetings_data:
+        m_date = str(m.get('date', m.get('slug', '')))
+        for t in m.get('topics', []):
+            if t not in TOPIC_BLACKLIST:
+                if t not in topic_recent_dates or m_date > topic_recent_dates[t]:
+                    topic_recent_dates[t] = m_date
+                    
+    # Sort topics based on the date (newest first)
+    new_lib = sorted(list(topic_recent_dates.keys()), key=lambda x: topic_recent_dates[x], reverse=True)
     with open(topics_lib_path, 'w') as f: json.dump(new_lib, f, indent=2)
 
     # 3. Sync meetings.json & Generate Missing Blurbs concurrently

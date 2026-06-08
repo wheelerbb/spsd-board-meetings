@@ -74,8 +74,9 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .topics-bar .filter-content { position: relative; }
 .topics-container { 
   display: flex; flex-wrap: wrap; gap: 10px; 
-  max-height: 4.8rem; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+  max-height: 5.5rem; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
   padding-right: 140px; /* Leave space for absolute button on 2nd row */
+  padding-bottom: 2px; /* Ensure bottom borders aren't clipped */
 }
 .topics-container.expanded { max-height: 20rem; padding-right: 0; }
 
