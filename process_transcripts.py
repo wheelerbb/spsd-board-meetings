@@ -130,16 +130,19 @@ def process_single_meeting(date_slug, vtt_path):
 
     try:
         if provider == "vertex": time.sleep(2)
+        print(f"  Sending request to Gemini for {date_slug}...")
         response = client.models.generate_content(
             model=DEFAULT_MODEL,
             contents=prompt,
             config={'response_mime_type': 'application/json', 'response_schema': MeetingReport, 'temperature': 0.1}
         )
+        print(f"  Received response for {date_slug}.")
         report_data = json.loads(response.text)
         
         # Load NJK
+        print(f"  Updating .njk file for {date_slug}...")
         with open(njk_path, 'r') as f: content = f.read()
-        match = re.match(r'^(---\s*\n(.*?)\n---\s*\n)(.*)', content, re.DOTALL)
+        match = re.match(r'^(---\s*\n(.*?)\n---\s*(?:\n|$))(.*)', content, re.DOTALL)
         if not match: return None
         fm_text, body = match.group(2), match.group(3)
         

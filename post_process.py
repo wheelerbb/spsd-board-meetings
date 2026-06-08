@@ -76,6 +76,35 @@ def post_process():
             g['topics'] = [t for t in local.get('topics', []) if t not in TOPIC_BLACKLIST]
             g['has_transcript'] = local.get('has_transcript', False)
             g['blurb'] = local.get('blurb', '')
+
+    # 3.5 Generate Missing Blurbs
+    print("Generating missing blurbs...")
+    for local in meetings_data:
+        if not local.get('stub', True) and not local.get('blurb') and local.get('summary'):
+            print(f"  Generating blurb for {local['slug']}...")
+            prompt = f"Write an extremely concise 1-2 sentence objective summary (a 'blurb') of this school board meeting based on these notes. Do not use quotes or introductory filler:\n"
+            prompt += "\n".join([f"- {s.get('text', '')}" for s in local.get('summary', [])])
+            try:
+                response = client.models.generate_content(model=model_name, contents=prompt, config={'temperature': 0.1})
+                blurb = response.text.strip().replace('\n', ' ').replace('"', "'")
+                local['blurb'] = blurb
+                
+                # Update NJK file
+                njk_path = os.path.join(meeting_dir, local['slug'] + '.njk')
+                with open(njk_path, 'r') as f: content = f.read()
+                
+                if 'blurb:' not in content:
+                    content = content.replace('---\n', f'---\nblurb: "{blurb}"\n', 1)
+                else:
+                    content = re.sub(r'blurb:.*', f'blurb: "{blurb}"', content)
+                with open(njk_path, 'w') as f: f.write(content)
+                
+                # Update global json
+                for g in global_json:
+                    if g['slug'] == local['slug']: g['blurb'] = blurb
+            except Exception as e:
+                print(f"  Error generating blurb for {local['slug']}: {e}")
+
     with open(meetings_json_path, 'w') as f: json.dump(global_json, f, indent=2)
 
     # 4. Generate Synthesized Summaries

@@ -30,6 +30,21 @@
     "blurb": ""
   },
   {
+    "slug": "2026-06-08",
+    "school_year": "2025-2026",
+    "date": "2026-06-08",
+    "display_date": "June 8, 2026",
+    "day_of_week": "Monday",
+    "type": "Regular",
+    "title": "June Regular Meeting",
+    "topics": [],
+    "doc_count": 0,
+    "has_video": false,
+    "has_transcript": false,
+    "stub": true,
+    "blurb": ""
+  },
+  {
     "slug": "2026-06-04",
     "school_year": "2025-2026",
     "date": "2026-06-04",
@@ -42,7 +57,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board approved a modified end-of-year schedule and family support for Kaler Elementary's closure, while also approving an interim superintendent, a significant retirement contribution, and acknowledging a director's resignation."
   },
   {
     "slug": "2026-05-27",
@@ -57,7 +72,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board approved Dr. Angela Atkinson-Dena as superintendent and, following extensive debate and an initial defeat, passed a plan to reassign Kaler Elementary students with provisions for waivers and transportation. Eight staff resignations were also reported, and public comment included transportation and Kaler reassignment concerns."
   },
   {
     "slug": "2026-05-11",
@@ -78,7 +93,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board authorized contract negotiations for a preferred superintendent candidate and committed to investigating significant bus overcrowding concerns, alongside approving staff contracts, discussing elementary reconfiguration, and reviewing financial updates."
   },
   {
     "slug": "2026-04-29",
@@ -88,11 +103,18 @@
     "day_of_week": "Wednesday",
     "type": "Special",
     "title": "Special Meeting",
-    "topics": [],
+    "topics": [
+      "FY2027 Budget",
+      "Reconfiguration",
+      "Kaler Closure",
+      "Superintendent Search",
+      "Equity"
+    ],
     "doc_count": 2,
     "has_video": true,
-    "has_transcript": false,
-    "stub": true
+    "has_transcript": true,
+    "stub": false,
+    "blurb": "The school board finalized the FY2027 budget with a 6% tax impact after extensive discussion on personnel cuts and financial stability. Following passionate public debate, the board voted 5-1 to delay the elementary school reconfiguration until the 2027-28 school year, committing to a detailed planning process."
   },
   {
     "slug": "2026-04-27",
@@ -166,7 +188,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The Board of Education adopted the FY27 budget 4-2, utilizing unexpected health insurance savings to reinstate positions and build contingency, amidst significant public opposition to the elementary reconfiguration plan and concerns over special education staffing."
   },
   {
     "slug": "2026-04-06",
@@ -199,7 +221,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board reviewed the FY27 budget, which includes a 6.0% tax increase and staffing changes, amidst strong community opposition to school reconfiguration and cuts to student-facing positions. They also removed a controversial early release proposal and will seek budgetary guidance from the City Council."
   },
   {
     "slug": "2026-04-01",
@@ -232,7 +254,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The Board voted to close Kaler Elementary and reconfigure remaining schools into a new grade model, but rejected the Superintendent's FY2027 budget due to concerns over significant personnel cuts and process, scheduling a special meeting for further deliberation."
   },
   {
     "slug": "2026-03-23",
@@ -250,7 +272,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board presented a budget to address a significant financial crisis, proposing a 6% tax increase, 12% staff reduction, Kaler Elementary closure, and district restructuring, which drew community concern over the impact on student-facing positions and special education services."
   },
   {
     "slug": "2026-03-17",
@@ -284,7 +306,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board discussed an FY2027 budget proposal featuring significant reductions, including 77 positions and the closure of Dyer Elementary, necessitated by a depleted fund balance. Both board members and the public voiced strong concerns regarding the cuts' magnitude and the rapid decision-making timeline."
   },
   {
     "slug": "2026-03-02",
@@ -303,7 +325,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "Facing $7-8 million in budget cuts, the SPSD board discussed elementary school reconfiguration scenarios, including school closures, to address declining enrollment and equity. However, board members and the public strongly opposed closing Skillin Elementary due to significant equity concerns and negative community impacts."
   },
   {
     "slug": "2026-02-24",
@@ -337,7 +359,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board addressed a significant FY2027 budget shortfall, exacerbated by school nutrition fund deficits and audit findings, by exploring elementary school reconfiguration and expanding the Community School model. The superintendent search is underway with student participation, and the board also endorsed a resolution supporting the local immigrant community."
   },
   {
     "slug": "2026-01-24",
@@ -387,7 +409,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board addressed a projected budget deficit and announced a public forum for the difficult FY2027 budget, while also approving a contract for the superintendent search. Significant concerns were raised regarding recent ICE activity, and the SPHS 2026 graduation was moved offsite."
   },
   {
     "slug": "2026-01-07",
@@ -437,7 +459,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board began its FY2027 budget process, directing the administration to draft a budget based on a 6.5% tax increase due to declining enrollment and financial shortfalls. They also discussed major cost-saving proposals, including elementary school reconfiguration, and announced upcoming public workshops for the superintendent search and community engagement."
   },
   {
     "slug": "2025-12-10",
@@ -452,7 +474,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board reviewed proposals from three superintendent search firms, debating their costs and approaches. Despite concerns over its higher price, the board voted 4-2 to hire Zeal Education Group, contingent on positive reference checks."
   },
   {
     "slug": "2025-12-08",
@@ -470,7 +492,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board ratified a new contract with SPESPA, but also addressed a projected $1.3-1.9 million FY25 budget deficit by implementing an immediate non-personnel spending freeze. Other actions included welcoming new members, scheduling a superintendent search workshop, and accepting over $46,000 in donations."
   },
   {
     "slug": "2025-12-03",
@@ -519,7 +541,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board ratified the teachers' collective bargaining agreement and discussed a budget deficit, partially offset by a geothermal tax credit, while warning of critical fund balance depletion. They also addressed significant remediation plans for the middle school field and approved a concussion policy."
   },
   {
     "slug": "2025-10-06",
@@ -563,7 +585,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board discussed significant financial concerns, including payroll errors, a depleted fund balance, and an upcoming audit, also sending a concussion policy back for revision. Updates included a positive school year start, new nutrition initiatives, and a slight enrollment decrease."
   },
   {
     "slug": "2025-08-20",
@@ -625,7 +647,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board approved a superintendent transition and elected a new chair, while also addressing a potential budget deficit and outlining a proactive AI strategy for the district. The district reported strong staffing for the upcoming year and ongoing summer facilities projects."
   },
   {
     "slug": "2025-07-10",
@@ -673,7 +695,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board initiated a search for an interim superintendent and authorized a separation agreement with Superintendent Metheny, while also approving a tentative agreement with SPESPA and thanking voters for passing the school budget."
   },
   {
     "slug": "2025-06-09",
@@ -690,7 +712,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board announced Superintendent Metheny's resignation and a transition plan, while highlighting significant district progress, planned security upgrades, and a new pre-K partnership, despite a decrease in federal funding, urging public support for the upcoming budget referendum."
   },
   {
     "slug": "2025-06-03",
@@ -707,7 +729,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board approved the FY2026 budget articles totaling $73,131,556, including a $3.9M capital plan, with one article passing 4-2 due to social-emotional learning funding concerns. The Superintendent also announced three resignations."
   },
   {
     "slug": "2025-05-27",
@@ -724,7 +746,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board reviewed an audit revealing material weaknesses and overspending, outlining corrective actions, and heard extensive public comment advocating for two special education teachers' contract renewals. The meeting also recognized the SPHS Robotics Team, noted positive SPHS academic and attendance progress, and approved various contracts and new administrative job descriptions."
   },
   {
     "slug": "2025-05-12",
@@ -741,7 +763,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board welcomed a new member, approved two hires and a cost-saving HR position, and announced three teacher resignations, clarifying they were not due to a reduction in force. They also reminded the community about the June 10th budget referendum and entered executive session."
   },
   {
     "slug": "2025-04-30",
@@ -760,7 +782,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board honored departing and welcomed new student representatives while approving several personnel changes, including a new Finance Director. Discussions also centered on the upcoming school budget referendum, with clarification that athletic complex improvements are a separate funding matter."
   },
   {
     "slug": "2025-04-14",
@@ -775,7 +797,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board rescinded its prior decision on the SPHS athletic complex, approving a recommendation for a November 2025 ballot referendum with two conflicting bond questions for natural grass ($4.66M) or synthetic turf ($5.49M) options due to updated cost estimates. This action was taken despite mixed public comment and a potential state law conflict regarding required board recommendations on the ballot."
   },
   {
     "slug": "2025-04-07",
@@ -792,7 +814,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board reviewed a proposed 5.98% budget increase for FY2026 that drew significant criticism for being 'top-heavy,' cutting student-facing and curriculum leadership positions while retaining administrative roles, and generated controversy over the Superintendent's communication with teachers."
   },
   {
     "slug": "2025-03-31",
@@ -809,7 +831,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board reviewed a proposed $73 million budget, which included some restorations, and debated further additions like SEL teachers. However, deep divisions over funding mechanisms, particularly a contentious salary freeze proposal, prevented any consensus or vote, leading to adjournment and a rescheduled meeting."
   },
   {
     "slug": "2025-03-27",
@@ -842,7 +864,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board navigated a challenging FY2025 budget, making difficult personnel cuts and restorations\u2014including saving an Assistant Principal position and reducing 'second lunch' funding\u2014to offset a new $200,000 health insurance deficit and keep the tax impact below 6%. They also addressed a DEI inquiry and funded the SPHS Robotics team's World Championship trip."
   },
   {
     "slug": "2025-03-17",
@@ -859,7 +881,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The Superintendent presented a FY2026 budget requesting a 6% operating increase and $3.17 million more from taxpayers, despite significant staff reductions driven by declining enrollment and increased staffing since 2017. Community members strongly opposed cuts to student-facing roles, while the Superintendent acknowledged the high tax burden on residents."
   },
   {
     "slug": "2025-03-10",
@@ -877,7 +899,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board celebrated student achievements and approved a pre-kindergarten expansion. However, the proposed FY2026 budget, featuring a 5.98% increase and over 20 FTE position cuts, generated significant public concern regarding its impact on students and the budget process."
   },
   {
     "slug": "2025-02-24",
@@ -894,7 +916,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The Board addressed a challenging FY2026 budget context, anticipating position reductions, and voted 4-3 to recommend a November 2025 referendum for the SPHS athletic complex with two options. A new state-funded pre-K partnership was also announced."
   },
   {
     "slug": "2025-02-03",
@@ -924,7 +946,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The board debated options for the South Portland High School athletic complex, weighing natural grass versus synthetic turf due to cost and environmental concerns. Superintendent Meni also delivered the State of the Schools address, detailing district performance, demographics, and commitment to diversity and inclusion."
   },
   {
     "slug": "2025-01-13",
@@ -941,7 +963,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board extensively debated the SPHS Athletic Complex's future, considering artificial turf versus natural grass amidst public and board concerns, and discussed moving the 2026 graduation venue to the Cross Insurance Arena. Other agenda items included recognizing staff retirements, student achievements, and updates on bond-funded projects."
   },
   {
     "slug": "2025-01-08",
@@ -958,7 +980,7 @@
     "has_video": true,
     "has_transcript": true,
     "stub": false,
-    "blurb": ""
+    "blurb": "The school board held a workshop on the future of the South Portland High School athletic complex, discussing natural grass versus synthetic turf options and a new, scaled-back synthetic turf proposal. The Board also unanimously denied a grievance from the South Portland Education Support Professionals Association."
   },
   {
     "slug": "2024-12-09",
