@@ -20,7 +20,8 @@
   },
   "homepage": "https://github.com/wheelerbb/spsd-board-meetings#readme",
   "devDependencies": {
-    "@11ty/eleventy": "^3.1.6"
+    "@11ty/eleventy": "^3.1.6",
+    "gray-matter": "^4.0.3"
   },
   "dependencies": {
     "google-api-python-client": "^0.0.1"
