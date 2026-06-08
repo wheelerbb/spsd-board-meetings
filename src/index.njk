@@ -100,24 +100,12 @@ pageScript: |
   </div>
 </div>
 
-{# Extract unique topics in order of appearance (which is descending date order) #}
-{% set all_topics = [] %}
-{% for m in meetings | sort(true, false, "date") %}
-  {% if m.topics %}
-    {% for topic in m.topics %}
-      {% if topic not in all_topics %}
-        {% set _ = all_topics.push(topic) %}
-      {% endif %}
-    {% endfor %}
-  {% endif %}
-{% endfor %}
-
 <div class="filter-bar topics-bar">
   <span class="filter-label">Topics</span>
   <div class="filter-content">
     <div class="topics-container" id="topicFilterContainer">
       <button class="filter-btn topic-filter-btn active" data-topic="all" onclick="filterTopic('all',this)">All Topics</button>
-      {% for topic in all_topics %}
+      {% for topic in topics %}
       <button class="filter-btn topic-filter-btn" data-topic="{{ topic }}" onclick="filterTopic('{{ topic }}',this)">{{ topic }}</button>
       {% endfor %}
     </div>

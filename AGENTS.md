@@ -83,17 +83,21 @@ The archive uses a two-stage modular pipeline for ingesting and synthesizing boa
 
 ### 1. Ingestion: `process_transcripts.py`
 This tool analyzes raw `.vtt` transcripts using Gemini (Vertex AI or AI Studio).
-- **Function:** Extracts formal votes, summary bullets, timeline highlights, and a meeting "blurb".
 - **Authentication:** Supports `--local-auth` (Vertex AI ADC) or standard API keys.
-- **Model Selection:** Automatically maps to provider-specific models (e.g., `gemini-2.5-pro` for Vertex).
-- **Concurrency:** Uses a ThreadPoolExecutor for parallel processing (default 4 workers for Vertex).
+- **Concurrency:** Uses a ThreadPoolExecutor for parallel processing.
+- **Discrete Outputs:** The LLM is prompted via a Pydantic schema to extract the following exact fields:
+  - `blurb`: A 1-2 sentence hook summarizing the primary outcome for the landing page.
+  - `tags` (Topics): 3-5 high-level, specific, time-bound tags (e.g., 'FY2026 Equity Policy').
+  - `votes`: Exact motion text, result, vote count, and movers.
+  - `summary`: 5-8 bullets reflecting the arc of conversation, with explicit tracking of viewpoints from the Board, Administration, Teachers, and Citizens.
+  - `timeline`: 10-15 key moments with timestamps (H:MM:SS) to support video deep-linking.
 
 ### 2. Synthesis: `post_process.py`
 This maintenance tool synchronizes the global metadata and generates high-level thematic content.
-- **Glossary Enforcement:** Programmatically corrects common transcript misspellings (e.g., "Caler" → "Kaler").
-- **Topic Maintenance:** Updates the global topics library. It allows specific terms (e.g., "FY26 Personnel Reductions") but filters out generic blacklisted tags (e.g., "Personnel").
-- **Metadata Sync:** Synchronizes `src/_data/meetings.json` with the latest front matter from individual `.njk` files.
-- **Topic Explorer Generation:** Analyzes chronological evidence for every topic to generate the "Current Status & Impact" summaries.
+- **Topic Taxonomy:** Sorts the global `topics.json` library by recent activity (newest first). Filters out generic blacklisted tags (e.g., "Personnel").
+- **Missing Blurbs:** Automatically generates blurbs for older meetings that lack them.
+- **Evidence Caching:** Hashes the chronological evidence for each topic. If the hash hasn't changed, the API call is skipped to save credits.
+- **Topic Explorer Generation:** Synthesizes chronological evidence (fed newest-first) into a 'Current Status & Evolution' summary for each topic.
 
 ---
 
@@ -107,9 +111,9 @@ When summarizing meeting discussions, identify viewpoints from these four groups
 4. **Citizens:** Public comment, parents, and community members.
 
 ### Topic Identification
-- **Specificity:** Avoid generic tags like "Budget" or "Personnel". Prefer specific, recurring themes like "FY2027 Budget" or "Kaler Closure".
-- **Substance:** Only tag topics that involve significant discussion, formal presentations, or board action. 
-- **Consistency:** Use `src/_data/topics.json` as the authoritative list. If a new major theme emerges across multiple meetings, the pipeline will propose it for addition.
+- **Specificity:** Topics MUST be specific, contextual, and ideally time-bound. Avoid generic nouns like "Transportation" or "Equity" unless they represent a standing, systemic issue spanning multiple years.
+- **Examples:** Use "FY26 Transportation Challenges" instead of "Transportation"; "2026 Equity Policy Update" instead of "Equity".
+- **Consistency:** Use `src/_data/topics.json` as the authoritative list. Re-use existing specific tags where appropriate.
 
 ### SPELING & Terminology
 - **Schools:** Kaler, Dyer, Skillin, Brown, Small, Mahoney, Memorial.

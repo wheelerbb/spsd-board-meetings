@@ -119,7 +119,7 @@ def process_single_meeting(date_slug, vtt_path):
 
     Guidelines:
     - Blurb: 1-2 sentence hook for the landing page.
-    - Tags: Select 3-5 high-level tags from: {allowed_tags}.
+    - Tags: Identify 3-5 specific, time-bound or scoped topic tags (e.g., '2026 Equity Policy Update' instead of 'Equity', 'FY26 Transportation Challenges' instead of 'Transportation'). Avoid broad, generic nouns unless referring to a standing systemic issue (like 'Reconfiguration'). Use {allowed_tags} to reuse existing specific tags where appropriate.
     - Votes: Exact motion, result, count, and movers.
     - Summary: 5-8 bullets showing the arc of conversation.
     - Timeline: 10-15 key moments with timestamps (H:MM:SS) and total seconds.
