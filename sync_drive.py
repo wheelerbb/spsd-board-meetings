@@ -24,8 +24,12 @@ def get_drive_service():
     
     print("Using default Google Auth (ADC) for Google Drive...")
     import google.auth
-    credentials, _ = google.auth.default(scopes=['https://www.googleapis.com/auth/drive.metadata.readonly', 'https://www.googleapis.com/auth/drive.readonly'])
-    return build('drive', 'v3', credentials=credentials)
+    try:
+        credentials, _ = google.auth.default(scopes=['https://www.googleapis.com/auth/drive.metadata.readonly', 'https://www.googleapis.com/auth/drive.readonly'])
+        return build('drive', 'v3', credentials=credentials)
+    except Exception as e:
+        print(f"Auth failed: {e}")
+        return None
 
 def list_files_in_folder(service, folder_id):
     """Recursively list all files in the folder and its subfolders."""
@@ -56,18 +60,29 @@ def list_files_in_folder(service, folder_id):
 def parse_meeting_date(filename):
     """
     Tries to extract a date from filenames like:
-    "Agenda 06.08.26" or "04.29.26 Special Meeting"
+    "Agenda 06.08.26", "04.29.26 Special Meeting", or "Agenda June 8, 2026"
     """
     # MM.DD.YY format
-    match = re.search(r'(\d{2})\.(\d{2})\.(\d{2})', filename)
+    match = re.search(r'(\d{1,2})\.(\d{1,2})\.(\d{2})', filename)
     if match:
         month, day, year_short = match.groups()
-        return f"20{year_short}-{month}-{day}"
+        return f"20{year_short}-{month.zfill(2)}-{day.zfill(2)}"
     
     # YYYY-MM-DD format
     match = re.search(r'(\d{4})-(\d{2})-(\d{2})', filename)
     if match:
         return match.group(0)
+    
+    # Month Day, Year format
+    months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    match = re.search(rf'({"|".join(months)})\s+(\d{{1,2}}),\s+(\d{{4}})', filename, re.I)
+    if match:
+        try:
+            # Normalize whitespace
+            clean_date = re.sub(r'\s+', ' ', match.group(0))
+            dt = datetime.strptime(clean_date, "%B %d, %Y")
+            return dt.strftime("%Y-%m-%d")
+        except: pass
     
     return None
 
@@ -77,7 +92,7 @@ def categorize_document(filename):
     if 'agenda' in name_lower: return 'agenda'
     if 'packet' in name_lower: return 'packet'
     if 'minute' in name_lower: return 'min'
-    return 'pdf' # Default misc document
+    return 'pdf'
 
 def build_meeting_map(files):
     mapping = {}
@@ -89,12 +104,12 @@ def build_meeting_map(files):
             mapping[date_slug] = []
             
         doc_type = categorize_document(f.get('name'))
-        # Prevent exact duplicates
-        if not any(d['url'] == f.get('webViewLink') for d in mapping[date_slug]):
+        url = f.get('webViewLink')
+        if not any(d['url'] == url for d in mapping[date_slug]):
             mapping[date_slug].append({
                 'type': doc_type,
                 'label': f.get('name').replace('.pdf', ''),
-                'url': f.get('webViewLink')
+                'url': url
             })
             
     return mapping
@@ -110,35 +125,44 @@ def generate_stubs(mapping):
             global_json = json.load(f)
             
     existing_slugs = [m['slug'] for m in global_json]
-    new_meetings_created = 0
+    changes_made = 0
 
-    for date_slug, docs in mapping.items():
+    for date_slug, new_docs in mapping.items():
         njk_path = os.path.join(meeting_dir, f"{date_slug}.njk")
         
         if date_slug in existing_slugs and os.path.exists(njk_path):
             with open(njk_path, 'r') as f: content = f.read()
             match = re.match(r'^(---\s*\n(.*?)\n---\s*(?:\n|$))(.*)', content, re.DOTALL)
             if match:
-                fm_text, body = match.group(2), match.group(3)
+                header_full, fm_text, body = match.group(1), match.group(2), match.group(3)
                 data = yaml.safe_load(fm_text) or {}
                 
-                # Update if doc count is different
-                if len(data.get('docs', [])) != len(docs):
-                    print(f"Updating docs for existing meeting: {date_slug}")
-                    data['docs'] = docs
+                existing_docs = data.get('docs', [])
+                existing_urls = {d['url'] for d in existing_docs}
+                
+                # Merge new docs that don't already exist
+                added_any = False
+                for nd in new_docs:
+                    if nd['url'] not in existing_urls:
+                        existing_docs.append(nd)
+                        added_any = True
+                
+                if added_any:
+                    print(f"Merged {len(new_docs)} new docs into existing meeting: {date_slug}")
+                    data['docs'] = existing_docs
                     fm_yaml = yaml.dump(data, sort_keys=False, default_flow_style=False)
                     with open(njk_path, 'w') as f: f.write(f"---\n{fm_yaml}---\n{body}")
                     
                     # Update global json doc count
                     for g in global_json:
                         if g['slug'] == date_slug:
-                            g['doc_count'] = len(docs)
-                            new_meetings_created += 1 # Flag to trigger global json save
+                            g['doc_count'] = len([d for d in existing_docs if d['type'] != 'video'])
+                            changes_made += 1
                             break
             continue
             
         print(f"Creating new meeting stub: {date_slug}...")
-        new_meetings_created += 1
+        changes_made += 1
         
         dt = datetime.strptime(date_slug, "%Y-%m-%d")
         year = dt.year
@@ -150,7 +174,7 @@ def generate_stubs(mapping):
         
         mtype = "Regular"
         title = f"{dt.strftime('%B')} Regular Meeting"
-        agenda_doc = next((d for d in docs if d['type'] == 'agenda'), None)
+        agenda_doc = next((d for d in new_docs if d['type'] == 'agenda'), None)
         if agenda_doc:
             if "special" in agenda_doc['label'].lower():
                 mtype = "Special"
@@ -159,7 +183,6 @@ def generate_stubs(mapping):
                 mtype = "Workshop"
                 title = "Board Workshop"
         
-        njk_path = os.path.join(meeting_dir, f"{date_slug}.njk")
         front_matter = {
             "layout": "layouts/meeting.njk",
             "title": f"{display_date} — School Board Meeting — SPSD",
@@ -176,7 +199,7 @@ def generate_stubs(mapping):
             "has_transcript": False,
             "stub": True,
             "board_attendance": [],
-            "docs": docs
+            "docs": new_docs
         }
         
         fm_yaml = yaml.dump(front_matter, sort_keys=False, default_flow_style=False)
@@ -192,23 +215,24 @@ def generate_stubs(mapping):
             "type": mtype,
             "title": title,
             "topics": [],
-            "doc_count": len(docs),
+            "doc_count": len([d for d in new_docs if d['type'] != 'video']),
             "has_video": False,
             "has_transcript": False,
             "stub": True,
             "blurb": ""
         })
 
-    if new_meetings_created > 0:
+    if changes_made > 0:
         global_json.sort(key=lambda x: x['date'], reverse=True)
         with open(meetings_json_path, 'w') as f:
             json.dump(global_json, f, indent=2)
-        print(f"Added {new_meetings_created} new meetings to the archive.")
+        print(f"Updated {changes_made} meetings in the archive.")
     else:
-        print("No new meetings found.")
+        print("No new updates found.")
 
 def main():
     service = get_drive_service()
+    if not service: return
     print("Fetching files from Google Drive...")
     try:
         files = list_files_in_folder(service, FOLDER_ID)
