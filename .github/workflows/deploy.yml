@@ -20,10 +20,10 @@ jobs:
   process_and_build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           
@@ -33,20 +33,20 @@ jobs:
           pip install requests beautifulsoup4 google-genai pydantic pyyaml python-dotenv google-api-python-client
           
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: npm
           
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
           
       - name: Run Ingestion Pipeline
         run: |
           # 1. Check Google Drive for new documents and create stubs
-          python sync_drive.py
+          python source_data.py
           
           # 2. Process any unprocessed transcripts (if transcript files were pushed)
           # Note: We rely on the local ADC auth set up by the previous step
@@ -59,9 +59,9 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add src/meetings/ src/_data/ master_material_map.json
+          git add src/meetings/ src/_data/
           # Only commit if there are changes
-          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-Update: Fetch latest meeting docs and synthesize summaries"
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore: auto-update meeting stubs and summaries"
           git push
           
       - name: Install NPM Dependencies
@@ -71,7 +71,7 @@ jobs:
         run: npm run build
         
       - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
@@ -82,5 +82,5 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/deploy-pages@v4
+      - uses: actions/deploy-pages@v5
         id: deployment
