@@ -120,8 +120,15 @@ pageScript: |
 
 <main class="main" id="meetingList">
   {# --- NEXT SCHEDULED MEETING --- #}
-  {% set nextMeeting = meetings[0] %}
-  {% if nextMeeting and nextMeeting.stub %}
+  {% set nextMeeting = null %}
+  {# meetings is sorted descending, so we take the last one that is a stub and >= today #}
+  {% for m in meetings %}
+    {% if m.stub and m.date >= now %}
+      {% set nextMeeting = m %}
+    {% endif %}
+  {% endfor %}
+
+  {% if nextMeeting %}
   <section class="upcoming-meeting-section">
     <div class="upcoming-badge">Next Scheduled Meeting</div>
     <div class="upcoming-card">
