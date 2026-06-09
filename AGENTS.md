@@ -131,25 +131,29 @@ When summarizing meeting discussions, identify viewpoints from these four groups
 
 ## Identifying New Meetings (Automation)
 
-The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetings and agendas directly via their public JSON APIs.
+The `source_data.py` script and its supporting modules (in `scripts/sourcing/`) automate the identification of new meetings and the sourcing of associated materials.
+
+### Authority Rules
+Meeting stubs (`.njk` files) are created **ONLY** when a date is found in one of these official event sources:
+1. **Apptegy Events API:** Primary calendar source.
+2. **SPSD Website ("Board Activities"):** Secondary calendar source & Primary document authority.
+
+Documents or transcripts found in auxiliary sources (Google Drive, Vimeo) are mapped to meetings but **never** trigger the creation of a "ghost" meeting if they don't match an official event.
 
 ### Endpoints
+- **District Calendar (Apptegy Events v2):**
+  `https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249568/events`
+- **School Board Page (SPSD Site):**
+  `https://www.spsdme.org/page/school-board`
+- **Vimeo List:** Local `vimeo_master_list.json` (synced with SPC TV).
 
-- **District Calendar (Meetings):**
-  `https://thrillshare-cmsv2.services.thrillshare.com/api/v4/o/14619/cms/events?section_ids=249568`
-
-- **Board Agendas/News:**
-  `https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249567/articles?filter_ids=482712`
-
-- **Documents API:**
-  `https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249570/documents`
-
-### Automated Workflow
-
-1. **Check for new dates:** Fetch the Events API.
-2. **Add stubs:** Use the standard structure in the front matter. Set `stub: true`.
-3. **Source Agendas:** Search for Google Drive links across the Articles API, the direct Board page, and the Documents API.
-4. **Update Stubs:** Add found links to `docs[]` in the `.njk` front matter — `doc_count` is derived automatically at build time.
+### Automated Workflow (`python3 source_data.py`)
+1. **Fetch Authority Data:** Aggregates dates from Apptegy and SPSD Site.
+2. **Fetch Auxiliary Data:** Maps Drive files, Vimeo videos, and local transcripts to those dates.
+3. **Reconcile & Merge:** 
+   - Site documents take precedence over Drive documents. 
+   - Existing `.njk` files are updated with new materials; missing dates from authority sources trigger new stubs.
+   - Use `--dry-run` to verify proposed changes before writing.
 
 ---
 
@@ -168,9 +172,10 @@ The SPSD website uses the Apptegy (Thrillshare) CMS. You can identify new meetin
 
 - **Board Attendance:** Official [Board Members page](https://www.spsdme.org/page/members-of-the-board) and **Meeting Minutes** PDF.
 - **Meeting Minutes:** **AUTHORITATIVE SOURCE.** Content from official Minutes (Votes, Actions, formal Summaries) MUST supersede and/or replace content extracted from raw transcripts. When processing a meeting, always prioritize the PDF Minutes if available.
-- **Meeting Metadata:** [Apptegy Events API](https://thrillshare-cmsv2.services.thrillshare.com/api/v4/o/14619/cms/events?section_ids=249568).
-- **Video:** [SPC TV Vimeo channel](https://vimeo.com/spctv). Deep links use `#t=[seconds]s`.
-- **Transcripts:** Download raw `.vtt` files from the [SchoolBoardMeetingTranscripts Google Drive Folder](https://drive.google.com/drive/folders/1qKRujrhJd1c8BW94A7-QGg9epc4y6n4g?usp=drive_link). Transcript-sourced data is for supplemental highlights and deep-linking only.
+- **Meeting Metadata & Calendar:** [Apptegy Events API](https://thrillshare-cmsv2.services.thrillshare.com/api/v2/s/249568/events) (Primary) and the SPSD Board Activities section (Secondary).
+- **Documents:** Links extracted from the SPSD Website take precedence over Google Drive files.
+- **Video:** [SPC TV Vimeo channel](https://vimeo.com/spctv), tracked via `vimeo_master_list.json`.
+- **Transcripts:** Download raw `.vtt` files from the [SchoolBoardMeetingTranscripts Google Drive Folder](https://drive.google.com/drive/folders/1qKRujrhJd1c8BW94A7-QGg9epc4y6n4g?usp=drive_link). 
 
 ---
 
