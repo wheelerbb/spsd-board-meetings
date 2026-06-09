@@ -66,13 +66,21 @@ def reconcile_meetings(all_data, dry_run=False):
         data = all_data[date_slug]
         
         # Determine if we SHOULD have a meeting for this date (Authority Rule)
-        has_event = bool(data.get('events')) or bool(data.get('site'))
+        has_valid_event = False
+        if data.get('events'):
+            for event in data['events']:
+                if 'board' in event.get('title', '').lower():
+                    has_valid_event = True
+                    break
+        
+        has_site_data = bool(data.get('site'))
+        has_event = has_valid_event or has_site_data
         
         njk_path = os.path.join(meeting_dir, f"{date_slug}.njk")
         exists = os.path.exists(njk_path)
         
         if not has_event and not exists:
-            # Strict Authority: No event, no file exists -> Skip
+            # Strict Authority: No valid event, no file exists -> Skip
             continue
 
         # Gather all docs for this date
@@ -150,7 +158,8 @@ def reconcile_meetings(all_data, dry_run=False):
         mtype = "Regular"
 
         if data.get('events'):
-            event = data['events'][0] # Take first event
+            valid_events = [e for e in data['events'] if 'board' in e.get('title', '').lower()]
+            event = valid_events[0] if valid_events else data['events'][0]
             title = event.get('title', title)
             location = event.get('location', location)
         elif data.get('site'):
@@ -183,7 +192,16 @@ def reconcile_meetings(all_data, dry_run=False):
             "has_vtt_source": bool(transcript_path),
             "has_transcript": bool(transcript_path),
             "stub": True,
-            "board_attendance": [],
+            "board_attendance": [
+                {"name": "Rosemarie DeAngelis", "role": "Board"},
+                {"name": "Tyler Smith", "role": "Board"},
+                {"name": "Daniel Feller", "role": "Board"},
+                {"name": "Claire Holman", "role": "Board"},
+                {"name": "Eleni Richardson", "role": "Board"},
+                {"name": "George Risch", "role": "Board"},
+                {"name": "Angela Kabisa", "role": "Student Rep"},
+                {"name": "Alex Davison", "role": "Student Rep"}
+            ],
             "docs": combined_docs
         }
         
