@@ -188,7 +188,7 @@ layout: layouts/base.njk
     </div>
 
     {# 2. MEETING ATTENDANCE #}
-    {% if board_attendance %}
+    {% if board_attendance and not stub %}
     <div class="sidebar-card">
       <div class="sidebar-card-head">👥 Meeting Attendance</div>
       <div class="sidebar-card-body">

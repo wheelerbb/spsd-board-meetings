@@ -51,7 +51,8 @@ function getMeetings() {
           type:           meetingType(data.meeting_tag),
           // NOTE: meetings.json 'title' = .njk 'heading' (short display title).
           //       .njk 'title' is the HTML <title> tag value — do NOT use that.
-          title:          data.heading        || '',
+          //       Strip HTML tags and any trailing date from the heading for the index.
+          title:          (data.heading || '').split('<br>')[0].replace(/\s+—\s+.*$/, '').trim(),
           topics:         Array.isArray(data.topics)
                             ? data.topics.filter(t => !TOPIC_BLACKLIST.has(t))
                             : [],
