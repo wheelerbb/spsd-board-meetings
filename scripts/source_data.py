@@ -270,6 +270,9 @@ def main():
     parser.add_argument('--bucket', default='', metavar='BUCKET_URI',
                         help='GCS bucket URI (e.g. gs://my-bucket) for persisting pipeline data files.')
     args = parser.parse_args()
+    bucket = args.bucket or os.getenv('GCS_BUCKET_URI', '')
+    # Rewrite args.bucket so all downstream checks use the resolved value
+    args.bucket = bucket
 
     # Download previous master map from bucket (enables incremental awareness)
     if args.bucket:

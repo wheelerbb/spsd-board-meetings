@@ -206,12 +206,13 @@ def process_single_meeting(date_slug, vtt_path):
 def main():
     args = sys.argv[1:]
 
-    # Extract --bucket <URI> if present
+    # Extract --bucket <URI> if present, fall back to env var
     bucket = None
     if "--bucket" in args:
         idx = args.index("--bucket")
         bucket = args[idx + 1]
         args = args[:idx] + args[idx + 2:]
+    bucket = bucket or os.getenv('GCS_BUCKET_URI', '') or None
 
     # Build transcript mapping: Drive (lowest) < bucket < local (highest priority)
     mapping = {}
