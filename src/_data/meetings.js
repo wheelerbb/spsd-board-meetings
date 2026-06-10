@@ -34,6 +34,7 @@ function meetingType(tag) {
 
 function getMeetings() {
   const dir = path.join(__dirname, '../meetings');
+  const today = new Date().toISOString().split('T')[0];
 
   return fs.readdirSync(dir)
     .filter(f => /^\d{4}-\d{2}-\d{2}\.njk$/.test(f))
@@ -62,6 +63,7 @@ function getMeetings() {
           has_video:      !!data.has_video,
           has_transcript: !!data.has_transcript,
           stub:           data.stub !== false,
+          future:         slug >= today,
           blurb:          data.blurb          || '',
         };
       } catch (err) {

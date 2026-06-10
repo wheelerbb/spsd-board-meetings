@@ -119,15 +119,44 @@ pageScript: |
 </div>
 
 <main class="main" id="meetingList">
-  {# --- NEXT SCHEDULED MEETING --- #}
+  {# Identify the soonest upcoming stub — meetings is sorted descending, so last match wins #}
   {% set nextMeeting = null %}
-  {# meetings is sorted descending, so we take the last one that is a stub and >= today #}
   {% for m in meetings %}
-    {% if m.stub and m.date >= now %}
+    {% if m.stub and m.future %}
       {% set nextMeeting = m %}
     {% endif %}
   {% endfor %}
 
+  {# --- UPCOMING MEETINGS (collapsible, excludes nextMeeting) --- #}
+  {% set hasOtherUpcoming = false %}
+  {% for m in meetings %}
+    {% if m.future and m.stub and (not nextMeeting or m.slug != nextMeeting.slug) %}
+      {% set hasOtherUpcoming = true %}
+    {% endif %}
+  {% endfor %}
+
+  {% if hasOtherUpcoming %}
+  <details class="future-meetings-section">
+    <summary class="future-meetings-summary">
+      <svg class="future-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg>
+      Upcoming Meetings
+    </summary>
+    <ul class="future-meetings-list">
+      {% for m in meetings | sort(false, false, "date") %}
+        {% if m.future and m.stub and (not nextMeeting or m.slug != nextMeeting.slug) %}
+        <li class="future-meeting-row">
+          <a href="{{ ('/meetings/' + m.slug + '/') | url }}">
+            <span class="future-meeting-date">{{ m.display_date }}</span>
+            <span class="future-meeting-title">{{ m.title }}</span>
+          </a>
+        </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+
+  {# --- NEXT SCHEDULED MEETING --- #}
   {% if nextMeeting %}
   <section class="upcoming-meeting-section">
     <div class="upcoming-badge">Next Scheduled Meeting</div>
@@ -163,10 +192,17 @@ pageScript: |
   {% endif %}
 
   {% for sy in years %}
+  {# Only render the year section if it contains at least one past meeting #}
+  {% set hasPast = false %}
+  {% for m in meetings | where("school_year", sy) %}
+    {% if not m.future %}{% set hasPast = true %}{% endif %}
+  {% endfor %}
+  {% if hasPast %}
   <section class="year-section" data-year="{{ sy }}">
     <div class="year-label">{{ sy }} School Year</div>
     <div class="meetings-grid">
       {% for m in meetings | where("school_year", sy) | sort(true, false, "date") %}
+      {% if not m.future %}
       <a href="{{ ('/meetings/' + m.slug + '/') | url }}" class="meeting-card" data-year="{{ sy }}" data-topics="{{ m.topics | join(',') if m.topics else '' }}">
         <div class="card-top">
           <div class="card-date">{{ m.display_date }}</div>
@@ -214,8 +250,10 @@ pageScript: |
           {% endif %}
         </div>
       </a>
+      {% endif %}
       {% endfor %}
     </div>
   </section>
+  {% endif %}
   {% endfor %}
 </main>
