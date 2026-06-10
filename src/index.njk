@@ -158,34 +158,23 @@ pageScript: |
   {% if nextMeeting %}
   <section class="upcoming-meeting-section">
     <div class="upcoming-badge">Next Scheduled Meeting</div>
-    <div class="upcoming-card">
-      <div class="upcoming-info">
-        <h2>{{ nextMeeting.title | safe }}</h2>
-        <div class="upcoming-meta">
-          <div class="meta-item">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>
-            {{ nextMeeting.day_of_week }}, {{ nextMeeting.display_date }}
-          </div>
-          <div class="meta-item">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
-            6:00 PM · High School Lecture Hall
-          </div>
+    <a href="{{ ('/meetings/' + nextMeeting.slug + '/') | url }}" class="upcoming-card">
+      <h2>{{ nextMeeting.title | safe }}</h2>
+      <div class="upcoming-meta">
+        <div class="meta-item">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>
+          {{ nextMeeting.day_of_week }}, {{ nextMeeting.display_date }}
         </div>
-        
-        <div class="upcoming-agenda">
-          {% set agendaSummary = null %}
-          {% if nextMeeting.blurb %}
-            {% set agendaSummary = nextMeeting.blurb %}
-          {% endif %}
-          
-          <strong>Agenda Preview:</strong>
-          <p>{{ agendaSummary | safe if agendaSummary else "Agenda pending." }}</p>
+        <div class="meta-item">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+          6:00 PM · High School Lecture Hall
         </div>
       </div>
-      <div class="upcoming-actions">
-        <a href="{{ ('/meetings/' + nextMeeting.slug + '/') | url }}" class="upcoming-link">View Meeting Details</a>
+      <div class="upcoming-agenda">
+        <strong>Agenda Preview:</strong>
+        <p>{{ nextMeeting.blurb | safe if nextMeeting.blurb else "Agenda pending." }}</p>
       </div>
-    </div>
+    </a>
   </section>
   {% endif %}
 

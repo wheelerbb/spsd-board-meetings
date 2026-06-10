@@ -194,7 +194,9 @@ def reconcile_meetings(all_data, dry_run=False):
         elif "executive" in title_lower: mtype = "Executive Session"
 
         # Final title cleanup
-        if mtype != "Regular" and "meeting" not in title_lower:
+        if mtype == "Regular":
+            title = f"{dt.strftime('%B')} Regular Meeting"
+        elif "meeting" not in title_lower:
             title = f"{mtype} Meeting"
 
         front_matter = {
