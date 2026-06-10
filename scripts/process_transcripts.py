@@ -16,14 +16,17 @@ load_dotenv()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 from sourcing.transcripts import get_transcript_mapping, get_bucket_vtt_mapping
+from sourcing.vimeo import get_vimeo_mapping
+
+_vimeo_map = {}
 
 # --- CONFIGURATION ---
 USE_LOCAL_AUTH = "--local-auth" in sys.argv
 if USE_LOCAL_AUTH: sys.argv.remove("--local-auth")
 
 MODEL_MAP = {
-    "vertex": {"pro": "gemini-2.5-pro", "flash": "gemini-2.5-flash"},
-    "studio": {"pro": "gemini-1.5-pro", "flash": "gemini-2.0-flash"}
+    "vertex": {"flash": "gemini-2.5-flash", "pro": "gemini-2.5-pro"},
+    "studio": {"flash": "gemini-2.5-flash", "pro": "gemini-2.5-pro"}
 }
 
 client = None
@@ -79,12 +82,18 @@ class TimelineItem(BaseModel):
     topic: str
     desc: str
 
+class AttendanceMember(BaseModel):
+    name: str
+    status: str  # "Present" or "Absent"
+    role: str    # "Board" or "Student Rep"
+
 class MeetingReport(BaseModel):
     blurb: str = Field(description="An extremely concise (1-2 sentence) summary.")
     tags: list[str] = Field(description="3-5 high-level topic tags.")
     votes: list[Vote]
     summary: list[SummaryItem]
     timeline: list[TimelineItem]
+    board_attendance: list[AttendanceMember]
 
 # --- VTT SOURCES ---
 
@@ -182,6 +191,7 @@ def process_single_meeting(date_slug, vtt_path):
     - Votes: Exact motion, result, count, and movers.
     - Summary: 5-8 bullets showing the arc of conversation.
     - Timeline: 10-15 key moments with timestamps (H:MM:SS) and total seconds.
+    - Board Attendance: Extract the roll call. For each person called, record name, status (Present or Absent), and role (Board or Student Rep).
 
     Transcript:
     {transcript}
@@ -189,12 +199,25 @@ def process_single_meeting(date_slug, vtt_path):
 
     try:
         if provider == "vertex": time.sleep(2)
-        print(f"  Sending request to Gemini for {date_slug}...")
-        response = client.models.generate_content(
-            model=DEFAULT_MODEL,
-            contents=prompt,
-            config={'response_mime_type': 'application/json', 'response_schema': MeetingReport, 'temperature': 0.1}
-        )
+        models_to_try = list(dict.fromkeys([MODEL_MAP[provider]["flash"], MODEL_MAP[provider]["pro"]]))
+        response = None
+        for model in models_to_try:
+            print(f"  Sending request to Gemini ({model}) for {date_slug}...", flush=True)
+            try:
+                response = client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config={'response_mime_type': 'application/json', 'response_schema': MeetingReport, 'temperature': 0.1}
+                )
+                break
+            except Exception as model_err:
+                if "429" in str(model_err):
+                    print(f"  Rate-limited on {model}, trying next model...", flush=True)
+                    continue
+                raise
+        if response is None:
+            print(f"  All models rate-limited for {date_slug}. Run via production pipeline for higher limits.", flush=True)
+            return {"slug": date_slug, "status": "RateLimit"}
         print(f"  Received response for {date_slug}.")
         report_data = json.loads(response.text)
 
@@ -205,19 +228,32 @@ def process_single_meeting(date_slug, vtt_path):
         fm_text, body = match.group(2), match.group(3)
 
         data = yaml.safe_load(fm_text)
+
+        # Backfill video URL if it appeared after stub creation
+        if not data.get('video_url'):
+            if not _vimeo_map:
+                _vimeo_map.update(get_vimeo_mapping())
+            if date_slug in _vimeo_map:
+                data['has_video'] = True
+                data['video_url'] = _vimeo_map[date_slug]
+
         data['stub'] = False
         data['has_transcript'] = True
         data['processed_date'] = date.today().isoformat()
         data['blurb'] = report_data.pop('blurb', '')
         data['topics'] = report_data.pop('tags', [])
+        extracted_attendance = report_data.pop('board_attendance', [])
         data.update(report_data)  # votes, summary, timeline
+        data['votes_source'] = 'Transcript (Unofficial)'
+        if extracted_attendance:
+            data['board_attendance'] = extracted_attendance
+            data['attendance_source'] = 'Transcript (Unofficial)'
 
         new_fm = yaml.dump(data, sort_keys=False, default_flow_style=False)
         with open(njk_path, 'w') as f: f.write('---\n' + new_fm + '---\n' + body)
         return {"slug": date_slug, "status": "Success"}
 
     except Exception as e:
-        if "429" in str(e): os._exit(1)
         return {"slug": date_slug, "status": f"Error: {e}"}
 
 
@@ -261,12 +297,20 @@ def main():
     if not to_process:
         print("No new meetings to process.")
         return
-    print(f"Targeting {len(to_process)} meetings...")
+    print(f"Targeting {len(to_process)} meetings...", flush=True)
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(process_single_meeting, slug, path): slug for slug, path in to_process.items()}
+        rate_limited = []
         for future in as_completed(futures):
             res = future.result()
-            if res: print(f"Finished {res['slug']}: {res['status']}")
+            if res:
+                print(f"Finished {res['slug']}: {res['status']}", flush=True)
+                if res['status'] == 'RateLimit':
+                    rate_limited.append(res['slug'])
+        if rate_limited:
+            print(f"\nRate-limited on all models for: {', '.join(rate_limited)}")
+            print("Re-run with --local-auth for higher limits via Vertex AI.")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()

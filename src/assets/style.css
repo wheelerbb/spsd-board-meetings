@@ -342,8 +342,9 @@ nav a.nav-link:hover { color:var(--gold-light); }
   padding:3px 6px; border-radius:3px; letter-spacing:.06em;
   display:inline-block; line-height:1; color:#fff;
 }
-.vote-chip.pass { background:var(--green); }
-.vote-chip.fail { background:#c0392b; }
+.vote-chip.pass, .vote-chip.passed, .vote-chip.approved { background:var(--green); }
+.vote-chip.fail, .vote-chip.failed { background:#c0392b; }
+.source-citation { font-size:.72rem; color:var(--muted); margin-top:.75rem; font-style:italic; }
 .vote-count { font-size:.75rem; color:var(--muted); font-variant-numeric:tabular-nums; line-height:1.2; }
 .vote-tally { font-variant-numeric:tabular-nums; font-size:.8rem; line-height:1.4; }
 

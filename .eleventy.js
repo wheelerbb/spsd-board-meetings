@@ -26,6 +26,12 @@ module.exports = function (eleventyConfig) {
 
   eleventyConfig.addFilter("meetingNav", require("./src/_lib/meetingNav"));
 
+  eleventyConfig.addFilter("secondsToTime", (s) => {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    return `${h}:${String(m).padStart(2, '0')}`;
+  });
+
   return {
     pathPrefix: process.env.PATH_PREFIX || "/spsd-board-meetings/",
     dir: {

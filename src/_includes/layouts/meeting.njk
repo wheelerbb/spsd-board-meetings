@@ -71,6 +71,7 @@ layout: layouts/base.njk
           {% endfor %}
         </tbody>
       </table>
+      {% if votes_source %}<p class="source-citation">Source: {{ votes_source }}</p>{% endif %}
     </div>
     {% endif %}
 
@@ -107,10 +108,10 @@ layout: layouts/base.njk
             {% if has_video %}
             <a href="{{ video_url }}#t={{ item.seconds }}s" target="_blank" class="tl-time-btn">
               <svg viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1.5 4l4 2-4 2V6z"/></svg>
-              {{ item.time }}
+              {{ item.seconds | secondsToTime }}
             </a>
             {% else %}
-            <span class="tl-time-btn tl-time-btn--disabled">{{ item.time }}</span>
+            <span class="tl-time-btn tl-time-btn--disabled">{{ item.seconds | secondsToTime }}</span>
             {% endif %}
           </div>
           <div class="tl-body">
@@ -233,6 +234,7 @@ layout: layouts/base.njk
           {% endfor %}
         </div>
         {% endif %}
+        {% if attendance_source %}<p class="source-citation">Source: {{ attendance_source }}</p>{% endif %}
       </div>
     </div>
     {% endif %}
