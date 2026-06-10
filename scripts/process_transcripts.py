@@ -33,7 +33,9 @@ api_key = os.getenv("GEMINI_PRO_API_KEY") or os.getenv("GEMINI_API_KEY")
 if USE_LOCAL_AUTH:
     import google.auth
     try:
-        credentials, project = google.auth.default()
+        credentials, project = google.auth.default(
+            scopes=['https://www.googleapis.com/auth/cloud-platform']
+        )
         project_id = 'spsd-board-meetings'
         client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
         provider = "vertex"
