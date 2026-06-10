@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 
-from scripts.sourcing import drive, apptegy, spsd_site, vimeo, transcripts
+from sourcing import drive, apptegy, spsd_site, vimeo, transcripts
 
 load_dotenv()
 
@@ -25,7 +25,7 @@ def merge_documents(existing_docs, new_docs):
     new_docs take precedence if there's a collision in URL (labels might be updated).
     """
     merged = {drive.clean_url(d.get('url')): d for d in existing_docs if d.get('url')}
-    
+
     added_count = 0
     for d in new_docs:
         url = drive.clean_url(d.get('url'))
@@ -36,7 +36,7 @@ def merge_documents(existing_docs, new_docs):
             # Optionally update label/type if new one is more specific?
             # For now, let's stick with the first one found (or priority based)
             pass
-            
+
     return list(merged.values()), added_count
 
 def reconcile_meetings(all_data, dry_run=False):
@@ -55,16 +55,16 @@ def reconcile_meetings(all_data, dry_run=False):
         if not dry_run: os.makedirs(meeting_dir)
 
     changes_made = 0
-    
+
     # Sort dates descending
     sorted_dates = sorted(all_data.keys(), reverse=True)
 
     for date_slug in sorted_dates:
         if date_slug < CUTOFF_DATE:
             continue
-        
+
         data = all_data[date_slug]
-        
+
         # Determine if we SHOULD have a meeting for this date (Authority Rule)
         has_valid_event = False
         if data.get('events'):
@@ -72,13 +72,13 @@ def reconcile_meetings(all_data, dry_run=False):
                 if 'board' in event.get('title', '').lower():
                     has_valid_event = True
                     break
-        
+
         has_site_data = bool(data.get('site'))
         has_event = has_valid_event or has_site_data
-        
+
         njk_path = os.path.join(meeting_dir, f"{date_slug}.njk")
         exists = os.path.exists(njk_path)
-        
+
         if not has_event and not exists:
             # Strict Authority: No valid event, no file exists -> Skip
             continue
@@ -88,7 +88,7 @@ def reconcile_meetings(all_data, dry_run=False):
         combined_docs = []
         if data.get('site'):
             combined_docs.extend(data['site'].get('docs', []))
-        
+
         # Add drive docs if not already present by URL
         site_urls = {drive.clean_url(d['url']) for d in combined_docs}
         for d in data.get('drive', []):
@@ -102,36 +102,36 @@ def reconcile_meetings(all_data, dry_run=False):
             # Update existing file
             with open(njk_path, 'r') as f:
                 content = f.read()
-            
+
             parts = re.split(r'^---+\s*$', content, flags=re.MULTILINE)
             if len(parts) >= 3:
                 fm_text = parts[1]
                 body = "---".join(parts[2:])
-                
+
                 try:
                     fm_data = yaml.safe_load(fm_text) or {}
                 except Exception as e:
                     print(f"Error parsing YAML in {njk_path}: {e}")
                     continue
-                
+
                 existing_docs = fm_data.get('docs', [])
                 merged_docs, added_docs_count = merge_documents(existing_docs, combined_docs)
-                
+
                 updated = False
                 if added_docs_count > 0:
                     fm_data['docs'] = merged_docs
                     updated = True
-                
+
                 if video_url and not fm_data.get('video_url'):
                     fm_data['video_url'] = video_url
                     fm_data['has_video'] = True
                     updated = True
-                
+
                 if transcript_path and not fm_data.get('has_transcript'):
                     fm_data['has_transcript'] = True
                     fm_data['has_vtt_source'] = True
                     updated = True
-                
+
                 if updated:
                     print(f"{'[DRY RUN] ' if dry_run else ''}Updating meeting: {date_slug}")
                     if not dry_run:
@@ -144,14 +144,14 @@ def reconcile_meetings(all_data, dry_run=False):
         # Create new stub (only if has_event is true)
         print(f"{'[DRY RUN] ' if dry_run else ''}Creating new meeting stub: {date_slug}...")
         changes_made += 1
-        
+
         if dry_run:
             continue
 
         dt = datetime.strptime(date_slug, "%Y-%m-%d")
         display_date = dt.strftime("%B %d, %Y").replace(" 0", " ")
         day_of_week = dt.strftime("%A")
-        
+
         # Resolve Title & Location
         title = "Regular Meeting"
         location = "South Portland High School Lecture Hall"
@@ -204,7 +204,7 @@ def reconcile_meetings(all_data, dry_run=False):
             ],
             "docs": combined_docs
         }
-        
+
         fm_yaml = yaml.dump(front_matter, sort_keys=False, default_flow_style=False)
         with open(njk_path, 'w') as f:
             f.write(f"---\n{fm_yaml}---\n")
@@ -266,7 +266,7 @@ def main():
     # 6. Reconcile & Update Meetings
     print("Step 6: Reconciling and updating meetings...")
     changes = reconcile_meetings(all_data, dry_run=args.dry_run)
-    
+
     # 7. Update Master Map
     if not args.dry_run:
         # We might want to save the final reconciled state

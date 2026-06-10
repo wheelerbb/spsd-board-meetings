@@ -83,7 +83,7 @@ def post_process():
     meeting_dir = 'src/meetings/'
     topics_lib_path = 'src/_data/topics.json'
     summary_lib_path = 'src/_data/topic_summaries.json'
-    hashes_lib_path = 'src/_data/topic_hashes.json'
+    hashes_lib_path = 'scripts/topic_hashes.json'
 
     # 1. Enforce Glossary & Extract Data
     print("Enforcing Glossary and scanning meetings...")

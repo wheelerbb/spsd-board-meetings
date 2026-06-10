@@ -81,7 +81,7 @@ timeline:
 
 The archive uses a two-stage modular pipeline for ingesting and synthesizing board meeting data.
 
-### 1. Ingestion: `process_transcripts.py`
+### 1. Ingestion: `scripts/process_transcripts.py`
 This tool analyzes raw `.vtt` transcripts using Gemini (Vertex AI or AI Studio).
 - **Authentication:** Supports `--local-auth` (Vertex AI ADC) or standard API keys.
 - **Concurrency:** Uses a ThreadPoolExecutor for parallel processing.
@@ -92,7 +92,7 @@ This tool analyzes raw `.vtt` transcripts using Gemini (Vertex AI or AI Studio).
   - `summary`: 5-8 bullets reflecting the arc of conversation, with explicit tracking of viewpoints from the Board, Administration, Teachers, and Citizens.
   - `timeline`: 10-15 key moments with timestamps (H:MM:SS) to support video deep-linking.
 
-### 2. Synthesis: `post_process.py`
+### 2. Synthesis: `scripts/post_process.py`
 This maintenance tool synchronizes the global metadata and generates high-level thematic content.
 - **Topic Taxonomy:** Sorts the global `topics.json` library by recent activity (newest first). Filters out generic blacklisted tags (e.g., "Personnel").
 - **Missing Blurbs:** Automatically generates blurbs for older meetings that lack them.
@@ -131,7 +131,7 @@ When summarizing meeting discussions, identify viewpoints from these four groups
 
 ## Identifying New Meetings (Automation)
 
-The `source_data.py` script and its supporting modules (in `scripts/sourcing/`) automate the identification of new meetings and the sourcing of associated materials.
+The `scripts/source_data.py` script and its supporting modules (in `scripts/sourcing/`) automate the identification of new meetings and the sourcing of associated materials.
 
 ### Authority Rules
 Meeting stubs (`.njk` files) are created **ONLY** when a date is found in one of these official event sources:
@@ -147,7 +147,7 @@ Documents or transcripts found in auxiliary sources (Google Drive, Vimeo) are ma
   `https://www.spsdme.org/page/school-board`
 - **Vimeo List:** Local `vimeo_master_list.json` (synced with SPC TV).
 
-### Automated Workflow (`python3 source_data.py`)
+### Automated Workflow (`python scripts/source_data.py`)
 1. **Fetch Authority Data:** Aggregates dates from Apptegy and SPSD Site.
 2. **Fetch Auxiliary Data:** Maps Drive files, Vimeo videos, and local transcripts to those dates.
 3. **Reconcile & Merge:** 
