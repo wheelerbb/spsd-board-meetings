@@ -158,7 +158,7 @@ def reconcile_meetings(all_data, dry_run=False):
         mtype = "Regular"
 
         if data.get('events'):
-            valid_events = [e for e in data['events'] if 'board' in e.get('title', '').lower()]
+            valid_events = [e for e in data['events'] if 'board' in e.get('title', '').lower() or 'executive' in e.get('title', '').lower()]
             event = valid_events[0] if valid_events else data['events'][0]
             title = event.get('title', title)
             location = event.get('location', location)
