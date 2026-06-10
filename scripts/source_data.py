@@ -140,7 +140,8 @@ def reconcile_meetings(all_data, dry_run=False):
                     fm_data['has_video'] = True
                     updated = True
 
-                if transcript_path and not fm_data.get('has_transcript'):
+                drive_has_vtt = any(d.get('type') == 'vtt' for d in data.get('drive', []))
+                if (transcript_path or drive_has_vtt) and not fm_data.get('has_transcript'):
                     fm_data['has_transcript'] = True
                     fm_data['has_vtt_source'] = True
                     updated = True
@@ -208,8 +209,8 @@ def reconcile_meetings(all_data, dry_run=False):
             "location": location,
             "has_video": bool(video_url),
             "video_url": video_url or "",
-            "has_vtt_source": bool(transcript_path),
-            "has_transcript": bool(transcript_path),
+            "has_vtt_source": bool(transcript_path) or any(d.get('type') == 'vtt' for d in data.get('drive', [])),
+            "has_transcript": bool(transcript_path) or any(d.get('type') == 'vtt' for d in data.get('drive', [])),
             "stub": True,
             "board_attendance": [
                 {"name": "Rosemarie DeAngelis", "role": "Board"},
@@ -336,7 +337,8 @@ def main():
     # 7. Write master map and upload both audit files to bucket
     if not args.dry_run:
         with open('master_material_map.json', 'w') as f:
-            json.dump(all_data, f, indent=2, sort_keys=True)
+            sorted_data = dict(sorted(all_data.items(), reverse=True))
+            json.dump(sorted_data, f, indent=2)
         if args.bucket:
             upload_to_bucket(args.bucket, 'master_material_map.json')
             upload_to_bucket(args.bucket, 'apptegy_events_raw.json')

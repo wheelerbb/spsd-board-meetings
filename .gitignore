@@ -2,3 +2,5 @@ node_modules/
 _site/
 static/
 .env
+master_material_map.json
+apptegy_events_raw.json

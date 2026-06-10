@@ -101,6 +101,7 @@ def categorize_document(filename):
     if 'agenda' in name_lower: return 'agenda'
     if 'packet' in name_lower: return 'packet'
     if 'minutes' in name_lower: return 'minutes'
+    if name_lower.endswith('.vtt') or 'transcript' in name_lower: return 'vtt'
     return 'misc'
 
 def clean_url(url):
