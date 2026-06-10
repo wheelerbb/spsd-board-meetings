@@ -13,7 +13,9 @@ load_dotenv()
 provider = "studio"
 import google.auth
 try:
-    credentials, project = google.auth.default()
+    credentials, project = google.auth.default(
+        scopes=['https://www.googleapis.com/auth/cloud-platform']
+    )
     project_id = 'spsd-board-meetings'
     client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
     model_name = 'gemini-2.5-flash'
