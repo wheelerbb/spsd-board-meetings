@@ -15,11 +15,13 @@ Technical reference for the three-stage ingestion and synthesis pipeline. All sc
 Run the full pipeline locally:
 ```bash
 python scripts/source_data.py [--bucket gs://BUCKET]
-python scripts/process_transcripts.py --batch --local-auth
+python scripts/process_transcripts.py --batch --local-auth [--bucket gs://BUCKET]
 python scripts/post_process.py --local-auth
 ```
 
-`--bucket` downloads the previous `master_material_map.json` from GCS before running and uploads both audit files after. Omit to run fully local. Requires ADC: `gcloud auth application-default login`.
+`--bucket` on `source_data.py`: downloads the previous `master_material_map.json`, checks GCS for VTTs when marking `has_transcript`, and syncs any new local VTTs up to the bucket. Omit to run fully local. Requires ADC: `gcloud auth application-default login`.
+
+`--bucket` on `process_transcripts.py`: supplements the local transcript mapping with VTTs stored in the bucket (historical) and Drive VTT docs found in meeting stubs. Priority order: local > bucket > Drive.
 
 Omit `--local-auth` on the transcript/post-process steps to use `GEMINI_API_KEY` from `.env` instead of Vertex AI ADC.
 
@@ -76,12 +78,14 @@ External sources
   Apptegy Events API  ─┐
   SPSD Website        ─┤──► scripts/source_data.py ──► src/meetings/*.njk (stubs)
   Google Drive        ─┤                           ──► master_material_map.json
-  Vimeo list         ─┤
+  Vimeo list          ─┤                           ──► GCS bucket/transcripts/ (VTT sync)
   static/transcripts ─┘
+  GCS bucket VTTs    ─┘
 
-static/transcripts/*.vtt
-  └──► scripts/process_transcripts.py ──► src/meetings/*.njk (stub: false)
-         (reads src/_data/topics.json for tag reuse)
+VTT sources (priority: local > bucket > Drive)
+  static/transcripts/*.vtt ─┐
+  GCS bucket/transcripts/  ─┤──► scripts/process_transcripts.py ──► src/meetings/*.njk (stub: false)
+  Drive docs (type=vtt)    ─┘      (reads src/_data/topics.json for tag reuse)
 
 src/meetings/*.njk (all)
   └──► scripts/post_process.py ──► src/_data/topics.json
@@ -110,6 +114,6 @@ src/meetings/*.njk + src/_data/*.json
 | `spsd_site.py` | SPSD board activities page (scraped) | `{date_slug: {date, type, docs[]}}` |
 | `drive.py` | Google Drive folder (`FOLDER_ID`) | `{date_slug: [{type, label, url}]}` |
 | `vimeo.py` | `vimeo_master_list.json` (local) | `{date_slug: vimeo_url}` |
-| `transcripts.py` | `static/transcripts/` (local) | `{date_slug: vtt_path}` |
+| `transcripts.py` | `static/transcripts/` (local) + GCS bucket | `{date_slug: path_or_uri}` |
 
 Meeting stubs are created **only** when a date is confirmed by Apptegy or the SPSD site. Drive, Vimeo, and transcript sources enrich existing meetings but never trigger stub creation on their own.

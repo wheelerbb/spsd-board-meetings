@@ -322,9 +322,18 @@ def main():
         if date_slug not in all_data: all_data[date_slug] = {}
         all_data[date_slug]['video'] = url
 
-    # 5. Fetch Transcripts
+    # 5. Fetch Transcripts (local files + GCS bucket)
     print("Step 5: Fetching Transcripts...")
     transcript_mapping = transcripts.get_transcript_mapping()
+    if args.bucket:
+        try:
+            bucket_vtts = transcripts.get_bucket_vtt_mapping(args.bucket, CUTOFF_DATE)
+            for slug, path in bucket_vtts.items():
+                if slug not in transcript_mapping:
+                    transcript_mapping[slug] = path
+            print(f"  Found {len(bucket_vtts)} VTT(s) in bucket.")
+        except Exception as e:
+            print(f"  Warning: could not read bucket VTTs: {e}")
     for date_slug, path in transcript_mapping.items():
         if date_slug < CUTOFF_DATE: continue
         if date_slug not in all_data: all_data[date_slug] = {}
@@ -334,7 +343,15 @@ def main():
     print("Step 6: Reconciling and updating meetings...")
     changes = reconcile_meetings(all_data, dry_run=args.dry_run)
 
-    # 7. Write master map and upload both audit files to bucket
+    # 7. Sync local VTTs to bucket (historical transcripts not yet in GCS)
+    if args.bucket and not args.dry_run:
+        print("Step 7: Syncing local VTTs to bucket...")
+        try:
+            transcripts.sync_local_vtts_to_bucket(args.bucket, cutoff_date=CUTOFF_DATE)
+        except Exception as e:
+            print(f"  Warning: VTT sync failed: {e}")
+
+    # 8. Write master map and upload both audit files to bucket
     if not args.dry_run:
         with open('master_material_map.json', 'w') as f:
             sorted_data = dict(sorted(all_data.items(), reverse=True))

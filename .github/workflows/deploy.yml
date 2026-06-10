@@ -48,9 +48,8 @@ jobs:
           # 1. Check Google Drive for new documents and create stubs
           python scripts/source_data.py --bucket "${{ vars.GCS_BUCKET_URI }}"
 
-          # 2. Process any unprocessed transcripts (if transcript files were pushed)
-          # Note: We rely on the local ADC auth set up by the previous step
-          python scripts/process_transcripts.py --batch --local-auth
+          # 2. Process any unprocessed transcripts (Drive VTTs + bucket-stored historical VTTs)
+          python scripts/process_transcripts.py --batch --local-auth --bucket "${{ vars.GCS_BUCKET_URI }}"
 
           # 3. Post-process to update library, generate blurbs, and synthesize summaries
           python scripts/post_process.py --local-auth

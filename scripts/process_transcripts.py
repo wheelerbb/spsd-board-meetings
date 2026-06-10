@@ -13,6 +13,10 @@ from datetime import date
 # Load environment variables
 load_dotenv()
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
+from sourcing.transcripts import get_transcript_mapping, get_bucket_vtt_mapping
+
 # --- CONFIGURATION ---
 USE_LOCAL_AUTH = "--local-auth" in sys.argv
 if USE_LOCAL_AUTH: sys.argv.remove("--local-auth")
@@ -30,8 +34,7 @@ if USE_LOCAL_AUTH:
     import google.auth
     try:
         credentials, project = google.auth.default()
-        # Force project to the new one if ADC doesn't provide it or to be explicit
-        project_id = 'spsd-board-meetings' 
+        project_id = 'spsd-board-meetings'
         client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
         provider = "vertex"
         print(f"Using Vertex AI (Project: {project_id})")
@@ -45,7 +48,7 @@ else:
     print("Error: No authentication method found.")
     sys.exit(1)
 
-DEFAULT_MODEL = MODEL_MAP[provider]["pro"] 
+DEFAULT_MODEL = MODEL_MAP[provider]["pro"]
 MAX_WORKERS = 4 if provider == "vertex" else 1
 
 CUTOFF_DATE = "2023-08-01"
@@ -81,31 +84,61 @@ class MeetingReport(BaseModel):
     summary: list[SummaryItem]
     timeline: list[TimelineItem]
 
-# --- UTILITIES ---
-def get_transcript_mapping():
+# --- VTT SOURCES ---
+
+def get_drive_vtt_mapping():
+    """Scans meeting stubs for docs with type=vtt. Returns {date_slug: 'drive:<fileId>'}."""
     mapping = {}
-    base_dir = "static/transcripts"
-    for root, _, files in os.walk(base_dir):
-        for f in files:
-            if not f.endswith('.vtt'): continue
-            path = os.path.join(root, f)
-            m = re.search(r'(\d{4})(\d{2})(\d{2})', f)
-            if m:
-                slug = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
-                if slug >= CUTOFF_DATE: mapping[slug] = path
-            elif re.search(r'(\d{2})\.(\d{2})\.(\d{2})', f):
-                dm = re.search(r'(\d{2})\.(\d{2})\.(\d{2})', f)
-                slug = f"20{dm.group(3)}-{dm.group(1)}-{dm.group(2)}"
-                if slug >= CUTOFF_DATE: mapping[slug] = path
-            else:
-                months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-                m = re.search(rf'({"|".join(months)}) (\d{{1,2}}) (\d{{4}})', f)
-                if m:
-                    from datetime import datetime
-                    dt = datetime.strptime(f"{m.group(1)} {m.group(2)} {m.group(3)}", "%B %d %Y")
-                    slug = dt.strftime("%Y-%m-%d")
-                    if slug >= CUTOFF_DATE: mapping[slug] = path
+    meeting_dir = 'src/meetings/'
+    for filename in sorted(os.listdir(meeting_dir)):
+        if not filename.endswith('.njk'):
+            continue
+        slug = filename.replace('.njk', '')
+        if slug < CUTOFF_DATE:
+            continue
+        njk_path = os.path.join(meeting_dir, filename)
+        with open(njk_path, 'r') as f:
+            content = f.read()
+        m = re.match(r'^---\s*\n(.*?)\n---\s*(?:\n|$)', content, re.DOTALL)
+        if not m:
+            continue
+        try:
+            data = yaml.safe_load(m.group(1)) or {}
+        except Exception:
+            continue
+        for doc in (data.get('docs') or []):
+            if doc.get('type') == 'vtt':
+                fid = re.search(r'/file/d/([^/?]+)', doc.get('url', ''))
+                if fid:
+                    mapping[slug] = f"drive:{fid.group(1)}"
+                break
     return mapping
+
+
+def fetch_vtt_content(path):
+    """Returns VTT text from a local path, gs:// URI, or drive:<fileId> reference."""
+    if path.startswith('gs://'):
+        from google.cloud import storage
+        without_scheme = path[5:]
+        bucket_name, blob_name = without_scheme.split('/', 1)
+        return storage.Client().bucket(bucket_name).blob(blob_name).download_as_text()
+    if path.startswith('drive:'):
+        import io
+        import google.auth
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaIoBaseDownload
+        creds, _ = google.auth.default(scopes=['https://www.googleapis.com/auth/drive.readonly'])
+        svc = build('drive', 'v3', credentials=creds)
+        fh = io.BytesIO()
+        dl = MediaIoBaseDownload(fh, svc.files().get_media(fileId=path[6:]))
+        done = False
+        while not done:
+            _, done = dl.next_chunk()
+        return fh.getvalue().decode('utf-8')
+    with open(path, 'r') as f:
+        return f.read()
+
+# --- PROCESSING ---
 
 def process_single_meeting(date_slug, vtt_path):
     njk_path = f"src/meetings/{date_slug}.njk"
@@ -115,13 +148,13 @@ def process_single_meeting(date_slug, vtt_path):
     if os.path.exists('src/_data/topics.json'):
         with open('src/_data/topics.json', 'r') as f: allowed_tags = json.load(f)
 
-    print(f"Analyzing: {date_slug}...")
-    with open(vtt_path, 'r') as f: transcript = f.read()
+    print(f"Analyzing: {date_slug} (source: {vtt_path[:40]}...)...")
+    transcript = fetch_vtt_content(vtt_path)
 
     prompt = f"""
-    Analyze the school board meeting transcript for {date_slug}. 
+    Analyze the school board meeting transcript for {date_slug}.
     Extract: blurb, formal votes, high-level summary bullets, timestamped timeline, and topic tags.
-    
+
     IMPORTANT: Identify perspectives from: Board, Administration, Teachers, Citizens.
     Glossary: {GLOSSARY}
 
@@ -146,21 +179,20 @@ def process_single_meeting(date_slug, vtt_path):
         )
         print(f"  Received response for {date_slug}.")
         report_data = json.loads(response.text)
-        
-        # Load NJK
+
         print(f"  Updating .njk file for {date_slug}...")
         with open(njk_path, 'r') as f: content = f.read()
         match = re.match(r'^(---\s*\n(.*?)\n---\s*(?:\n|$))(.*)', content, re.DOTALL)
         if not match: return None
         fm_text, body = match.group(2), match.group(3)
-        
+
         data = yaml.safe_load(fm_text)
         data['stub'] = False
         data['has_transcript'] = True
         data['processed_date'] = date.today().isoformat()
         data['blurb'] = report_data.pop('blurb', '')
         data['topics'] = report_data.pop('tags', [])
-        data.update(report_data) # votes, summary, timeline
+        data.update(report_data)  # votes, summary, timeline
 
         new_fm = yaml.dump(data, sort_keys=False, default_flow_style=False)
         with open(njk_path, 'w') as f: f.write('---\n' + new_fm + '---\n' + body)
@@ -170,26 +202,43 @@ def process_single_meeting(date_slug, vtt_path):
         if "429" in str(e): os._exit(1)
         return {"slug": date_slug, "status": f"Error: {e}"}
 
+
 def main():
     args = sys.argv[1:]
-    mapping = get_transcript_mapping()
+
+    # Extract --bucket <URI> if present
+    bucket = None
+    if "--bucket" in args:
+        idx = args.index("--bucket")
+        bucket = args[idx + 1]
+        args = args[:idx] + args[idx + 2:]
+
+    # Build transcript mapping: Drive (lowest) < bucket < local (highest priority)
+    mapping = {}
+    mapping.update(get_drive_vtt_mapping())
+    if bucket:
+        try:
+            mapping.update(get_bucket_vtt_mapping(bucket, CUTOFF_DATE))
+        except Exception as e:
+            print(f"Warning: could not read bucket VTTs: {e}")
+    mapping.update(get_transcript_mapping())  # local always wins
+
     to_process = {}
-    
+
     if "--batch" in args:
         meeting_dir = 'src/meetings/'
         for filename in os.listdir(meeting_dir):
             if not filename.endswith('.njk'): continue
             slug = filename.replace('.njk', '')
             if slug not in mapping: continue
-            
             with open(os.path.join(meeting_dir, filename), 'r') as f:
                 content = f.read()
-                if 'stub: true' in content:
-                    to_process[slug] = mapping[slug]
+            if 'stub: true' in content:
+                to_process[slug] = mapping[slug]
     else:
         for arg in args:
             if arg in mapping: to_process[arg] = mapping[arg]
-    
+
     if not to_process:
         print("No new meetings to process.")
         return
