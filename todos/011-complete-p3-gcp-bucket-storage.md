@@ -1,6 +1,6 @@
 # fix: Store raw master_material_map.json in GCP Bucket
 
-**Status:** Pending
+**Status:** Complete
 **Priority:** P3
 
 ## Context
