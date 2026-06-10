@@ -315,7 +315,7 @@ nav a.nav-link:hover { color:var(--gold-light); }
   transition:all .2s; border:none; width:100%;
 }
 .tl-time-btn:hover { background:var(--gold); transform:translateY(-1px); }
-.tl-time-btn svg { width:9px; height:9px; fill:currentColor; flex-shrink:0; }
+.tl-time-btn svg { width:14px; height:14px; fill:currentColor; flex-shrink:0; }
 .tl-time-btn--disabled { background:var(--warm-gray); color:var(--muted); cursor:default; }
 .tl-time-btn--disabled:hover { background:var(--warm-gray); transform:none; }
 .tl-body { background:#fff; border:1px solid var(--rule); border-radius:5px; padding:.9rem 1.1rem; }
@@ -344,7 +344,12 @@ nav a.nav-link:hover { color:var(--gold-light); }
 }
 .vote-chip.pass, .vote-chip.passed, .vote-chip.approved { background:var(--green); }
 .vote-chip.fail, .vote-chip.failed { background:#c0392b; }
-.source-citation { font-size:.72rem; color:var(--muted); margin-top:.75rem; font-style:italic; }
+.source-badge {
+  display:inline-block; font-size:.62rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:.07em; padding:3px 8px; border-radius:3px; margin-top:.75rem;
+}
+.source-badge--minutes { background:var(--green-bg); color:var(--green); border:1px solid var(--green); }
+.source-badge--transcript { background:rgba(200,150,62,.12); color:var(--gold); border:1px solid var(--gold); }
 .vote-count { font-size:.75rem; color:var(--muted); font-variant-numeric:tabular-nums; line-height:1.2; }
 .vote-tally { font-variant-numeric:tabular-nums; font-size:.8rem; line-height:1.4; }
 

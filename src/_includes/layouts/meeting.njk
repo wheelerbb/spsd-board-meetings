@@ -62,7 +62,11 @@ layout: layouts/base.njk
             <td>{{ vote.motion }}</td>
             <td>
               <div class="vote-result">
-                <span class="vote-chip {{ vote.result | lower }}">{{ vote.result }}</span>
+                {% set _r = vote.result | lower %}
+                {% if _r == 'pass' or _r == 'passed' or _r == 'approved' %}{% set _chipClass = 'pass' %}
+                {% elif _r == 'fail' or _r == 'failed' or _r == 'denied' %}{% set _chipClass = 'fail' %}
+                {% else %}{% set _chipClass = _r %}{% endif %}
+                <span class="vote-chip {{ _chipClass }}">{{ vote.result }}</span>
                 <span class="vote-count">{{ vote.count }}</span>
               </div>
             </td>
@@ -71,7 +75,7 @@ layout: layouts/base.njk
           {% endfor %}
         </tbody>
       </table>
-      {% if votes_source %}<p class="source-citation">Source: {{ votes_source }}</p>{% endif %}
+      {% if votes_source %}<div class="source-badge {% if votes_source == 'Minutes' %}source-badge--minutes{% else %}source-badge--transcript{% endif %}">{{ votes_source }}</div>{% endif %}
     </div>
     {% endif %}
 
@@ -234,7 +238,7 @@ layout: layouts/base.njk
           {% endfor %}
         </div>
         {% endif %}
-        {% if attendance_source %}<p class="source-citation">Source: {{ attendance_source }}</p>{% endif %}
+        {% if attendance_source %}<div class="source-badge {% if attendance_source == 'Minutes' %}source-badge--minutes{% else %}source-badge--transcript{% endif %}">{{ attendance_source }}</div>{% endif %}
       </div>
     </div>
     {% endif %}
