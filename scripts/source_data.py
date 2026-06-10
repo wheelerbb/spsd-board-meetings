@@ -263,6 +263,45 @@ def upload_to_bucket(bucket_uri, local_path):
     blob.upload_from_filename(local_path)
     print(f"Uploaded {local_path} → gs://{bucket_name}/{blob_name}")
 
+def sync_drive_vtts_to_bucket(bucket_uri, all_data, existing_bucket_slugs, cutoff_date):
+    """Download Drive VTTs (type=vtt docs) not yet in bucket and upload them."""
+    import io
+    from google.cloud import storage
+    from googleapiclient.http import MediaIoBaseDownload
+    service = drive.get_drive_service()
+    if not service:
+        return 0
+    bucket_name, prefix = _bucket_parts(bucket_uri)
+    gcs = storage.Client()
+    bucket = gcs.bucket(bucket_name)
+    uploaded = 0
+    for date_slug, data in sorted(all_data.items()):
+        if date_slug < cutoff_date or date_slug in existing_bucket_slugs:
+            continue
+        for doc in (data.get('drive') or []):
+            if doc.get('type') != 'vtt':
+                continue
+            fid = re.search(r'/file/d/([^/?]+)', doc.get('url', ''))
+            if not fid:
+                continue
+            blob_name = f"{prefix}transcripts/{date_slug}.vtt"
+            blob = bucket.blob(blob_name)
+            if blob.exists():
+                break
+            try:
+                fh = io.BytesIO()
+                dl = MediaIoBaseDownload(fh, service.files().get_media(fileId=fid.group(1)))
+                done = False
+                while not done:
+                    _, done = dl.next_chunk()
+                blob.upload_from_string(fh.getvalue(), content_type='text/vtt')
+                print(f"  Synced Drive VTT {date_slug} → gs://{bucket_name}/{blob_name}")
+                uploaded += 1
+            except Exception as e:
+                print(f"  Warning: could not sync Drive VTT {date_slug}: {e}")
+            break
+    return uploaded
+
 
 def main():
     parser = argparse.ArgumentParser(description='Reconcile meeting data from multiple sources.')
@@ -346,11 +385,17 @@ def main():
     print("Step 6: Reconciling and updating meetings...")
     changes = reconcile_meetings(all_data, dry_run=args.dry_run)
 
-    # 7. Sync local VTTs to bucket (historical transcripts not yet in GCS)
+    # 7. Sync VTTs to bucket; update all_data transcript paths to canonical GCS URIs
     if args.bucket and not args.dry_run:
-        print("Step 7: Syncing local VTTs to bucket...")
+        print("Step 7: Syncing VTTs to bucket...")
         try:
+            existing_bucket_slugs = set(transcripts.get_bucket_vtt_mapping(args.bucket, CUTOFF_DATE).keys())
             transcripts.sync_local_vtts_to_bucket(args.bucket, cutoff_date=CUTOFF_DATE)
+            sync_drive_vtts_to_bucket(args.bucket, all_data, existing_bucket_slugs, CUTOFF_DATE)
+            # Refresh and write canonical GCS URIs into all_data so master map is accurate
+            for slug, gcs_uri in transcripts.get_bucket_vtt_mapping(args.bucket, CUTOFF_DATE).items():
+                if slug in all_data:
+                    all_data[slug]['transcript'] = gcs_uri
         except Exception as e:
             print(f"  Warning: VTT sync failed: {e}")
 

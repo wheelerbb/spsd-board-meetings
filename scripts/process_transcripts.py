@@ -124,11 +124,11 @@ def fetch_vtt_content(path):
         return storage.Client().bucket(bucket_name).blob(blob_name).download_as_text()
     if path.startswith('drive:'):
         import io
-        import google.auth
-        from googleapiclient.discovery import build
+        from sourcing.drive import get_drive_service
         from googleapiclient.http import MediaIoBaseDownload
-        creds, _ = google.auth.default(scopes=['https://www.googleapis.com/auth/drive.readonly'])
-        svc = build('drive', 'v3', credentials=creds)
+        svc = get_drive_service()
+        if not svc:
+            raise RuntimeError(f"Drive service unavailable; cannot download {path}")
         fh = io.BytesIO()
         dl = MediaIoBaseDownload(fh, svc.files().get_media(fileId=path[6:]))
         done = False
