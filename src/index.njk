@@ -18,16 +18,27 @@ pageScript: |
     btn.classList.add('active');
     currentTopic = topic;
     applyFilters();
+    highlightTopicChips(topic);
+  }
+
+  function highlightTopicChips(topic) {
+    document.querySelectorAll('.topic-chip').forEach(chip => chip.classList.remove('active'));
+    if (topic !== 'all') {
+      document.querySelectorAll('.meeting-card').forEach(card => {
+        const chip = card.querySelector(`.topic-chip[data-topic="${topic}"]`);
+        if (chip) chip.classList.add('active');
+      });
+    }
   }
 
   function applyFilters() {
     document.querySelectorAll('.meeting-card').forEach(card => {
       const cardYear = card.dataset.year;
       const cardTopics = (card.dataset.topics || "").split(",");
-      
+
       const matchYear = (currentYear === 'all' || cardYear === currentYear);
       const matchTopic = (currentTopic === 'all' || cardTopics.includes(currentTopic));
-      
+
       card.style.display = (matchYear && matchTopic) ? '' : 'none';
     });
 
@@ -35,6 +46,12 @@ pageScript: |
       const hasVisibleCards = Array.from(sec.querySelectorAll('.meeting-card')).some(c => c.style.display !== 'none');
       sec.style.display = hasVisibleCards ? '' : 'none';
     });
+
+    const topicActive = currentTopic !== 'all';
+    const futureSection = document.querySelector('.future-meetings-section');
+    const upcomingSection = document.querySelector('.upcoming-meeting-section');
+    if (futureSection) futureSection.style.display = topicActive ? 'none' : '';
+    if (upcomingSection) upcomingSection.style.display = topicActive ? 'none' : '';
   }
 
   function updateAvailableTopics() {
@@ -64,7 +81,7 @@ pageScript: |
     const container = document.getElementById('topicFilterContainer');
     container.classList.toggle('expanded');
     btn.classList.toggle('active');
-    btn.querySelector('.toggle-text').textContent = container.classList.contains('expanded') ? 'Show Less' : 'Show All Topics';
+    btn.querySelector('.toggle-text').textContent = container.classList.contains('expanded') ? 'Show less' : 'Show more';
   }
 
   document.addEventListener('click', function(e) {
@@ -112,7 +129,7 @@ pageScript: |
     </div>
   </div>
   <button class="expand-toggle" onclick="toggleTopics(this)">
-    <span class="toggle-text">Show All Topics</span>
+    <span class="toggle-text">Show more</span>
   </button>
 </div>
 

@@ -87,15 +87,15 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .filter-btn.active { background:var(--navy); border-color:var(--navy); color:#fff; }
 
 .expand-toggle {
-  background:#fff; border:1.5px dashed var(--muted); color:var(--muted);
-  font-size:.75rem; font-weight:500; border-radius:4px;
-  cursor:pointer; padding:6px 10px; flex-shrink:0; align-self:flex-start;
+  background:#fff; border:1.5px solid var(--rule); color:var(--muted);
+  font-size:.65rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+  border-radius:4px; cursor:pointer; padding:5px 10px; flex-shrink:0; align-self:flex-start;
   margin-top:2px; margin-left:.75rem;
-  display:flex; align-items:center; gap:4px;
+  display:flex; align-items:center; gap:3px;
   font-family:inherit; transition:all .2s;
 }
 .expand-toggle:hover { border-color:var(--navy); color:var(--navy); }
-.expand-toggle::after { content:'▾'; font-size:.75rem; margin-left:2px; }
+.expand-toggle::after { content:'▾'; font-size:.6rem; margin-left:1px; }
 .expand-toggle.active::after { content:'▴'; }
 
 /* TOPIC CHIPS */
@@ -495,7 +495,9 @@ footer a { color:var(--gold-light); text-decoration:none; }
 
   .hero { padding:2.5rem 1.25rem 2rem; }
   .hero h1 { font-size:clamp(1.8rem,8vw,2.8rem); }
-  .filter-bar { padding:.65rem 1.25rem; gap:.4rem; }
+  .filter-bar { padding:.65rem 1.25rem; flex-direction:column; gap:.5rem; }
+  .filter-label { width:auto; padding-top:0; }
+  .expand-toggle { margin-left:0; }
   .filter-btn { padding:.3rem .7rem; }
   .main { padding:1.75rem 1.25rem; }
   .year-label { font-size:1.25rem; }
