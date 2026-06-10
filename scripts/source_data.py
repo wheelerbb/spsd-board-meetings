@@ -140,8 +140,8 @@ def reconcile_meetings(all_data, dry_run=False):
                     fm_data['has_video'] = True
                     updated = True
 
-                drive_has_vtt = any(d.get('type') == 'vtt' for d in data.get('drive', []))
-                if (transcript_path or drive_has_vtt) and not fm_data.get('has_transcript'):
+                has_vtt = any(d.get('type') == 'vtt' for d in combined_docs)
+                if (transcript_path or has_vtt) and not fm_data.get('has_transcript'):
                     fm_data['has_transcript'] = True
                     fm_data['has_vtt_source'] = True
                     updated = True

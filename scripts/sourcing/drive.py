@@ -68,6 +68,13 @@ def parse_meeting_date(filename):
     # Clean up the filename
     filename = filename.replace('_', ' ').replace('-', '.').replace('  ', ' ')
 
+    # YYYYMMDD compact format (e.g. spboe_20260608)
+    match = re.search(r'\b(\d{4})(\d{2})(\d{2})\b', filename)
+    if match:
+        y, m, d = match.groups()
+        if 1 <= int(m) <= 12 and 1 <= int(d) <= 31:
+            return f"{y}-{m}-{d}"
+
     # MM.DD.YY or MM.DD.YYYY format (now handles . or - or / because of replace above)
     match = re.search(r'(\d{1,2})\.(\d{1,2})\.(\d{2,4})', filename)
     if match:
@@ -101,7 +108,7 @@ def categorize_document(filename):
     if 'agenda' in name_lower: return 'agenda'
     if 'packet' in name_lower: return 'packet'
     if 'minutes' in name_lower: return 'minutes'
-    if name_lower.endswith('.vtt') or 'transcript' in name_lower: return 'vtt'
+    if name_lower.endswith('.vtt') or 'transcript' in name_lower or re.match(r'spboe_\d', name_lower): return 'vtt'
     return 'misc'
 
 def clean_url(url):
