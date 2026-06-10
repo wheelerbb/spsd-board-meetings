@@ -86,6 +86,33 @@ class MeetingReport(BaseModel):
 
 # --- VTT SOURCES ---
 
+def _download_drive_file(file_id):
+    """Download a Drive file's content as text. Prefers API key (public folder), falls back to ADC."""
+    import requests
+    api_key = os.getenv("GOOGLE_DRIVE_API_KEY")
+    if api_key:
+        resp = requests.get(
+            f"https://www.googleapis.com/drive/v3/files/{file_id}",
+            params={"alt": "media", "key": api_key},
+            timeout=60
+        )
+        resp.raise_for_status()
+        return resp.text
+    import io
+    from sourcing.drive import get_drive_service
+    from googleapiclient.http import MediaIoBaseDownload
+    svc = get_drive_service()
+    if not svc:
+        raise RuntimeError(f"Drive service unavailable for file {file_id}")
+    fh = io.BytesIO()
+    dl = MediaIoBaseDownload(fh, svc.files().get_media(fileId=file_id))
+    done = False
+    while not done:
+        _, done = dl.next_chunk()
+    return fh.getvalue().decode('utf-8')
+
+
+
 def get_drive_vtt_mapping():
     """Scans meeting stubs for docs with type=vtt. Returns {date_slug: 'drive:<fileId>'}."""
     mapping = {}
@@ -123,18 +150,7 @@ def fetch_vtt_content(path):
         bucket_name, blob_name = without_scheme.split('/', 1)
         return storage.Client().bucket(bucket_name).blob(blob_name).download_as_text()
     if path.startswith('drive:'):
-        import io
-        from sourcing.drive import get_drive_service
-        from googleapiclient.http import MediaIoBaseDownload
-        svc = get_drive_service()
-        if not svc:
-            raise RuntimeError(f"Drive service unavailable; cannot download {path}")
-        fh = io.BytesIO()
-        dl = MediaIoBaseDownload(fh, svc.files().get_media(fileId=path[6:]))
-        done = False
-        while not done:
-            _, done = dl.next_chunk()
-        return fh.getvalue().decode('utf-8')
+        return _download_drive_file(path[6:])
     with open(path, 'r') as f:
         return f.read()
 

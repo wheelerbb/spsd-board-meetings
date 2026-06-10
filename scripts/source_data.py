@@ -263,14 +263,33 @@ def upload_to_bucket(bucket_uri, local_path):
     blob.upload_from_filename(local_path)
     print(f"Uploaded {local_path} → gs://{bucket_name}/{blob_name}")
 
-def sync_drive_vtts_to_bucket(bucket_uri, all_data, existing_bucket_slugs, cutoff_date):
-    """Download Drive VTTs (type=vtt docs) not yet in bucket and upload them."""
+def _download_drive_file(file_id):
+    """Download a Drive file as text. Prefers API key (public folder), falls back to ADC."""
+    import requests
+    api_key = os.getenv("GOOGLE_DRIVE_API_KEY")
+    if api_key:
+        resp = requests.get(
+            f"https://www.googleapis.com/drive/v3/files/{file_id}",
+            params={"alt": "media", "key": api_key},
+            timeout=60
+        )
+        resp.raise_for_status()
+        return resp.text
     import io
-    from google.cloud import storage
     from googleapiclient.http import MediaIoBaseDownload
     service = drive.get_drive_service()
     if not service:
-        return 0
+        raise RuntimeError(f"Drive service unavailable for file {file_id}")
+    fh = io.BytesIO()
+    dl = MediaIoBaseDownload(fh, service.files().get_media(fileId=file_id))
+    done = False
+    while not done:
+        _, done = dl.next_chunk()
+    return fh.getvalue().decode('utf-8')
+
+def sync_drive_vtts_to_bucket(bucket_uri, all_data, existing_bucket_slugs, cutoff_date):
+    """Download Drive VTTs (type=vtt docs) not yet in bucket and upload them."""
+    from google.cloud import storage
     bucket_name, prefix = _bucket_parts(bucket_uri)
     gcs = storage.Client()
     bucket = gcs.bucket(bucket_name)
@@ -289,12 +308,8 @@ def sync_drive_vtts_to_bucket(bucket_uri, all_data, existing_bucket_slugs, cutof
             if blob.exists():
                 break
             try:
-                fh = io.BytesIO()
-                dl = MediaIoBaseDownload(fh, service.files().get_media(fileId=fid.group(1)))
-                done = False
-                while not done:
-                    _, done = dl.next_chunk()
-                blob.upload_from_string(fh.getvalue(), content_type='text/vtt')
+                content = _download_drive_file(fid.group(1))
+                blob.upload_from_string(content.encode('utf-8'), content_type='text/vtt')
                 print(f"  Synced Drive VTT {date_slug} → gs://{bucket_name}/{blob_name}")
                 uploaded += 1
             except Exception as e:

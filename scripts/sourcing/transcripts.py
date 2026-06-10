@@ -7,14 +7,23 @@ _MONTHS = ["January", "February", "March", "April", "May", "June",
 
 def _parse_vtt_date(filename):
     """Extract YYYY-MM-DD from a VTT filename. Returns None if unrecognized."""
+    # ISO slug format used for bucket blobs: 2024-01-08.vtt
+    m = re.search(r'(\d{4})-(\d{2})-(\d{2})', filename)
+    if m:
+        y, mo, d = m.groups()
+        if 1 <= int(mo) <= 12 and 1 <= int(d) <= 31:
+            return f"{y}-{mo}-{d}"
+    # Compact YYYYMMDD: spboe_20240108.vtt
     m = re.search(r'(\d{4})(\d{2})(\d{2})', filename)
     if m:
         y, mo, d = m.groups()
         if 1 <= int(mo) <= 12 and 1 <= int(d) <= 31:
             return f"{y}-{mo}-{d}"
+    # MM.DD.YY: 04.07.26.vtt
     m = re.search(r'(\d{2})\.(\d{2})\.(\d{2})', filename)
     if m:
         return f"20{m.group(3)}-{m.group(1)}-{m.group(2)}"
+    # Long month: South Portland Board of Education - June 8 2026.vtt
     m = re.search(rf'({"|".join(_MONTHS)}) (\d{{1,2}}) (\d{{4}})', filename)
     if m:
         dt = datetime.strptime(f"{m.group(1)} {m.group(2)} {m.group(3)}", "%B %d %Y")
