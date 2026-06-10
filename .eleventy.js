@@ -13,13 +13,14 @@ module.exports = function (eleventyConfig) {
 
   // Map doc type to the short icon label shown in the sidebar (file type only)
   eleventyConfig.addFilter("docIcon", (type) => {
-    const labels = { agenda: "PDF", packet: "PDF", min: "PDF" };
+    const labels = { agenda: "PDF", packet: "PDF", min: "PDF", minutes: "PDF", vtt: "VTT" };
     return labels[type] || type.toUpperCase();
   });
 
   // Normalize doc type to a CSS class representing the file format
   eleventyConfig.addFilter("docClass", (type) => {
-    if (["agenda", "packet", "min"].includes(type)) return "pdf";
+    if (["agenda", "packet", "min", "minutes"].includes(type)) return "pdf";
+    if (type === "vtt") return "vtt";
     return type.toLowerCase();
   });
 

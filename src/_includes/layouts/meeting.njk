@@ -132,12 +132,13 @@ layout: layouts/base.njk
     <div class="sidebar-card">
       <div class="sidebar-card-head">📄 Meeting Materials</div>
       <div class="sidebar-card-body">
-        {% set agendaDoc = null %}{% set packetDoc = null %}{% set minDoc = null %}
+        {% set agendaDoc = null %}{% set packetDoc = null %}{% set minDoc = null %}{% set vttDoc = null %}
         {% for d in docs %}
           {% set labelLower = d.label | lower %}
           {% if 'agenda' in labelLower and not agendaDoc %}{% set agendaDoc = d %}
           {% elif 'packet' in labelLower and not packetDoc %}{% set packetDoc = d %}
           {% elif 'minutes' in labelLower and not minDoc %}{% set minDoc = d %}
+          {% elif (d.type == 'vtt' or 'spboe_' in labelLower) and not vttDoc %}{% set vttDoc = d %}
           {% endif %}
         {% endfor %}
 
@@ -170,11 +171,23 @@ layout: layouts/base.njk
         </div>
         {% endif %}
 
+        {% if vttDoc %}
+        <a href="{{ vttDoc.url }}" target="_blank" class="doc-link">
+          <div class="doc-icon vtt">VTT</div>
+          <div><div class="doc-name">Meeting Transcript</div></div>
+        </a>
+        {% else %}
+        <div class="doc-link doc-link--placeholder">
+          <div class="doc-icon none">VTT</div><div class="doc-name none">Transcript not found</div>
+        </div>
+        {% endif %}
+
         {% for d in docs %}
           {% set isStandard = false %}
           {% if agendaDoc and d.url == agendaDoc.url %}{% set isStandard = true %}{% endif %}
           {% if packetDoc and d.url == packetDoc.url %}{% set isStandard = true %}{% endif %}
           {% if minDoc and d.url == minDoc.url %}{% set isStandard = true %}{% endif %}
+          {% if vttDoc and d.url == vttDoc.url %}{% set isStandard = true %}{% endif %}
           {% if not isStandard %}
           <a href="{{ d.url }}" target="_blank" class="doc-link">
             <div class="doc-icon {{ d.type | docClass }}">{{ d.type | docIcon }}</div>
