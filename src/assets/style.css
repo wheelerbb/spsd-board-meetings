@@ -288,6 +288,7 @@ nav a.nav-link:hover { color:var(--gold-light); }
   font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:600;
   color:var(--navy); margin-bottom:1rem; padding-bottom:.6rem;
   border-bottom:2px solid var(--rule);
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:.4rem .8rem;
 }
 .content-block { margin-bottom:2.5rem; }
 .summary-intro {
@@ -345,11 +346,15 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .vote-chip.pass, .vote-chip.passed, .vote-chip.approved { background:var(--green); }
 .vote-chip.fail, .vote-chip.failed { background:#c0392b; }
 .source-badge {
-  display:inline-block; font-size:.62rem; font-weight:700; text-transform:uppercase;
-  letter-spacing:.07em; padding:3px 8px; border-radius:3px; margin-top:.75rem;
+  display:inline-flex; align-items:center; gap:.25em;
+  font-family:'DM Sans',sans-serif; font-size:.6rem; font-weight:600;
+  text-transform:uppercase; letter-spacing:.07em;
+  padding:2px 7px; border-radius:3px; line-height:1.6; flex-shrink:0;
 }
+.source-badge b { font-weight:800; }
 .source-badge--minutes { background:var(--green-bg); color:var(--green); border:1px solid var(--green); }
 .source-badge--transcript { background:rgba(200,150,62,.12); color:var(--gold); border:1px solid var(--gold); }
+.sidebar-card-head .source-badge--transcript { background:rgba(240,200,122,.15); color:var(--gold-light); border-color:var(--gold-light); }
 .vote-count { font-size:.75rem; color:var(--muted); font-variant-numeric:tabular-nums; line-height:1.2; }
 .vote-tally { font-variant-numeric:tabular-nums; font-size:.8rem; line-height:1.4; }
 
@@ -359,6 +364,7 @@ nav a.nav-link:hover { color:var(--gold-light); }
   background:var(--navy); color:var(--gold-light);
   font-size:.7rem; letter-spacing:.12em; text-transform:uppercase;
   padding:.7rem 1.1rem; font-weight:500;
+  display:flex; flex-wrap:wrap; align-items:center; gap:.4rem .8rem;
 }
 .sidebar-card-body { padding:.8rem 1.1rem; }
 .sidebar-card-body a { color:var(--gold); }

@@ -47,7 +47,7 @@ layout: layouts/base.njk
     {# 1. VOTES & ACTIONS #}
     {% if votes and votes.length %}
     <div class="content-block">
-      <div class="section-head">Votes &amp; Actions</div>
+      <div class="section-head">Votes &amp; Actions{% if votes_source %} <div class="source-badge {% if votes_source == 'Minutes' %}source-badge--minutes{% else %}source-badge--transcript{% endif %}"><b>SOURCE:</b> {{ votes_source }}</div>{% endif %}</div>
       <table class="vote-table">
         <thead>
           <tr>
@@ -75,7 +75,6 @@ layout: layouts/base.njk
           {% endfor %}
         </tbody>
       </table>
-      {% if votes_source %}<div class="source-badge {% if votes_source == 'Minutes' %}source-badge--minutes{% else %}source-badge--transcript{% endif %}">{{ votes_source }}</div>{% endif %}
     </div>
     {% endif %}
 
@@ -208,7 +207,7 @@ layout: layouts/base.njk
     {# 2. MEETING ATTENDANCE #}
     {% if board_attendance and not stub %}
     <div class="sidebar-card">
-      <div class="sidebar-card-head">👥 Meeting Attendance</div>
+      <div class="sidebar-card-head">👥 Meeting Attendance{% if attendance_source %} <div class="source-badge {% if attendance_source == 'Minutes' %}source-badge--minutes{% else %}source-badge--transcript{% endif %}"><b>SOURCE:</b> {{ attendance_source }}</div>{% endif %}</div>
       <div class="sidebar-card-body">
         <div class="att-section-label">BOARD</div>
         <div class="att-grid">
@@ -238,7 +237,6 @@ layout: layouts/base.njk
           {% endfor %}
         </div>
         {% endif %}
-        {% if attendance_source %}<div class="source-badge {% if attendance_source == 'Minutes' %}source-badge--minutes{% else %}source-badge--transcript{% endif %}">{{ attendance_source }}</div>{% endif %}
       </div>
     </div>
     {% endif %}
