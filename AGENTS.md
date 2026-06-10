@@ -107,7 +107,7 @@ This maintenance tool synchronizes the global metadata and generates high-level 
 When summarizing meeting discussions, identify viewpoints from these four groups to provide a balanced overview:
 1. **Board:** Elected members, their questions, and policy direction.
 2. **Administration:** The Superintendent and Directors; focus on recommendations and operational reports.
-3. **Teachers:** Staff members and Union representatives; focus on classroom impact and contract concerns.
+3. **Staff:** Staff members and Union representatives; focus on classroom impact and contract concerns.
 4. **Citizens:** Public comment, parents, and community members.
 
 ### Topic Identification

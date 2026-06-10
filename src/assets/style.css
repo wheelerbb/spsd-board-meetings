@@ -220,6 +220,17 @@ nav a.nav-link:hover { color:var(--gold-light); }
   font-weight:800; text-transform:uppercase; padding:3px 10px; border-radius:20px;
   margin-bottom:1rem;
 }
+.topic-section { margin-top:2rem; padding-top:2rem; border-top:1px solid var(--rule); }
+.topic-section:first-child { margin-top:0; padding-top:0; border-top:none; }
+.topic-section-label {
+  display:inline-block; background:rgba(200,150,62,.15); color:var(--gold); border:1px solid rgba(200,150,62,.4);
+  font-size:.7rem; font-weight:800; text-transform:uppercase; padding:3px 10px; border-radius:20px;
+  margin-bottom:1rem;
+}
+.perspectives-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1rem; margin-top:.5rem; }
+@media(max-width:640px) { .perspectives-grid { grid-template-columns:1fr; } }
+.perspective-card { background:#fff; border:1px solid var(--rule); border-radius:6px; padding:1.1rem 1.25rem; }
+.perspective-card-label { font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--navy); margin-bottom:.5rem; }
 .topic-votes { margin-top:2.5rem; padding-top:2rem; border-top:1px solid var(--rule); }
 .topic-votes-label { font-size:.8rem; text-transform:uppercase; letter-spacing:.1em; margin-bottom:1.5rem; color:var(--muted); font-weight:800; }
 .vote-table--topic { background:#fafafa; border-radius:6px; }

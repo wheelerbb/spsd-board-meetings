@@ -11,11 +11,36 @@ layout: layouts/base.njk
 
 <main class="main main-topic">
 
+  {% set ts = topic_summaries[topic] %}
   <div class="topic-summary-box">
-    <div class="topic-status-label">Current Status &amp; Core Perspectives</div>
-    <div class="summary-text">
-      {{ topic_summary | safe | replace('\n', '<br>') }}
+
+    {% if ts and ts.current_status %}
+    <div class="topic-section">
+      <div class="topic-status-label">Current Status</div>
+      <div class="summary-text">{{ ts.current_status }}</div>
     </div>
+    {% endif %}
+
+    {% if ts and ts.overview %}
+    <div class="topic-section">
+      <div class="topic-section-label">Overview</div>
+      <div class="summary-text">{{ ts.overview | replace('\n', '<br>') | safe }}</div>
+    </div>
+    {% endif %}
+
+    {% if ts and ts.perspectives %}
+    <div class="topic-section">
+      <div class="topic-section-label">Perspectives</div>
+      <div class="perspectives-grid">
+        {% for group, text in ts.perspectives %}
+        <div class="perspective-card">
+          <div class="perspective-card-label">{{ group }}</div>
+          <div>{{ text }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
 
     {% set recent_votes = [] %}
     {% for m in collections.all | sort(true, false, "date") %}
@@ -56,26 +81,19 @@ layout: layouts/base.njk
   </div>
 
   <div class="evolution-timeline">
-    <h3 class="evolution-section-title">Evolution of Discussion</h3>
+    <h3 class="evolution-section-title">Meeting History</h3>
 
     {% for m in collections.all | sort(true, false, "data.date") %}
       {% if m.data.topics and topic in m.data.topics %}
-      <div class="evolution-item">
-        <div class="evolution-date">{{ m.data.display_date }}</div>
-        <h4 class="evolution-meeting-title"><a href="{{ m.url | url }}">{{ m.data.title }}</a></h4>
 
-        <div class="evolution-body">
-          {% if m.data.summary %}
-            {% for s in m.data.summary %}
-              {% if topic | lower in s.topic | lower or topic | lower in s.text | lower %}
-                <div class="evolution-bullet">
-                  <span class="evolution-topic-label">{{ s.topic }}</span>
-                  {{ s.text }}
-                </div>
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-        </div>
+        {% set relevant_bullets = [] %}
+        {% if m.data.summary %}
+          {% for s in m.data.summary %}
+            {% if topic | lower in s.topic | lower or topic | lower in s.text | lower %}
+              {% set _ = relevant_bullets.push(s) %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
 
         {% set related_docs = [] %}
         {% if m.data.docs %}
@@ -86,17 +104,33 @@ layout: layouts/base.njk
           {% endfor %}
         {% endif %}
 
-        {% if related_docs.length > 0 %}
-        <div class="evolution-docs">
-          {% for d in related_docs %}
-          <a href="{{ d.url }}" target="_blank" class="doc-link">
-            <div class="doc-icon {{ d.type | docClass }}">{{ d.type | docIcon }}</div>
-            {{ d.label }}
-          </a>
-          {% endfor %}
+        {% if relevant_bullets.length > 0 or related_docs.length > 0 %}
+        <div class="evolution-item">
+          <div class="evolution-date">{{ m.data.display_date }}</div>
+          <h4 class="evolution-meeting-title"><a href="{{ m.url | url }}">{{ m.data.title }}</a></h4>
+
+          <div class="evolution-body">
+            {% for s in relevant_bullets %}
+              <div class="evolution-bullet">
+                <span class="evolution-topic-label">{{ s.topic }}</span>
+                {{ s.text }}
+              </div>
+            {% endfor %}
+          </div>
+
+          {% if related_docs.length > 0 %}
+          <div class="evolution-docs">
+            {% for d in related_docs %}
+            <a href="{{ d.url }}" target="_blank" class="doc-link">
+              <div class="doc-icon {{ d.type | docClass }}">{{ d.type | docIcon }}</div>
+              {{ d.label }}
+            </a>
+            {% endfor %}
+          </div>
+          {% endif %}
         </div>
         {% endif %}
-      </div>
+
       {% endif %}
     {% endfor %}
   </div>

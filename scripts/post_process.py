@@ -58,23 +58,40 @@ def generate_blurb(local, meeting_dir):
 def synthesize_topic(topic, evidence, display_date):
     print(f"  Synthesizing: {topic}...")
     prompt = f"""
-    You are a policy analyst for the SPSD Board Meeting Archive. 
+    You are a policy analyst for the SPSD Board Meeting Archive.
     Synthesize the following chronological notes (NEWEST FIRST) regarding the topic: '{topic}'.
-    
-    TASK:
-    1. Write a 2-3 paragraph 'Current Status & Evolution' summary.
-    2. MANDATORY: The first paragraph MUST focus on the absolute most recent developments, votes, or resolutions.
-    3. If a previous decision was reversed or modified (e.g. reconfiguration delayed), reflect that clearly as the current status.
-    4. Identify specific viewpoints from: Board, Administration, Teachers, Citizens.
-    5. Include natural citations to meeting dates (e.g. "On {display_date}, the board decided...")
-    6. SPELING: Kaler (NOT Caler), Skillin (NOT Skillen).
+
+    Return ONLY a JSON object with these exact keys — no markdown fences, no commentary:
+    {{
+      "current_status": "1-2 plain sentences (no markdown) summarizing where things stand right now. Card-ready.",
+      "overview": "2-3 paragraphs with natural citations to meeting dates (e.g. 'On {display_date}, the board decided...'). The first paragraph MUST cover the most recent developments. If a prior decision was reversed or modified, reflect that clearly.",
+      "perspectives": {{
+        "Board": "Summary of elected members' stance and questions. Omit key entirely if no data.",
+        "Administration": "Summary of Superintendent/Directors' recommendations. Omit key entirely if no data.",
+        "Staff": "Summary of staff and union rep viewpoints. Omit key entirely if no data.",
+        "Citizens": "Summary of public comment and parent viewpoints. Omit key entirely if no data."
+      }}
+    }}
+
+    RULES:
+    - Omit any perspective key where there is genuinely no evidence in the notes.
+    - Use "Staff" (not "Teachers") for the staff/union group.
+    - SPELING: Kaler (NOT Caler), Skillin (NOT Skillen).
 
     Evidence (Newest First):
-    {evidence} 
+    {evidence}
     """
     try:
         response = client.models.generate_content(model=model_name, contents=prompt, config={'temperature': 0.1})
-        return topic, response.text
+        raw = response.text.strip()
+        # Strip code fences if present
+        raw = re.sub(r'^```(?:json)?\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw)
+        result = json.loads(raw)
+        return topic, result
+    except json.JSONDecodeError as e:
+        print(f"  JSON parse error for {topic}: {e}\n  Raw: {raw[:200]}")
+        return topic, None
     except Exception as e:
         print(f"  Error synthesizing {topic}: {e}")
         return topic, None

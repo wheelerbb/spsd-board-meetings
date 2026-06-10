@@ -9,7 +9,7 @@ permalink: "/topics/index.html"
     <div class="hero-eyebrow">Thematic Archive</div>
     <h1>Topic Explorer</h1>
     <div class="disclosure-notice">
-      Select a topic below to trace its evolution, view key resolutions, and see summaries of perspectives from the Board, Administration, Teachers, and Citizens.
+      Select a topic below to trace its evolution, view key resolutions, and see summaries of perspectives from the Board, Administration, Staff, and Citizens.
     </div>
   </div>
 </div>
@@ -20,11 +20,7 @@ permalink: "/topics/index.html"
     <a href="{{ ('/topics/' + topic | slugify + '/') | url }}" class="topic-card">
       <h2>{{ topic }}</h2>
       <div class="topic-card-summary">
-        {% if topic_summaries[topic] %}
-          {{ topic_summaries[topic] | truncate(200) }}
-        {% else %}
-          No summary available for this topic yet.
-        {% endif %}
+        {{ topic_summaries[topic].current_status if topic_summaries[topic] else "No summary available." }}
       </div>
       <div class="topic-explore-cta">
         Explore Evolution
