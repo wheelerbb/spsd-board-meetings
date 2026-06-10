@@ -284,6 +284,7 @@ def main():
             json.dump(events, f, indent=2)
     event_mapping = apptegy.get_event_mapping(events)
     for date_slug, info in event_mapping.items():
+        if date_slug < CUTOFF_DATE: continue
         if date_slug not in all_data: all_data[date_slug] = {}
         if 'events' not in all_data[date_slug]: all_data[date_slug]['events'] = []
         all_data[date_slug]['events'].append(info)
@@ -292,6 +293,7 @@ def main():
     print("Step 2: Fetching SPSD Site Data...")
     site_mapping = spsd_site.fetch_site_data()
     for date_slug, info in site_mapping.items():
+        if date_slug < CUTOFF_DATE: continue
         if date_slug not in all_data: all_data[date_slug] = {}
         all_data[date_slug]['site'] = info
 
@@ -303,6 +305,7 @@ def main():
             files = drive.list_files_in_folder(service, FOLDER_ID)
             drive_mapping = drive.build_meeting_map(files)
             for date_slug, docs in drive_mapping.items():
+                if date_slug < CUTOFF_DATE: continue
                 if date_slug not in all_data: all_data[date_slug] = {}
                 all_data[date_slug]['drive'] = docs
         except Exception as e:
@@ -314,6 +317,7 @@ def main():
     print("Step 4: Fetching Vimeo mapping...")
     vimeo_mapping = vimeo.get_vimeo_mapping()
     for date_slug, url in vimeo_mapping.items():
+        if date_slug < CUTOFF_DATE: continue
         if date_slug not in all_data: all_data[date_slug] = {}
         all_data[date_slug]['video'] = url
 
@@ -321,6 +325,7 @@ def main():
     print("Step 5: Fetching Transcripts...")
     transcript_mapping = transcripts.get_transcript_mapping()
     for date_slug, path in transcript_mapping.items():
+        if date_slug < CUTOFF_DATE: continue
         if date_slug not in all_data: all_data[date_slug] = {}
         all_data[date_slug]['transcript'] = path
 
