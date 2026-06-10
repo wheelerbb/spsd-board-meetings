@@ -49,6 +49,7 @@ def reconcile_meetings(all_data, dry_run=False):
         'video': url,
         'transcript': path
     }
+    Mutates all_data in place to add '_stub_action' and '_authority' audit fields.
     """
     meeting_dir = 'src/meetings/'
     if not os.path.exists(meeting_dir):
@@ -76,11 +77,22 @@ def reconcile_meetings(all_data, dry_run=False):
         has_site_data = bool(data.get('site'))
         has_event = has_valid_event or has_site_data
 
+        # Audit: record which authority source(s) claim this date
+        if has_valid_event and has_site_data:
+            data['_authority'] = 'both'
+        elif has_valid_event:
+            data['_authority'] = 'apptegy'
+        elif has_site_data:
+            data['_authority'] = 'site'
+        else:
+            data['_authority'] = None
+
         njk_path = os.path.join(meeting_dir, f"{date_slug}.njk")
         exists = os.path.exists(njk_path)
 
         if not has_event and not exists:
             # Strict Authority: No valid event, no file exists -> Skip
+            data['_stub_action'] = 'skipped'
             continue
 
         # Gather all docs for this date
@@ -112,6 +124,7 @@ def reconcile_meetings(all_data, dry_run=False):
                     fm_data = yaml.safe_load(fm_text) or {}
                 except Exception as e:
                     print(f"Error parsing YAML in {njk_path}: {e}")
+                    data['_stub_action'] = 'parse_error'
                     continue
 
                 existing_docs = fm_data.get('docs', [])
@@ -133,15 +146,21 @@ def reconcile_meetings(all_data, dry_run=False):
                     updated = True
 
                 if updated:
+                    data['_stub_action'] = 'updated'
                     print(f"{'[DRY RUN] ' if dry_run else ''}Updating meeting: {date_slug}")
                     if not dry_run:
                         fm_yaml = yaml.dump(fm_data, sort_keys=False, default_flow_style=False, allow_unicode=True)
                         with open(njk_path, 'w') as f:
                             f.write(f"---\n{fm_yaml}---\n{body}")
                     changes_made += 1
+                else:
+                    data['_stub_action'] = 'unchanged'
+            else:
+                data['_stub_action'] = 'parse_error'
             continue
 
         # Create new stub (only if has_event is true)
+        data['_stub_action'] = 'created'
         print(f"{'[DRY RUN] ' if dry_run else ''}Creating new meeting stub: {date_slug}...")
         changes_made += 1
 
@@ -211,16 +230,58 @@ def reconcile_meetings(all_data, dry_run=False):
 
     return changes_made
 
+
+# --- GCP Bucket helpers ---
+
+def _bucket_parts(bucket_uri):
+    """Returns (bucket_name, prefix) from a gs://bucket or gs://bucket/prefix URI."""
+    path = bucket_uri.replace('gs://', '')
+    parts = path.split('/', 1)
+    bucket_name = parts[0]
+    prefix = (parts[1].rstrip('/') + '/') if len(parts) > 1 and parts[1] else ''
+    return bucket_name, prefix
+
+def download_from_bucket(bucket_uri, local_path):
+    from google.cloud import storage
+    bucket_name, prefix = _bucket_parts(bucket_uri)
+    blob_name = prefix + os.path.basename(local_path)
+    client = storage.Client()
+    blob = client.bucket(bucket_name).blob(blob_name)
+    if blob.exists():
+        blob.download_to_filename(local_path)
+        print(f"Downloaded gs://{bucket_name}/{blob_name} → {local_path}")
+    else:
+        print(f"No existing gs://{bucket_name}/{blob_name} (first run, skipping download)")
+
+def upload_to_bucket(bucket_uri, local_path):
+    from google.cloud import storage
+    bucket_name, prefix = _bucket_parts(bucket_uri)
+    blob_name = prefix + os.path.basename(local_path)
+    client = storage.Client()
+    blob = client.bucket(bucket_name).blob(blob_name)
+    blob.upload_from_filename(local_path)
+    print(f"Uploaded {local_path} → gs://{bucket_name}/{blob_name}")
+
+
 def main():
     parser = argparse.ArgumentParser(description='Reconcile meeting data from multiple sources.')
     parser.add_argument('--dry-run', action='store_true', help='Log changes without writing files.')
+    parser.add_argument('--bucket', default='', metavar='BUCKET_URI',
+                        help='GCS bucket URI (e.g. gs://my-bucket) for persisting pipeline data files.')
     args = parser.parse_args()
+
+    # Download previous master map from bucket (enables incremental awareness)
+    if args.bucket:
+        download_from_bucket(args.bucket, 'master_material_map.json')
 
     all_data = {}
 
     # 1. Fetch Apptegy Events (Authority)
     print("Step 1: Fetching Apptegy Events...")
     events = apptegy.fetch_events()
+    if not args.dry_run:
+        with open('apptegy_events_raw.json', 'w') as f:
+            json.dump(events, f, indent=2)
     event_mapping = apptegy.get_event_mapping(events)
     for date_slug, info in event_mapping.items():
         if date_slug not in all_data: all_data[date_slug] = {}
@@ -263,19 +324,22 @@ def main():
         if date_slug not in all_data: all_data[date_slug] = {}
         all_data[date_slug]['transcript'] = path
 
-    # 6. Reconcile & Update Meetings
+    # 6. Reconcile & Update Meetings (also annotates all_data with _stub_action/_authority)
     print("Step 6: Reconciling and updating meetings...")
     changes = reconcile_meetings(all_data, dry_run=args.dry_run)
 
-    # 7. Update Master Map
+    # 7. Write master map and upload both audit files to bucket
     if not args.dry_run:
-        # We might want to save the final reconciled state
         with open('master_material_map.json', 'w') as f:
             json.dump(all_data, f, indent=2, sort_keys=True)
+        if args.bucket:
+            upload_to_bucket(args.bucket, 'master_material_map.json')
+            upload_to_bucket(args.bucket, 'apptegy_events_raw.json')
 
     if changes > 0:
         print(f"Finished. Updated {changes} meetings.")
     else:
         print("Finished. No new updates found.")
+
 if __name__ == "__main__":
     main()

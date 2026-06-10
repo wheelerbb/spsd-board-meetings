@@ -14,12 +14,14 @@ Technical reference for the three-stage ingestion and synthesis pipeline. All sc
 
 Run the full pipeline locally:
 ```bash
-python scripts/source_data.py
+python scripts/source_data.py [--bucket gs://BUCKET]
 python scripts/process_transcripts.py --batch --local-auth
 python scripts/post_process.py --local-auth
 ```
 
-Omit `--local-auth` to use the `GEMINI_API_KEY` from `.env` instead of Vertex AI ADC.
+`--bucket` downloads the previous `master_material_map.json` from GCS before running and uploads both audit files after. Omit to run fully local. Requires ADC: `gcloud auth application-default login`.
+
+Omit `--local-auth` on the transcript/post-process steps to use `GEMINI_API_KEY` from `.env` instead of Vertex AI ADC.
 
 ---
 
@@ -61,7 +63,8 @@ These are set when a meeting moves from `stub: true` → `stub: false`. `process
 | `src/_data/topics.json` | Yes | `post_process.py` | Sorted topic list consumed by Eleventy topic pages |
 | `src/_data/topic_summaries.json` | Yes | `post_process.py` | AI-synthesized topic narratives consumed by Eleventy |
 | `scripts/topic_hashes.json` | Yes | `post_process.py` | Evidence cache (pipeline state, not rendered) |
-| `master_material_map.json` | No | `source_data.py` | Full reconciled source map; regenerated each run |
+| `master_material_map.json` | GCS bucket | `source_data.py` | Full reconciled source map with `_stub_action` / `_authority` audit fields per date |
+| `apptegy_events_raw.json` | GCS bucket | `source_data.py` | Complete unfiltered Apptegy API response (all calendar events, full payload) |
 | `vimeo_master_list.json` | Yes | Manual | Vimeo video ID → meeting date mapping |
 
 ---
