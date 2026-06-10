@@ -32,6 +32,14 @@ module.exports = function (eleventyConfig) {
     return `${h}:${String(m).padStart(2, '0')}`;
   });
 
+  // Compress verbose "Moved by X, seconded by Y." → "X / Y"
+  eleventyConfig.addFilter("movedShort", (str) => {
+    if (!str) return str;
+    const m = str.match(/moved by ([^,]+),\s*seconded by ([^.;]+)/i);
+    if (m) return `${m[1].trim()} / ${m[2].trim().replace(/\.$/, '')}`;
+    return str;
+  });
+
   return {
     pathPrefix: process.env.PATH_PREFIX || "/spsd-board-meetings/",
     dir: {

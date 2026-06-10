@@ -110,12 +110,10 @@ pageScript: |
       <button class="filter-btn topic-filter-btn" data-topic="{{ topic }}" onclick="filterTopic('{{ topic }}',this)">{{ topic }}</button>
       {% endfor %}
     </div>
-    <div class="expand-row">
-      <button class="expand-toggle" onclick="toggleTopics(this)">
-        <span class="toggle-text">Show All Topics</span>
-      </button>
-    </div>
   </div>
+  <button class="expand-toggle" onclick="toggleTopics(this)">
+    <span class="toggle-text">Show All Topics</span>
+  </button>
 </div>
 
 <main class="main" id="meetingList">
@@ -139,7 +137,7 @@ pageScript: |
   <details class="future-meetings-section">
     <summary class="future-meetings-summary">
       <svg class="future-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg>
-      Upcoming Meetings
+      Future Meetings
     </summary>
     <ul class="future-meetings-list">
       {% for m in meetings | sort(false, false, "date") %}

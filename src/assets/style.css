@@ -71,15 +71,12 @@ nav a.nav-link:hover { color:var(--gold-light); }
   color:var(--muted); font-weight:700; width:160px; padding-top:10px;
 }
 .filter-content { flex:1; }
-.topics-bar .filter-content { position:relative; }
 .topics-container {
   display:flex; flex-wrap:wrap; gap:10px;
   max-height:5.5rem; overflow:hidden; transition:max-height .4s cubic-bezier(.4,0,.2,1);
-  padding-right:140px; padding-bottom:2px;
+  padding-bottom:2px;
 }
-.topics-container.expanded { max-height:20rem; padding-right:0; }
-.expand-row { position:absolute; bottom:0; right:0; margin:0; background:#fff; padding-left:10px; }
-.topics-container.expanded ~ .expand-row { position:static; padding-left:0; margin-top:1.25rem; }
+.topics-container.expanded { max-height:20rem; }
 
 .filter-btn {
   background:#fff; border:1.5px solid #e0e0e0; border-radius:6px;
@@ -90,14 +87,16 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .filter-btn.active { background:var(--navy); border-color:var(--navy); color:#fff; }
 
 .expand-toggle {
-  background:#fff; border:1.5px solid var(--rule); color:var(--navy);
-  font-size:.85rem; font-weight:400; border-radius:4px;
-  cursor:pointer; padding:4px 8px;
+  background:#fff; border:1.5px dashed var(--muted); color:var(--muted);
+  font-size:.75rem; font-weight:500; border-radius:4px;
+  cursor:pointer; padding:6px 10px; flex-shrink:0; align-self:flex-start;
+  margin-top:2px; margin-left:.75rem;
   display:flex; align-items:center; gap:4px;
-  font-family:inherit;
+  font-family:inherit; transition:all .2s;
 }
-.expand-toggle::after { content:'▼'; font-size:.6rem; margin-left:4px; }
-.expand-toggle.active::after { content:'▲'; }
+.expand-toggle:hover { border-color:var(--navy); color:var(--navy); }
+.expand-toggle::after { content:'▾'; font-size:.75rem; margin-left:2px; }
+.expand-toggle.active::after { content:'▴'; }
 
 /* TOPIC CHIPS */
 .topic-chip {
@@ -137,7 +136,7 @@ nav a.nav-link:hover { color:var(--gold-light); }
   letter-spacing: 0.05em; color: var(--gold); margin-bottom: 0.5rem;
 }
 .upcoming-agenda p { font-size: 0.95rem; color: var(--text); line-height: 1.6; margin: 0; }
-.upcoming-actions { flex-shrink: 0; }
+.upcoming-actions { flex-shrink: 0; display:flex; align-items:center; }
 .upcoming-link {
   display: inline-block; background: var(--navy); color: #fff;
   padding: 1rem 2rem; border-radius: 6px; text-decoration: none;
@@ -316,7 +315,7 @@ nav a.nav-link:hover { color:var(--gold-light); }
   transition:all .2s; border:none; width:100%;
 }
 .tl-time-btn:hover { background:var(--gold); transform:translateY(-1px); }
-.tl-time-btn svg { width:14px; height:14px; fill:currentColor; flex-shrink:0; }
+.tl-time-btn svg { width:16px; height:16px; fill:currentColor; flex-shrink:0; }
 .tl-time-btn--disabled { background:var(--warm-gray); color:var(--muted); cursor:default; }
 .tl-time-btn--disabled:hover { background:var(--warm-gray); transform:none; }
 .tl-body { background:#fff; border:1px solid var(--rule); border-radius:5px; padding:.9rem 1.1rem; }

@@ -70,7 +70,7 @@ layout: layouts/base.njk
                 <span class="vote-count">{{ vote.count }}</span>
               </div>
             </td>
-            <td class="vote-tally">{{ vote.moved_2nd }}</td>
+            <td class="vote-tally">{{ vote.moved_2nd | movedShort }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -110,7 +110,7 @@ layout: layouts/base.njk
           <div class="tl-time">
             {% if has_video %}
             <a href="{{ video_url }}#t={{ item.seconds }}s" target="_blank" class="tl-time-btn">
-              <svg viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1.5 4l4 2-4 2V6z"/></svg>
+              <svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6V2z"/></svg>
               {{ item.seconds | secondsToTime }}
             </a>
             {% else %}
