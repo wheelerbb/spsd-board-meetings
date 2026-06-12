@@ -298,60 +298,112 @@ def sync_drive_vtts_to_bucket(bucket_uri, all_data, existing_bucket_slugs, cutof
     return uploaded
 
 
+_SOURCE_TTL_HOURS = 12
+
+
+def _cache_fresh(meta, source):
+    """Return True if source was fetched within _SOURCE_TTL_HOURS."""
+    entry = meta.get(source)
+    if not entry:
+        return False
+    fetched_at = datetime.fromisoformat(entry['fetched_at'])
+    age = (datetime.utcnow() - fetched_at).total_seconds()
+    return age < _SOURCE_TTL_HOURS * 3600
+
+
 def main():
     parser = argparse.ArgumentParser(description='Reconcile meeting data from multiple sources.')
     parser.add_argument('--dry-run', action='store_true', help='Log changes without writing files.')
+    parser.add_argument('--force', action='store_true', help='Re-fetch all sources, bypassing TTL cache.')
     parser.add_argument('--bucket', default='', metavar='BUCKET_URI',
                         help='GCS bucket URI (e.g. gs://my-bucket) for persisting pipeline data files.')
     args = parser.parse_args()
     bucket = args.bucket or os.getenv('GCS_BUCKET_URI', '')
-    # Rewrite args.bucket so all downstream checks use the resolved value
     args.bucket = bucket
 
-    # Download previous master map from bucket (enables incremental awareness)
+    # Download previous master map from bucket (enables incremental awareness + cache timestamps)
     if args.bucket:
         download_from_bucket(args.bucket, 'master_material_map.json')
 
+    old_master_map = {}
+    if os.path.exists('master_material_map.json'):
+        with open('master_material_map.json') as f:
+            old_master_map = json.load(f)
+
+    cache_meta = old_master_map.get('_cache_meta', {})
+    cache_updated = False
     all_data = {}
 
     # 1. Fetch Apptegy Events (Authority)
     print("Step 1: Fetching Apptegy Events...")
-    events = apptegy.fetch_events()
-    if not args.dry_run:
-        with open('apptegy_events_raw.json', 'w') as f:
-            json.dump(events, f, indent=2)
-    event_mapping = apptegy.get_event_mapping(events)
-    for date_slug, info in event_mapping.items():
-        if date_slug < CUTOFF_DATE: continue
-        if date_slug not in all_data: all_data[date_slug] = {}
-        if 'events' not in all_data[date_slug]: all_data[date_slug]['events'] = []
-        all_data[date_slug]['events'].append(info)
+    apptegy_fetched = False
+    if args.force or not _cache_fresh(cache_meta, 'apptegy'):
+        events = apptegy.fetch_events()
+        if not args.dry_run:
+            with open('apptegy_events_raw.json', 'w') as f:
+                json.dump(events, f, indent=2)
+        cache_meta['apptegy'] = {'fetched_at': datetime.utcnow().isoformat()}
+        cache_updated = True
+        apptegy_fetched = True
+        event_mapping = apptegy.get_event_mapping(events)
+        for date_slug, info in event_mapping.items():
+            if date_slug < CUTOFF_DATE: continue
+            if date_slug not in all_data: all_data[date_slug] = {}
+            if 'events' not in all_data[date_slug]: all_data[date_slug]['events'] = []
+            all_data[date_slug]['events'].append(info)
+    else:
+        print("  Using cached Apptegy data.")
+        for date_slug, data in old_master_map.items():
+            if date_slug.startswith('_') or date_slug < CUTOFF_DATE: continue
+            if 'events' in data:
+                if date_slug not in all_data: all_data[date_slug] = {}
+                all_data[date_slug]['events'] = data['events']
 
     # 2. Fetch SPSD Site Data (Authority & Document Primary)
     print("Step 2: Fetching SPSD Site Data...")
-    site_mapping = spsd_site.fetch_site_data()
-    for date_slug, info in site_mapping.items():
-        if date_slug < CUTOFF_DATE: continue
-        if date_slug not in all_data: all_data[date_slug] = {}
-        all_data[date_slug]['site'] = info
+    if args.force or not _cache_fresh(cache_meta, 'site'):
+        site_mapping = spsd_site.fetch_site_data()
+        cache_meta['site'] = {'fetched_at': datetime.utcnow().isoformat()}
+        cache_updated = True
+        for date_slug, info in site_mapping.items():
+            if date_slug < CUTOFF_DATE: continue
+            if date_slug not in all_data: all_data[date_slug] = {}
+            all_data[date_slug]['site'] = info
+    else:
+        print("  Using cached site data.")
+        for date_slug, data in old_master_map.items():
+            if date_slug.startswith('_') or date_slug < CUTOFF_DATE: continue
+            if 'site' in data:
+                if date_slug not in all_data: all_data[date_slug] = {}
+                all_data[date_slug]['site'] = data['site']
 
     # 3. Fetch Drive Files (Auxiliary)
-    service = drive.get_drive_service()
-    if service:
-        print("Step 3: Fetching files from Google Drive...")
-        try:
-            files = drive.list_files_in_folder(service, FOLDER_ID)
-            drive_mapping = drive.build_meeting_map(files)
-            for date_slug, docs in drive_mapping.items():
-                if date_slug < CUTOFF_DATE: continue
-                if date_slug not in all_data: all_data[date_slug] = {}
-                all_data[date_slug]['drive'] = docs
-        except Exception as e:
-            print(f"Error accessing Drive: {e}")
+    if args.force or not _cache_fresh(cache_meta, 'drive'):
+        service = drive.get_drive_service()
+        if service:
+            print("Step 3: Fetching files from Google Drive...")
+            try:
+                files = drive.list_files_in_folder(service, FOLDER_ID)
+                drive_mapping = drive.build_meeting_map(files)
+                for date_slug, docs in drive_mapping.items():
+                    if date_slug < CUTOFF_DATE: continue
+                    if date_slug not in all_data: all_data[date_slug] = {}
+                    all_data[date_slug]['drive'] = docs
+                cache_meta['drive'] = {'fetched_at': datetime.utcnow().isoformat()}
+                cache_updated = True
+            except Exception as e:
+                print(f"Error accessing Drive: {e}")
+        else:
+            print("Step 3: Skipping Google Drive (Service not initialized).")
     else:
-        print("Step 3: Skipping Google Drive (Service not initialized).")
+        print("Step 3: Using cached Drive data.")
+        for date_slug, data in old_master_map.items():
+            if date_slug.startswith('_') or date_slug < CUTOFF_DATE: continue
+            if 'drive' in data:
+                if date_slug not in all_data: all_data[date_slug] = {}
+                all_data[date_slug]['drive'] = data['drive']
 
-    # 4. Fetch Vimeo Videos
+    # 4. Fetch Vimeo Videos (local file read, always fast)
     print("Step 4: Fetching Vimeo mapping...")
     vimeo_mapping = vimeo.get_vimeo_mapping()
     for date_slug, url in vimeo_mapping.items():
@@ -359,19 +411,16 @@ def main():
         if date_slug not in all_data: all_data[date_slug] = {}
         all_data[date_slug]['video'] = url
 
-    # 5. Fetch Transcripts (local files + GCS bucket)
+    # 5. Fetch Transcripts (GCS bucket only)
     print("Step 5: Fetching Transcripts...")
-    transcript_mapping = transcripts.get_transcript_mapping()
+    bucket_vtts = {}
     if args.bucket:
         try:
             bucket_vtts = transcripts.get_bucket_vtt_mapping(args.bucket, CUTOFF_DATE)
-            for slug, path in bucket_vtts.items():
-                if slug not in transcript_mapping:
-                    transcript_mapping[slug] = path
             print(f"  Found {len(bucket_vtts)} VTT(s) in bucket.")
         except Exception as e:
             print(f"  Warning: could not read bucket VTTs: {e}")
-    for date_slug, path in transcript_mapping.items():
+    for date_slug, path in bucket_vtts.items():
         if date_slug < CUTOFF_DATE: continue
         if date_slug not in all_data: all_data[date_slug] = {}
         all_data[date_slug]['transcript'] = path
@@ -380,28 +429,30 @@ def main():
     print("Step 6: Reconciling and updating meetings...")
     changes = reconcile_meetings(all_data, dry_run=args.dry_run)
 
-    # 7. Sync VTTs to bucket; update all_data transcript paths to canonical GCS URIs
+    # 7. Sync Drive VTTs to bucket; update canonical GCS URIs in all_data
     if args.bucket and not args.dry_run:
         print("Step 7: Syncing VTTs to bucket...")
         try:
-            existing_bucket_slugs = set(transcripts.get_bucket_vtt_mapping(args.bucket, CUTOFF_DATE).keys())
-            transcripts.sync_local_vtts_to_bucket(args.bucket, cutoff_date=CUTOFF_DATE)
+            # Reuse bucket_vtts from Step 5 to avoid a redundant GCS list call
+            existing_bucket_slugs = set(bucket_vtts.keys())
             sync_drive_vtts_to_bucket(args.bucket, all_data, existing_bucket_slugs, CUTOFF_DATE)
-            # Refresh and write canonical GCS URIs into all_data so master map is accurate
+            # Refresh canonical GCS URIs in all_data after any newly uploaded VTTs
             for slug, gcs_uri in transcripts.get_bucket_vtt_mapping(args.bucket, CUTOFF_DATE).items():
                 if slug in all_data:
                     all_data[slug]['transcript'] = gcs_uri
         except Exception as e:
             print(f"  Warning: VTT sync failed: {e}")
 
-    # 8. Write master map and upload both audit files to bucket
+    # 8. Write master map (with cache timestamps) and upload if anything changed
     if not args.dry_run:
+        sorted_data = dict(sorted(all_data.items(), reverse=True))
+        sorted_data['_cache_meta'] = cache_meta
         with open('master_material_map.json', 'w') as f:
-            sorted_data = dict(sorted(all_data.items(), reverse=True))
             json.dump(sorted_data, f, indent=2)
-        if args.bucket:
+        if args.bucket and (changes > 0 or cache_updated):
             upload_to_bucket(args.bucket, 'master_material_map.json')
-            upload_to_bucket(args.bucket, 'apptegy_events_raw.json')
+            if apptegy_fetched:
+                upload_to_bucket(args.bucket, 'apptegy_events_raw.json')
 
     if changes > 0:
         print(f"Finished. Updated {changes} meetings.")

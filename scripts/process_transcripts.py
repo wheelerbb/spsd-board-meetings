@@ -15,7 +15,7 @@ load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
-from sourcing.transcripts import get_transcript_mapping, get_bucket_vtt_mapping
+from sourcing.transcripts import get_bucket_vtt_mapping
 from sourcing.vimeo import get_vimeo_mapping
 from sourcing import drive
 from sourcing.auth import get_credentials
