@@ -82,8 +82,8 @@ timeline:
 The archive uses a two-stage modular pipeline for ingesting and synthesizing board meeting data.
 
 ### 1. Ingestion: `scripts/process_transcripts.py`
-This tool analyzes raw `.vtt` transcripts using Gemini (Vertex AI or AI Studio).
-- **Authentication:** Supports `--local-auth` (Vertex AI ADC) or standard API keys.
+This tool analyzes raw `.vtt` transcripts using Gemini via Vertex AI.
+- **Authentication:** Uses Application Default Credentials (ADC). Run `gcloud auth application-default login` locally, or set `GOOGLE_APPLICATION_CREDENTIALS` to a service account key path.
 - **Concurrency:** Uses a ThreadPoolExecutor for parallel processing.
 - **Discrete Outputs:** The LLM is prompted via a Pydantic schema to extract the following exact fields:
   - `blurb`: A 1-2 sentence hook summarizing the primary outcome for the landing page.
@@ -149,7 +149,7 @@ Documents or transcripts found in auxiliary sources (Google Drive, Vimeo) are ma
 
 ### Automated Workflow (`python scripts/source_data.py`)
 1. **Fetch Authority Data:** Aggregates dates from Apptegy and SPSD Site.
-2. **Fetch Auxiliary Data:** Maps Drive files, Vimeo videos, and local transcripts to those dates.
+2. **Fetch Auxiliary Data:** Maps Drive files and Vimeo videos to those dates.
 3. **Reconcile & Merge:** 
    - Site documents take precedence over Drive documents. 
    - Existing `.njk` files are updated with new materials; missing dates from authority sources trigger new stubs.

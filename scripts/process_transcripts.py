@@ -17,44 +17,18 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 from sourcing.transcripts import get_transcript_mapping, get_bucket_vtt_mapping
 from sourcing.vimeo import get_vimeo_mapping
+from sourcing import drive
+from sourcing.auth import get_credentials
 
 _vimeo_map = {}
 
 # --- CONFIGURATION ---
-USE_LOCAL_AUTH = "--local-auth" in sys.argv
-if USE_LOCAL_AUTH: sys.argv.remove("--local-auth")
+credentials, project_id = get_credentials()
+client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
 
-MODEL_MAP = {
-    "vertex": {"flash": "gemini-2.5-flash", "pro": "gemini-2.5-pro"},
-    "studio": {"flash": "gemini-2.5-flash", "pro": "gemini-2.5-pro"}
-}
-
-client = None
-provider = "studio"
-api_key = os.getenv("GEMINI_PRO_API_KEY") or os.getenv("GEMINI_API_KEY")
-
-if USE_LOCAL_AUTH:
-    import google.auth
-    try:
-        credentials, project = google.auth.default(
-            scopes=['https://www.googleapis.com/auth/cloud-platform']
-        )
-        project_id = 'spsd-board-meetings'
-        client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
-        provider = "vertex"
-        print(f"Using Vertex AI (Project: {project_id})")
-    except Exception as e:
-        print(f"Failed to load local credentials: {e}")
-        sys.exit(1)
-elif api_key and "your_" not in api_key:
-    client = genai.Client(api_key=api_key)
-    provider = "studio"
-else:
-    print("Error: No authentication method found.")
-    sys.exit(1)
-
-DEFAULT_MODEL = MODEL_MAP[provider]["pro"]
-MAX_WORKERS = 4 if provider == "vertex" else 1
+DEFAULT_MODEL = 'gemini-2.5-pro'
+FLASH_MODEL = 'gemini-2.5-flash'
+MAX_WORKERS = 4
 
 CUTOFF_DATE = "2023-08-01"
 
@@ -97,30 +71,6 @@ class MeetingReport(BaseModel):
 
 # --- VTT SOURCES ---
 
-def _download_drive_file(file_id):
-    """Download a Drive file's content as text. Prefers API key (public folder), falls back to ADC."""
-    import requests
-    api_key = os.getenv("GOOGLE_DRIVE_API_KEY")
-    if api_key:
-        resp = requests.get(
-            f"https://www.googleapis.com/drive/v3/files/{file_id}",
-            params={"alt": "media", "key": api_key},
-            timeout=60
-        )
-        resp.raise_for_status()
-        return resp.text
-    import io
-    from sourcing.drive import get_drive_service
-    from googleapiclient.http import MediaIoBaseDownload
-    svc = get_drive_service()
-    if not svc:
-        raise RuntimeError(f"Drive service unavailable for file {file_id}")
-    fh = io.BytesIO()
-    dl = MediaIoBaseDownload(fh, svc.files().get_media(fileId=file_id))
-    done = False
-    while not done:
-        _, done = dl.next_chunk()
-    return fh.getvalue().decode('utf-8')
 
 
 
@@ -161,7 +111,7 @@ def fetch_vtt_content(path):
         bucket_name, blob_name = without_scheme.split('/', 1)
         return storage.Client().bucket(bucket_name).blob(blob_name).download_as_text()
     if path.startswith('drive:'):
-        return _download_drive_file(path[6:])
+        return drive.download_file(path[6:])
     with open(path, 'r') as f:
         return f.read()
 
@@ -198,8 +148,8 @@ def process_single_meeting(date_slug, vtt_path):
     """
 
     try:
-        if provider == "vertex": time.sleep(2)
-        models_to_try = list(dict.fromkeys([MODEL_MAP[provider]["flash"], MODEL_MAP[provider]["pro"]]))
+        time.sleep(2)
+        models_to_try = [FLASH_MODEL, DEFAULT_MODEL]
         response = None
         for model in models_to_try:
             print(f"  Sending request to Gemini ({model}) for {date_slug}...", flush=True)
@@ -268,15 +218,14 @@ def main():
         args = args[:idx] + args[idx + 2:]
     bucket = bucket or os.getenv('GCS_BUCKET_URI', '') or None
 
-    # Build transcript mapping: Drive (lowest) < bucket < local (highest priority)
+    # Build transcript mapping: bucket (lower priority) < Drive (higher priority)
     mapping = {}
-    mapping.update(get_drive_vtt_mapping())
     if bucket:
         try:
             mapping.update(get_bucket_vtt_mapping(bucket, CUTOFF_DATE))
         except Exception as e:
             print(f"Warning: could not read bucket VTTs: {e}")
-    mapping.update(get_transcript_mapping())  # local always wins
+    mapping.update(get_drive_vtt_mapping())
 
     to_process = {}
 
@@ -309,7 +258,6 @@ def main():
                     rate_limited.append(res['slug'])
         if rate_limited:
             print(f"\nRate-limited on all models for: {', '.join(rate_limited)}")
-            print("Re-run with --local-auth for higher limits via Vertex AI.")
             sys.exit(1)
 
 if __name__ == "__main__":

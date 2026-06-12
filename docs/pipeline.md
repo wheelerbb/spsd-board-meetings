@@ -18,15 +18,15 @@ Technical reference for the three-stage ingestion and synthesis pipeline. All sc
 
 ```bash
 python scripts/source_data.py [--bucket gs://BUCKET]
-python scripts/process_transcripts.py --batch --local-auth [--bucket gs://BUCKET]
-python scripts/post_process.py --local-auth
+python scripts/process_transcripts.py --batch [--bucket gs://BUCKET]
+python scripts/post_process.py
 ```
 
-`--bucket` on `source_data.py`: downloads the previous `master_material_map.json`, checks GCS for VTTs when marking `has_transcript`, and syncs any new local VTTs up to the bucket. Omit to run fully local. Requires ADC: `gcloud auth application-default login`.
+`--bucket` on `source_data.py`: downloads the previous `master_material_map.json`, checks GCS for VTTs when marking `has_transcript`, and syncs Drive VTTs up to the bucket. Omit to run without GCS.
 
-`--bucket` on `process_transcripts.py`: supplements the local transcript mapping with VTTs stored in the bucket and Drive VTT docs found in meeting stubs.
+`--bucket` on `process_transcripts.py`: supplements the Drive VTT mapping with VTTs stored in the bucket.
 
-Omit `--local-auth` on the transcript/post-process steps to use `GEMINI_API_KEY` from `.env` instead of Vertex AI ADC.
+All scripts require Google ADC. For local dev: `gcloud auth application-default login` or set `GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa-key.json`. In CI, `google-github-actions/auth@v3` sets up ADC automatically via the `GCP_CREDENTIALS` secret.
 
 ---
 

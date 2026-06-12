@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import re
 import yaml
@@ -9,22 +10,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Prioritize Vertex AI auth
-provider = "studio"
-import google.auth
-try:
-    credentials, project = google.auth.default(
-        scopes=['https://www.googleapis.com/auth/cloud-platform']
-    )
-    project_id = 'spsd-board-meetings'
-    client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
-    model_name = 'gemini-2.5-flash'
-    MAX_WORKERS = 4
-except:
-    api_key = os.getenv("GEMINI_PRO_API_KEY") or os.getenv("GEMINI_API_KEY")
-    client = genai.Client(api_key=api_key)
-    model_name = 'gemini-1.5-flash'
-    MAX_WORKERS = 1
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
+from sourcing.auth import get_credentials
+
+credentials, project_id = get_credentials()
+client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
+model_name = 'gemini-2.5-flash'
+MAX_WORKERS = 4
 
 GLOSSARY = {
     "Caler": "Kaler",
