@@ -12,7 +12,10 @@ Technical reference for the three-stage ingestion and synthesis pipeline. All sc
 | 2 | `scripts/process_transcripts.py` | Daily CI / manual | Analyze `.vtt` transcripts with Gemini; populate per-meeting AI fields |
 | 3 | `scripts/post_process.py` | Daily CI / manual | Enforce glossary; sort topic taxonomy; synthesize cross-meeting topic summaries |
 
-Run the full pipeline locally:
+---
+
+## Running the Pipeline
+
 ```bash
 python scripts/source_data.py [--bucket gs://BUCKET]
 python scripts/process_transcripts.py --batch --local-auth [--bucket gs://BUCKET]
@@ -21,7 +24,7 @@ python scripts/post_process.py --local-auth
 
 `--bucket` on `source_data.py`: downloads the previous `master_material_map.json`, checks GCS for VTTs when marking `has_transcript`, and syncs any new local VTTs up to the bucket. Omit to run fully local. Requires ADC: `gcloud auth application-default login`.
 
-`--bucket` on `process_transcripts.py`: supplements the local transcript mapping with VTTs stored in the bucket (historical) and Drive VTT docs found in meeting stubs. Priority order: Drive > bucket.
+`--bucket` on `process_transcripts.py`: supplements the local transcript mapping with VTTs stored in the bucket and Drive VTT docs found in meeting stubs.
 
 Omit `--local-auth` on the transcript/post-process steps to use `GEMINI_API_KEY` from `.env` instead of Vertex AI ADC.
 
@@ -29,9 +32,9 @@ Omit `--local-auth` on the transcript/post-process steps to use `GEMINI_API_KEY`
 
 ## Objects and Sources
 
-> **Authority rule:** A meeting stub is created only when its date appears in the Apptegy Events feed (primary) or the SPSD site board-activities section (secondary). Dates discovered only via Drive filenames, Vimeo titles, or VTT filenames are ignored for stub creation — they enrich existing meetings only.
-
 ### Meeting creation authority
+
+Meeting stubs are created only when a date is confirmed by an authority source. All other sources enrich existing meetings but never trigger stub creation.
 
 | Source | Role |
 |--------|------|
@@ -47,6 +50,16 @@ Omit `--local-auth` on the transcript/post-process steps to use `GEMINI_API_KEY`
 | **Documents** | SPSD site board-activities links | — | Google Drive (matched by filename date to existing meeting) |
 | **Videos** | `vimeo_master_list.json` | — | — |
 | **Transcripts** | Google Drive VTT docs | GCS bucket | — |
+
+### Field-level data priority
+
+When multiple sources provide conflicting values for the same field:
+
+1. Meeting Minutes PDF (official record)
+2. SPSD Website board-activities section
+3. Google Drive files
+4. Vimeo video metadata
+5. Raw `.vtt` transcript (lowest — subject to speech recognition errors)
 
 ---
 
@@ -102,11 +115,10 @@ External sources
   SPSD Website        ─┤──► scripts/source_data.py ──► src/meetings/*.njk (stubs)
   Google Drive        ─┤                           ──► master_material_map.json
   Vimeo list          ─┤                           ──► GCS bucket/transcripts/ (VTT sync)
-  static/transcripts ─┘
   GCS bucket VTTs    ─┘
 
-VTT sources (priority: Drive > bucket)
-  Google Drive VTT docs     ─┐
+VTT sources
+  Google Drive VTT docs    ─┐
   GCS bucket/transcripts/  ─┴──► scripts/process_transcripts.py ──► src/meetings/*.njk (stub: false)
                                     (reads src/_data/topics.json for tag reuse)
 
@@ -119,22 +131,16 @@ src/meetings/*.njk + src/_data/*.json
   └──► npm run build (Eleventy) ──► _site/
 ```
 
-### Field-level data priority (when multiple sources provide conflicting values for the same field)
-
-1. Meeting Minutes PDF (official record)
-2. SPSD Website board-activities section
-3. Google Drive files
-4. Vimeo video metadata
-5. Raw `.vtt` transcript (lowest — subject to speech recognition errors)
-
 ---
 
 ## Sourcing Modules (`scripts/sourcing/`)
 
-| Module | Source | Creates meetings? | Returns |
-|--------|--------|-------------------|---------|
-| `apptegy.py` | Apptegy Events v2 API | Yes — events with "board" or "executive" in title | `{date_slug: {title, location, id}}` |
-| `spsd_site.py` | SPSD board-activities "meeting date" entries (scraped) | Yes | `{date_slug: {date, type, docs[]}}` |
-| `drive.py` | Google Drive folder (filename-based) | No — enrichment only | `{date_slug: [{type, label, url}]}` |
-| `vimeo.py` | `vimeo_master_list.json` (title-based) | No — enrichment only | `{date_slug: vimeo_url}` |
-| `transcripts.py` | Google Drive VTTs (primary) + GCS bucket (secondary) | No — enrichment only | `{date_slug: path_or_uri}` |
+For which sources are authoritative for each object type, see [Meeting creation authority](#meeting-creation-authority).
+
+| Module | Source | Returns |
+|--------|--------|---------|
+| `apptegy.py` | Apptegy Events v2 API | `{date_slug: {title, location, id}}` |
+| `spsd_site.py` | SPSD board-activities "meeting date" entries (scraped) | `{date_slug: {date, type, docs[]}}` |
+| `drive.py` | Google Drive folder (filename-based) | `{date_slug: [{type, label, url}]}` |
+| `vimeo.py` | `vimeo_master_list.json` (title-based) | `{date_slug: vimeo_url}` |
+| `transcripts.py` | Google Drive VTTs + GCS bucket | `{date_slug: path_or_uri}` |
