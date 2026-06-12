@@ -70,7 +70,8 @@ def reconcile_meetings(all_data, dry_run=False):
         has_valid_event = False
         if data.get('events'):
             for event in data['events']:
-                if 'board' in event.get('title', '').lower():
+                t = event.get('title', '').lower()
+                if 'board' in t or 'executive' in t:
                     has_valid_event = True
                     break
 
