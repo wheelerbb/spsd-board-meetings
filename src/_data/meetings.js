@@ -65,6 +65,8 @@ function getMeetings() {
           stub:           data.stub !== false,
           future:         slug >= today,
           blurb:          data.blurb          || '',
+          agenda_preview: data.agenda_preview  || '',
+          docs:           Array.isArray(data.docs) ? data.docs : [],
         };
       } catch (err) {
         console.warn(`[meetings.js] Skipped ${f}: ${err.message}`);
