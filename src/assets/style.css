@@ -145,6 +145,13 @@ nav a.nav-link:hover { color:var(--gold-light); }
 }
 .agenda-doc-link:hover { opacity: 0.75; }
 .upcoming-agenda p { font-size: 0.9rem; color: var(--text); line-height: 1.6; margin: 0; }
+.agenda-preview-list {
+  list-style: none; margin: 0.4rem 0 0; padding: 0;
+  font-size: 0.9rem; line-height: 1.5;
+}
+.agenda-preview-list li { padding: 0.25rem 0; color: var(--text); }
+.agenda-preview-list li + li { border-top: 1px solid var(--rule); }
+.agenda-preview-list strong { color: var(--navy); font-weight: 700; }
 
 @media (max-width: 600px) {
   .upcoming-meta { flex-direction: column; gap: 0.5rem; }

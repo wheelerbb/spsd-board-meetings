@@ -74,21 +74,26 @@ def generate_agenda_preview(meeting_data, meeting_dir):
         print(f"    Skipping {slug}: could not read doc content.")
         return
     prompt = (
-        "You are summarizing a school board meeting agenda for a public web archive.\n"
-        "Write a concise agenda preview with 3-6 short topic lines.\n\n"
-        "Rules:\n"
-        "- Skip boilerplate: Call to Order, Pledge of Allegiance, Opening Statement, "
-        "Public Comment, Adjournment, generic committee report headers with no named item\n"
-        "- Include: substantive votes, key personnel changes, named policy items, "
-        "grants/donations, notable events/trips, workshops with a stated topic\n"
-        "- Format each line as: <Topic>: <brief detail> (one sentence max)\n"
-        "- Output only the lines, no intro, no bullets, no markdown\n\n"
-        f"Agenda text:\n{text}"
+        'You are summarizing a school board meeting agenda for a public web archive.\n'
+        'Output ONLY valid HTML — no prose, no markdown, no code fences.\n\n'
+        'Format:\n'
+        '<ul class="agenda-preview-list">\n'
+        '<li><strong>Topic:</strong> Brief detail (one sentence).</li>\n'
+        '</ul>\n\n'
+        'Rules:\n'
+        '- 3-6 items only\n'
+        '- Skip boilerplate: Call to Order, Pledge of Allegiance, Opening Statement, '
+        'Public Comment, Adjournment, generic committee report headers with no named item\n'
+        '- Include: substantive votes, named policy items, key personnel changes, '
+        'grants/donations, notable field trips or events, workshops with a stated topic\n\n'
+        f'Agenda text:\n{text}'
     )
     try:
         response = client.models.generate_content(model=model_name, contents=prompt, config={'temperature': 0.1})
-        lines = [l.strip() for l in response.text.strip().splitlines() if l.strip()]
-        preview_html = '<br>'.join(lines)
+        raw = response.text.strip()
+        raw = re.sub(r'^```(?:html)?\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw)
+        preview_html = raw
         njk_path = os.path.join(meeting_dir, slug + '.njk')
         with open(njk_path, 'r') as f:
             content = f.read()
