@@ -133,10 +133,17 @@ nav a.nav-link:hover { color:var(--gold-light); }
   padding: 1rem 1.25rem; background: var(--warm-gray); border-radius: 6px;
   border-left: 4px solid var(--gold);
 }
-.upcoming-agenda strong {
-  display: block; font-size: 0.7rem; text-transform: uppercase;
-  letter-spacing: 0.05em; color: var(--gold); margin-bottom: 0.5rem;
+.upcoming-agenda-header {
+  display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;
 }
+.upcoming-agenda-header strong {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gold);
+}
+.agenda-doc-link {
+  font-size: 0.8rem; color: var(--gold); font-weight: 600;
+  cursor: pointer; text-decoration: underline; user-select: none;
+}
+.agenda-doc-link:hover { opacity: 0.75; }
 .upcoming-agenda p { font-size: 0.9rem; color: var(--text); line-height: 1.6; margin: 0; }
 
 @media (max-width: 600px) {

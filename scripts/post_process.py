@@ -28,6 +28,83 @@ GLOSSARY = {
 
 TOPIC_BLACKLIST = ["Personnel", "Contracts", "Finance", "Budget"]
 
+def _read_doc_text_from_drive(url, max_chars=8000):
+    """Download readable text from a Drive file URL. Returns None on failure."""
+    import io
+    from sourcing import drive as drive_mod
+    fid_match = re.search(r'/file/d/([^/?]+)', url)
+    if not fid_match:
+        return None
+    file_id = fid_match.group(1)
+    try:
+        svc = drive_mod.get_drive_service()
+        meta = svc.files().get(fileId=file_id, fields='mimeType,size').execute()
+        mime = meta.get('mimeType', '')
+        if int(meta.get('size', 0)) > 10_000_000:
+            return None
+        from googleapiclient.http import MediaIoBaseDownload
+        fh = io.BytesIO()
+        req = svc.files().export_media(fileId=file_id, mimeType='text/plain') if 'google-apps.document' in mime else svc.files().get_media(fileId=file_id)
+        dl = MediaIoBaseDownload(fh, req)
+        done = False
+        while not done:
+            _, done = dl.next_chunk()
+        if 'pdf' in mime:
+            import pypdf
+            fh.seek(0)
+            text = '\n'.join(p.extract_text() or '' for p in pypdf.PdfReader(fh).pages[:5])
+        else:
+            text = fh.getvalue().decode('utf-8', errors='replace')
+        return text[:max_chars] if text.strip() else None
+    except Exception as e:
+        print(f"    Warning: could not read Drive doc: {e}")
+        return None
+
+
+def generate_agenda_preview(meeting_data, meeting_dir):
+    """Generate and write a topic-structured agenda_preview for an upcoming stub."""
+    docs = meeting_data.get('docs') or []
+    agenda_doc = next((d for d in docs if d.get('type') in ('agenda', 'packet')), None)
+    if not agenda_doc:
+        return
+    slug = meeting_data['slug']
+    print(f"  Generating agenda preview for {slug}...")
+    text = _read_doc_text_from_drive(agenda_doc['url'])
+    if not text:
+        print(f"    Skipping {slug}: could not read doc content.")
+        return
+    prompt = (
+        "You are summarizing a school board meeting agenda for a public web archive.\n"
+        "Write a concise agenda preview with 3-6 short topic lines.\n\n"
+        "Rules:\n"
+        "- Skip boilerplate: Call to Order, Pledge of Allegiance, Opening Statement, "
+        "Public Comment, Adjournment, generic committee report headers with no named item\n"
+        "- Include: substantive votes, key personnel changes, named policy items, "
+        "grants/donations, notable events/trips, workshops with a stated topic\n"
+        "- Format each line as: <Topic>: <brief detail> (one sentence max)\n"
+        "- Output only the lines, no intro, no bullets, no markdown\n\n"
+        f"Agenda text:\n{text}"
+    )
+    try:
+        response = client.models.generate_content(model=model_name, contents=prompt, config={'temperature': 0.1})
+        lines = [l.strip() for l in response.text.strip().splitlines() if l.strip()]
+        preview_html = '<br>'.join(lines)
+        njk_path = os.path.join(meeting_dir, slug + '.njk')
+        with open(njk_path, 'r') as f:
+            content = f.read()
+        parts = re.split(r'^---+\s*$', content, flags=re.MULTILINE)
+        if len(parts) < 3:
+            return
+        fm = yaml.safe_load(parts[1]) or {}
+        fm['agenda_preview'] = preview_html
+        fm_yaml = yaml.dump(fm, sort_keys=False, default_flow_style=False, allow_unicode=True)
+        with open(njk_path, 'w') as f:
+            f.write(f'---\n{fm_yaml}---\n{"---".join(parts[2:])}')
+        print(f"    Written agenda preview for {slug}.")
+    except Exception as e:
+        print(f"    Error generating agenda preview for {slug}: {e}")
+
+
 def generate_blurb(local, meeting_dir):
     print(f"  Generating blurb for {local['slug']}...")
     prompt = f"Write an extremely concise 1-2 sentence objective summary (a 'blurb') of this school board meeting based on these notes. Do not use quotes or introductory filler:\n"
@@ -137,7 +214,19 @@ def post_process():
     new_lib = sorted(list(topic_recent_dates.keys()), key=lambda x: topic_recent_dates[x], reverse=True)
     with open(topics_lib_path, 'w') as f: json.dump(new_lib, f, indent=2)
 
-    # 3. Generate Missing Blurbs (write directly to .njk files; meetings.json is derived at build time)
+    # 3. Generate Agenda Previews for upcoming stubs that have a packet/agenda doc
+    print("Generating agenda previews for upcoming meetings...")
+    import datetime as _dt
+    today_slug = _dt.date.today().isoformat()
+    preview_tasks = [
+        m for m in meetings_data
+        if m.get('stub') and m['slug'] >= today_slug and not m.get('agenda_preview')
+        and any(d.get('type') in ('agenda', 'packet') for d in (m.get('docs') or []))
+    ]
+    for m in preview_tasks:
+        generate_agenda_preview(m, meeting_dir)
+
+    # 4. Generate Missing Blurbs (write directly to .njk files; meetings.json is derived at build time)
     print("Generating blurbs for unprocessed meetings...")
     blurb_tasks = [m for m in meetings_data
                    if not m.get('stub') and not m.get('blurb') and m.get('summary')]

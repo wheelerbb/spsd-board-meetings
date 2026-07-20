@@ -188,8 +188,12 @@ pageScript: |
         </div>
       </div>
       <div class="upcoming-agenda">
-        <strong>Agenda Preview:</strong>
-        <p>{{ nextMeeting.blurb | safe if nextMeeting.blurb else "Agenda pending." }}</p>
+        {% set agendaDoc = (nextMeeting.docs | where("type", "agenda") | first) or (nextMeeting.docs | where("type", "packet") | first) if nextMeeting.docs else null %}
+        <div class="upcoming-agenda-header">
+          <strong>Agenda Preview</strong>
+          {% if agendaDoc %}<span class="agenda-doc-link" onclick="event.stopPropagation(); window.open('{{ agendaDoc.url }}', '_blank', 'noopener')">View Agenda →</span>{% endif %}
+        </div>
+        <p>{{ nextMeeting.agenda_preview | safe if nextMeeting.agenda_preview else (nextMeeting.blurb | safe if nextMeeting.blurb else "Agenda pending.") }}</p>
       </div>
     </a>
   </section>
