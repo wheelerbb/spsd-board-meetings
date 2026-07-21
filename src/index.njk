@@ -1,267 +1,46 @@
 ---
 layout: layouts/base.njk
-title: "School Board Meetings — South Portland School Department"
-pageScript: |
-  let currentYear = 'all';
-  let currentTopic = 'all';
-
-  function filterYear(year, btn) {
-    document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentYear = year;
-    applyFilters();
-    updateAvailableTopics();
-  }
-
-  function filterTopic(topic, btn) {
-    document.querySelectorAll('.topic-filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentTopic = topic;
-    applyFilters();
-    highlightTopicChips(topic);
-  }
-
-  function highlightTopicChips(topic) {
-    document.querySelectorAll('.topic-chip').forEach(chip => chip.classList.remove('active'));
-    if (topic !== 'all') {
-      document.querySelectorAll('.meeting-card').forEach(card => {
-        const chip = card.querySelector(`.topic-chip[data-topic="${topic}"]`);
-        if (chip) chip.classList.add('active');
-      });
-    }
-  }
-
-  function applyFilters() {
-    document.querySelectorAll('.meeting-card').forEach(card => {
-      const cardYear = card.dataset.year;
-      const cardTopics = (card.dataset.topics || "").split(",");
-
-      const matchYear = (currentYear === 'all' || cardYear === currentYear);
-      const matchTopic = (currentTopic === 'all' || cardTopics.includes(currentTopic));
-
-      card.style.display = (matchYear && matchTopic) ? '' : 'none';
-    });
-
-    document.querySelectorAll('.year-section').forEach(sec => {
-      const hasVisibleCards = Array.from(sec.querySelectorAll('.meeting-card')).some(c => c.style.display !== 'none');
-      sec.style.display = hasVisibleCards ? '' : 'none';
-    });
-
-    const topicActive = currentTopic !== 'all';
-    const futureSection = document.querySelector('.future-meetings-section');
-    const upcomingSection = document.querySelector('.upcoming-meeting-section');
-    if (futureSection) futureSection.style.display = topicActive ? 'none' : '';
-    if (upcomingSection) upcomingSection.style.display = topicActive ? 'none' : '';
-  }
-
-  function updateAvailableTopics() {
-    const activeTopics = new Set();
-    document.querySelectorAll('.meeting-card').forEach(card => {
-      if (currentYear === 'all' || card.dataset.year === currentYear) {
-        const topics = (card.dataset.topics || "").split(",");
-        topics.forEach(t => { if(t) activeTopics.add(t); });
-      }
-    });
-
-    document.querySelectorAll('.topic-filter-btn').forEach(btn => {
-      const topic = btn.dataset.topic;
-      if (topic === 'all') {
-        btn.style.display = '';
-      } else {
-        btn.style.display = activeTopics.has(topic) ? '' : 'none';
-      }
-    });
-    
-    if (currentTopic !== 'all' && !activeTopics.has(currentTopic)) {
-      filterTopic('all', document.querySelector('.topic-filter-btn[data-topic="all"]'));
-    }
-  }
-
-  function toggleTopics(btn) {
-    const container = document.getElementById('topicFilterContainer');
-    container.classList.toggle('expanded');
-    btn.classList.toggle('active');
-    btn.querySelector('.toggle-text').textContent = container.classList.contains('expanded') ? 'Show less' : 'Show more';
-  }
-
-  document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('topic-chip')) {
-      e.preventDefault();
-      e.stopPropagation();
-      const topic = e.target.dataset.topic;
-      const filterBtn = Array.from(document.querySelectorAll('.topic-filter-btn')).find(b => b.dataset.topic === topic);
-      if (filterBtn) filterBtn.click();
-    }
-  });
+title: "South Portland School Board Meetings"
 ---
 
 <div class="hero">
   <div class="hero-inner">
     <div class="hero-eyebrow">SPSD Board of Education</div>
-    <h1>Meeting Summaries</h1>
+    <h1>South Portland School Board Meetings</h1>
     <div class="disclosure-notice">
-      <strong>Community Resource:</strong> This is a community-built resource and not an official SPSD website.<br>
-      <strong>AI Disclosure:</strong> Summaries are AI-generated and may contain errors; please defer to official materials and videos as the source of truth.
+      A community resource making public school board meetings more accessible — in the hope of supporting broad, informed stakeholder engagement.
     </div>
   </div>
 </div>
 
-<div class="filter-bar">
-  <span class="filter-label">School Year</span>
-  <div class="filter-content">
-    <div class="topics-container expanded">
-      <button class="filter-btn year-btn active" onclick="filterYear('all',this)">All Years</button>
-      {% for sy in years %}
-      <button class="filter-btn year-btn" onclick="filterYear('{{ sy }}',this)">{{ sy }}</button>
-      {% endfor %}
-    </div>
+<main class="main">
+
+  <div class="content-block">
+    <div class="section-head">What's Here</div>
+    <p>This site publishes AI-generated summaries, key votes, transcript highlights, and linked official materials for South Portland School Department board meetings. Browse the full archive or search by topic.</p>
+    <p style="margin-top:1rem;">
+      <a href="{{ '/meetings/' | url }}" class="tl-time-btn" style="display:inline-flex; align-items:center; gap:.4rem; text-decoration:none;">Meeting Summaries</a>
+      &nbsp;&nbsp;
+      <a href="{{ '/topics/' | url }}" class="tl-time-btn" style="display:inline-flex; align-items:center; gap:.4rem; text-decoration:none;">Topics Index</a>
+    </p>
   </div>
-</div>
 
-<div class="filter-bar topics-bar">
-  <span class="filter-label">Topics</span>
-  <div class="filter-content">
-    <div class="topics-container" id="topicFilterContainer">
-      <button class="filter-btn topic-filter-btn active" data-topic="all" onclick="filterTopic('all',this)">All Topics</button>
-      {% for topic in topics %}
-      <button class="filter-btn topic-filter-btn" data-topic="{{ topic }}" onclick="filterTopic('{{ topic }}',this)">{{ topic }}</button>
-      {% endfor %}
-    </div>
-  </div>
-  <button class="expand-toggle" onclick="toggleTopics(this)">
-    <span class="toggle-text">Show more</span>
-  </button>
-</div>
-
-<main class="main" id="meetingList">
-  {# Identify the soonest upcoming stub — meetings is sorted descending, so last match wins #}
-  {% set nextMeeting = null %}
-  {% for m in meetings %}
-    {% if m.stub and m.future %}
-      {% set nextMeeting = m %}
-    {% endif %}
-  {% endfor %}
-
-  {# --- UPCOMING MEETINGS (collapsible, excludes nextMeeting) --- #}
-  {% set hasOtherUpcoming = false %}
-  {% for m in meetings %}
-    {% if m.future and m.stub and (not nextMeeting or m.slug != nextMeeting.slug) %}
-      {% set hasOtherUpcoming = true %}
-    {% endif %}
-  {% endfor %}
-
-  {% if hasOtherUpcoming %}
-  <details class="future-meetings-section">
-    <summary class="future-meetings-summary">
-      <svg class="future-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg>
-      Future Meetings
-    </summary>
-    <ul class="future-meetings-list">
-      {% for m in meetings | sort(false, false, "date") %}
-        {% if m.future and m.stub and (not nextMeeting or m.slug != nextMeeting.slug) %}
-        <li class="future-meeting-row">
-          <a href="{{ ('/meetings/' + m.slug + '/') | url }}">
-            <span class="future-meeting-date">{{ m.display_date }}</span>
-            <span class="future-meeting-title">{{ m.title }}</span>
-          </a>
-        </li>
-        {% endif %}
-      {% endfor %}
+  <div class="content-block">
+    <div class="section-head">Site Structure</div>
+    <ul class="summary-bullets">
+      <li><strong>Meeting Summaries:</strong> The full meeting archive, organized by school year with filters by topic. Each meeting page includes AI-generated highlights, a votes table, timestamped transcript segments, and links to official materials.</li>
+      <li><strong>Topics Index:</strong> Browse 36 recurring topics — from budget and reconfiguration to student policy and board governance — each with an evolving summary and a timeline of relevant meetings.</li>
+      <li><strong>Data Status:</strong> An internal dashboard tracking which meetings have agendas, packets, minutes, video recordings, and processed transcripts.</li>
     </ul>
-  </details>
-  {% endif %}
+  </div>
 
-  {# --- NEXT SCHEDULED MEETING --- #}
-  {% if nextMeeting %}
-  <section class="upcoming-meeting-section">
-    <div class="upcoming-badge">Next Scheduled Meeting</div>
-    <a href="{{ ('/meetings/' + nextMeeting.slug + '/') | url }}" class="upcoming-card">
-      <h2>{{ nextMeeting.title | safe }}</h2>
-      <div class="upcoming-meta">
-        <div class="meta-item">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>
-          {{ nextMeeting.day_of_week }}, {{ nextMeeting.display_date }}
-        </div>
-        <div class="meta-item">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
-          6:00 PM · High School Lecture Hall
-        </div>
-      </div>
-      <div class="upcoming-agenda">
-        {% set agendaDoc = (nextMeeting.docs | where("type", "agenda") | first) or (nextMeeting.docs | where("type", "packet") | first) if nextMeeting.docs else null %}
-        <div class="upcoming-agenda-header">
-          <strong>Agenda Preview</strong>
-          {% if agendaDoc %}<span class="agenda-doc-link" onclick="event.stopPropagation(); window.open('{{ agendaDoc.url }}', '_blank', 'noopener')">View Agenda →</span>{% endif %}
-        </div>
-        {% if nextMeeting.agenda_preview %}{{ nextMeeting.agenda_preview | safe }}{% elif nextMeeting.blurb %}<p>{{ nextMeeting.blurb | safe }}</p>{% else %}<p>Agenda pending.</p>{% endif %}
-      </div>
-    </a>
-  </section>
-  {% endif %}
+  <div class="content-block">
+    <div class="section-head">Data Sources</div>
+    <ul class="summary-bullets">
+      <li><strong>Official board materials</strong> (agendas, packets, minutes) are sourced from the <a href="https://www.spsdme.org/page/school-board" target="_blank" rel="noopener">SPSD Board Page</a> and the district's <a href="https://drive.google.com/drive/folders/0B42s0chw8f_lQmpaNU93ejYyWkU" target="_blank" rel="noopener">Google Drive folder</a>.</li>
+      <li><strong>Video recordings</strong> are published by SPC TV on <a href="https://vimeo.com/spctv" target="_blank" rel="noopener">Vimeo</a>.</li>
+      <li><strong>AI summaries and transcripts</strong> are generated from video auto-captions and may contain errors. Defer to official materials as the source of truth.</li>
+    </ul>
+  </div>
 
-  {% for sy in years %}
-  {# Only render the year section if it contains at least one past meeting #}
-  {% set hasPast = false %}
-  {% for m in meetings | where("school_year", sy) %}
-    {% if not m.future %}{% set hasPast = true %}{% endif %}
-  {% endfor %}
-  {% if hasPast %}
-  <section class="year-section" data-year="{{ sy }}">
-    <div class="year-label">{{ sy }} School Year</div>
-    <div class="meetings-grid">
-      {% for m in meetings | where("school_year", sy) | sort(true, false, "date") %}
-      {% if not m.future %}
-      <a href="{{ ('/meetings/' + m.slug + '/') | url }}" class="meeting-card" data-year="{{ sy }}" data-topics="{{ m.topics | join(',') if m.topics else '' }}">
-        <div class="card-top">
-          <div class="card-date">{{ m.display_date }}</div>
-          <div class="card-badge" data-type="{{ m.type }}">{{ m.type }}</div>
-        </div>
-        <div class="card-body">
-          <div class="card-title">{{ m.title | safe }}</div>
-          {% if m.blurb %}
-          <div class="card-blurb">{{ m.blurb | safe }}</div>
-          {% endif %}
-          {% if m.topics and m.topics.length > 0 %}
-          <div class="card-topics">
-            {% for topic in m.topics %}
-            <span class="topic-chip" data-topic="{{ topic }}">{{ topic }}</span>
-            {% endfor %}
-          </div>
-          {% endif %}
-        </div>
-        <div class="card-footer">
-          <span class="card-icon-link">
-            <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>
-            {{ m.doc_count }} docs
-          </span>
-          {% if m.has_video %}
-          <span class="card-icon-link">
-            <svg class="icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm-1 4l4 2-4 2V6z"/></svg>
-            Video
-          </span>
-          {% endif %}
-          {% if m.has_transcript %}
-          <span class="card-icon-link">
-            <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
-            Transcript
-          </span>
-          {% elif not m.stub %}
-          <span class="card-icon-link">
-            <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
-            Highlights
-          </span>
-          {% else %}
-          <span class="card-icon-link" style="opacity:.35; cursor:default;">
-            <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
-            No transcript
-          </span>
-          {% endif %}
-        </div>
-      </a>
-      {% endif %}
-      {% endfor %}
-    </div>
-  </section>
-  {% endif %}
-  {% endfor %}
 </main>

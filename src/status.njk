@@ -56,18 +56,26 @@ title: "Data Status — School Board Meeting Archive"
           <td>
             {% set found = false %}
             {% for d in m.data.docs %}
-              {% if 'agenda' in d.label | lower %}
+              {% if d.type == 'agenda' or 'agenda' in d.label | lower %}
                 <a href="{{ d.url }}" target="_blank" class="status-link" title="{{ d.label }}">{{ d.label }}</a>
                 {% set found = true %}
               {% endif %}
             {% endfor %}
+            {% if not found %}
+              {% for d in m.data.docs %}
+                {% if (d.type == 'packet' or 'packet' in d.label | lower) and not found %}
+                  <a href="{{ d.url }}" target="_blank" class="status-link" title="{{ d.label }}">{{ d.label }} (Packet)</a>
+                  {% set found = true %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
             {% if not found %}<span class="status-pill none">None</span>{% endif %}
           </td>
-          
+
           <td>
             {% set found = false %}
             {% for d in m.data.docs %}
-              {% if 'packet' in d.label | lower %}
+              {% if d.type == 'packet' or 'packet' in d.label | lower %}
                 <a href="{{ d.url }}" target="_blank" class="status-link" title="{{ d.label }}">{{ d.label }}</a>
                 {% set found = true %}
               {% endif %}
