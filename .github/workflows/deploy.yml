@@ -6,6 +6,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      force:
+        description: 'Bypass TTL cache and re-fetch all sources'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -46,7 +51,7 @@ jobs:
       - name: Run Ingestion Pipeline
         run: |
           # 1. Check Google Drive for new documents and create stubs
-          python scripts/source_data.py --bucket "${{ vars.GCS_BUCKET_URI }}"
+          python scripts/source_data.py --bucket "${{ vars.GCS_BUCKET_URI }}" ${{ github.event.inputs.force == 'true' && '--force' || '' }}
 
           # 2. Process any unprocessed transcripts (Drive VTTs + bucket-stored historical VTTs)
           python scripts/process_transcripts.py --batch --bucket "${{ vars.GCS_BUCKET_URI }}"
