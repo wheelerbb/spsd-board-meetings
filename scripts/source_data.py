@@ -4,7 +4,7 @@ import json
 import yaml
 import re
 import argparse
-from datetime import datetime
+from datetime import datetime, date
 from dotenv import load_dotenv
 
 # Add the scripts directory to the path so we can import our modules
@@ -39,6 +39,19 @@ def merge_documents(existing_docs, new_docs):
 
     return list(merged.values()), added_count
 
+def _active_members(board_members, meeting_date):
+    result = []
+    for m in board_members:
+        for term in m.get("terms", []):
+            start = date.fromisoformat(term["start"]) if term.get("start") else date.min
+            end = date.fromisoformat(term["end"]) if term.get("end") else date.max
+            if start <= meeting_date <= end:
+                role = "Student Rep" if m.get("seat") == "Student Representative" else "Board"
+                result.append({"name": m["name"], "role": role})
+                break
+    return result
+
+
 def reconcile_meetings(all_data, dry_run=False):
     """
     Unified reconciliation and stub generation.
@@ -51,6 +64,10 @@ def reconcile_meetings(all_data, dry_run=False):
     }
     Mutates all_data in place to add '_stub_action' and '_authority' audit fields.
     """
+    board_members_path = os.path.join(BASE_DIR, '..', 'src', '_data', 'board_members.json')
+    with open(board_members_path) as f:
+        board_members = json.load(f)
+
     meeting_dir = 'src/meetings/'
     if not os.path.exists(meeting_dir):
         if not dry_run: os.makedirs(meeting_dir)
@@ -215,16 +232,7 @@ def reconcile_meetings(all_data, dry_run=False):
             "has_vtt_source": bool(transcript_path) or any(d.get('type') == 'vtt' for d in data.get('drive', [])),
             "has_transcript": bool(transcript_path) or any(d.get('type') == 'vtt' for d in data.get('drive', [])),
             "stub": True,
-            "board_attendance": [
-                {"name": "Rosemarie DeAngelis", "role": "Board"},
-                {"name": "Tyler Smith", "role": "Board"},
-                {"name": "Daniel Feller", "role": "Board"},
-                {"name": "Claire Holman", "role": "Board"},
-                {"name": "Eleni Richardson", "role": "Board"},
-                {"name": "George Risch", "role": "Board"},
-                {"name": "Angela Kabisa", "role": "Student Rep"},
-                {"name": "Alex Davison", "role": "Student Rep"}
-            ],
+            "board_attendance": _active_members(board_members, dt.date()),
             "docs": combined_docs
         }
 
@@ -403,8 +411,17 @@ def main():
                 if date_slug not in all_data: all_data[date_slug] = {}
                 all_data[date_slug]['drive'] = data['drive']
 
-    # 4. Fetch Vimeo Videos (local file read, always fast)
+    # 4. Fetch Vimeo Videos
     print("Step 4: Fetching Vimeo mapping...")
+    if args.force or not _cache_fresh(cache_meta, 'vimeo'):
+        try:
+            vimeo.update_master_list()
+            cache_meta['vimeo'] = {'fetched_at': datetime.utcnow().isoformat()}
+            cache_updated = True
+        except Exception as e:
+            print(f"  Warning: Vimeo RSS fetch failed: {e}")
+    else:
+        print("  Using cached Vimeo data.")
     vimeo_mapping = vimeo.get_vimeo_mapping()
     for date_slug, url in vimeo_mapping.items():
         if date_slug < CUTOFF_DATE: continue

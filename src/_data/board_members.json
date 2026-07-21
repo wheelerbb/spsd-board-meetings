@@ -1,0 +1,88 @@
+[
+  {
+    "name": "Rosemarie DeAngelis",
+    "seat": "District 3",
+    "terms": [
+      { "start": "2024-01-01", "end": "2027-12-31" }
+    ],
+    "roles": [
+      { "role": "Board Chair", "start": null, "end": null }
+    ]
+  },
+  {
+    "name": "Tyler Smith",
+    "seat": "District 2",
+    "terms": [
+      { "start": null, "end": "2025-12-31" },
+      { "start": "2025-01-01", "end": "2028-12-31" }
+    ],
+    "roles": [
+      { "role": "Board Vice Chair", "start": null, "end": null }
+    ]
+  },
+  {
+    "name": "Daniel Feller",
+    "seat": "District 1",
+    "terms": [
+      { "start": null, "end": "2025-12-31" },
+      { "start": "2025-01-01", "end": "2028-12-31" }
+    ],
+    "roles": []
+  },
+  {
+    "name": "Claire Holman",
+    "seat": "At-Large",
+    "terms": [
+      { "start": "2023-01-01", "end": "2026-12-31" }
+    ],
+    "roles": []
+  },
+  {
+    "name": "Eleni Richardson",
+    "seat": "At-Large",
+    "terms": [
+      { "start": "2023-01-01", "end": "2026-12-31" }
+    ],
+    "roles": []
+  },
+  {
+    "name": "George Risch",
+    "seat": "District 4",
+    "terms": [
+      { "start": "2024-01-01", "end": "2027-12-31" }
+    ],
+    "roles": []
+  },
+  {
+    "name": "Angela Kabisa",
+    "seat": "Student Representative",
+    "terms": [
+      { "start": "2023-01-01", "end": "2026-12-31" }
+    ],
+    "roles": []
+  },
+  {
+    "name": "Alex Davison",
+    "seat": "Student Representative",
+    "terms": [
+      { "start": "2023-01-01", "end": "2026-12-31" }
+    ],
+    "roles": []
+  },
+  {
+    "name": "Sarah Lian",
+    "seat": "Student Representative",
+    "terms": [
+      { "start": "2026-01-01", "end": null }
+    ],
+    "roles": []
+  },
+  {
+    "name": "Lizette Rios Blas",
+    "seat": "Student Representative",
+    "terms": [
+      { "start": "2026-01-01", "end": null }
+    ],
+    "roles": []
+  }
+]

@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import xml.etree.ElementTree as ET
 import requests
 
 VIMEO_API_BASE = "https://api.vimeo.com"
@@ -42,6 +43,24 @@ def get_vimeo_mapping(file_path='vimeo_master_list.json'):
         return {}
 
 
+def fetch_channel_videos_rss(user_id=SPCTV_USER):
+    """Fetches recent videos from the public Vimeo RSS feed. No auth required.
+    Returns {video_id_str: title} for the most recent ~10 videos.
+    """
+    url = f"https://vimeo.com/{user_id}/videos/rss"
+    resp = requests.get(url, timeout=30)
+    resp.raise_for_status()
+    root = ET.fromstring(resp.content)
+    videos = {}
+    for item in root.findall('.//item'):
+        link = item.findtext('link')
+        title = item.findtext('title')
+        if link and title:
+            video_id = link.rstrip('/').split('/')[-1]
+            videos[video_id] = title
+    return videos
+
+
 def fetch_channel_videos(token, user_id=SPCTV_USER):
     """Fetches all videos from a Vimeo user/channel via the Vimeo API.
 
@@ -73,20 +92,14 @@ def fetch_channel_videos(token, user_id=SPCTV_USER):
 
 
 def update_master_list(file_path='vimeo_master_list.json', user_id=SPCTV_USER):
-    """Fetches videos from the Vimeo channel and merges new entries into the local JSON.
+    """Fetches recent videos from the public Vimeo RSS feed and merges new entries into the local JSON.
 
-    Requires VIMEO_ACCESS_TOKEN in the environment.
     New entries are prepended (newest-first). Existing entries are preserved unchanged
     so manual corrections to titles are not overwritten.
     """
-    token = os.getenv("VIMEO_ACCESS_TOKEN")
-    if not token:
-        print("Error: VIMEO_ACCESS_TOKEN not set.")
-        return
-
-    print(f"Fetching videos from Vimeo user '{user_id}'...")
-    api_videos = fetch_channel_videos(token, user_id)
-    print(f"  Found {len(api_videos)} videos on channel.")
+    print(f"Fetching recent videos from Vimeo RSS for '{user_id}'...")
+    api_videos = fetch_channel_videos_rss(user_id)
+    print(f"  Found {len(api_videos)} recent video(s) in feed.")
 
     existing = {}
     if os.path.exists(file_path):
