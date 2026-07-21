@@ -17,16 +17,28 @@ Technical reference for the three-stage ingestion and synthesis pipeline. All sc
 ## Running the Pipeline
 
 ```bash
-python scripts/source_data.py [--bucket gs://BUCKET]
+python scripts/source_data.py [--bucket gs://BUCKET] [--force] [--dry-run]
 python scripts/process_transcripts.py --batch [--bucket gs://BUCKET]
 python scripts/post_process.py
 ```
 
 `--bucket` on `source_data.py`: downloads the previous `master_material_map.json`, checks GCS for VTTs when marking `has_transcript`, and syncs Drive VTTs up to the bucket. Omit to run without GCS.
 
+`--force` on `source_data.py`: bypasses the 12-hour TTL fetch cache and re-fetches all sources (Apptegy, SPSD site, Google Drive). Use when a new document or event has been added and the cache is still fresh. Without `--force`, each source is skipped if it was fetched within the last 12 hours.
+
+`--dry-run` on `source_data.py`: logs planned stub creates/updates without writing any files.
+
 `--bucket` on `process_transcripts.py`: supplements the Drive VTT mapping with VTTs stored in the bucket.
 
 All scripts require Google ADC. For local dev: `gcloud auth application-default login` or set `GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa-key.json`. In CI, `google-github-actions/auth@v3` sets up ADC automatically via the `GCP_CREDENTIALS` secret.
+
+### Triggering a force run via GitHub Actions
+
+```bash
+gh workflow run deploy.yml -f force=true
+```
+
+A normal dispatch (no flag, or `force=false`) respects the TTL cache as usual.
 
 ---
 
