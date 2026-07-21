@@ -66,6 +66,7 @@ jobs:
           git add src/meetings/ src/_data/ scripts/topic_hashes.json
           # Only commit if there are changes
           git diff --staged --quiet || git commit -m "chore: auto-update meeting stubs and summaries"
+          git pull --rebase origin main
           git push
           
       - name: Install NPM Dependencies
