@@ -29,7 +29,7 @@ nav {
   font-family:'Playfair Display',serif; font-weight:700; color:var(--navy); font-size:.9rem;
 }
 .nav-logo-text { color:#fff; font-family:'Playfair Display',serif; font-size:1rem; font-weight:600; line-height:1.2; }
-.nav-logo-sub { color:var(--gold-light); font-size:.7rem; font-weight:300; letter-spacing:.05em; }
+.nav-logo-sub { color:var(--gold-light); font-size:.8rem; font-weight:300; letter-spacing:.06em; }
 nav a.nav-link { color:rgba(255,255,255,.7); text-decoration:none; font-size:.85rem; letter-spacing:.03em; transition:color .2s; }
 nav a.nav-link:hover { color:var(--gold-light); }
 .nav-links { display:flex; gap:2rem; }
@@ -425,11 +425,6 @@ nav a.nav-link:hover { color:var(--gold-light); }
 }
 .drive-btn:hover { background:#d4eddf; }
 
-/* DISCLOSURE */
-.disclosure-block { grid-column:1 / -1; border-top:2px solid var(--gold); padding-top:2rem; margin-top:1rem; }
-.disclosure-inner { font-size:.9rem; color:var(--text); line-height:1.6; background:#fff; padding:1.5rem; border-radius:6px; border:1px solid var(--gold); }
-.disclosure-heading { font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; margin-bottom:.75rem; color:var(--gold); font-weight:700; }
-
 /* FOOTER */
 footer {
   background:var(--navy); color:rgba(255,255,255,.5);
@@ -440,7 +435,10 @@ footer p { margin-bottom:.5rem; }
 footer p:last-child { margin-bottom:0; }
 footer a { color:var(--gold-light); text-decoration:none; }
 .footer-label { font-size:.85rem; color:var(--gold-light); }
-.footer-small { font-size:.7rem; opacity:.5; margin-top:.75rem; }
+.footer-disclosure { display:inline-block; margin:0 auto 1rem; color:rgba(255,255,255,.7); line-height:1.8; border:1px solid var(--gold); border-radius:4px; padding:.75rem 1rem; }
+.footer-disclosure-heading { font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; color:var(--gold-light); font-weight:700; margin-bottom:.5rem; }
+.footer-disclosure strong { color:rgba(255,255,255,.9); }
+.footer-small { color:rgba(255,255,255,.7); margin-top:.75rem; }
 .footer-small a { color:inherit; }
 
 /* UPCOMING MEETINGS COLLAPSIBLE */
@@ -522,7 +520,6 @@ footer a { color:var(--gold-light); text-decoration:none; }
   .page-body { padding:1.25rem; gap:1.25rem; display:flex; flex-direction:column; }
   .main-column { order:1; }
   .sidebar { order:2; }
-  .disclosure-block { order:3; }
 
   .section-head { font-size:1.05rem; }
   .summary-intro { padding:1rem 1.1rem; }

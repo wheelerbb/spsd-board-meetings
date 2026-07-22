@@ -15,20 +15,24 @@
     <div class="nav-logo-mark">SP</div>
     <div>
       <div class="nav-logo-text">South Portland Schools</div>
-      <div class="nav-logo-sub">School Board Meetings</div>
+      <div class="nav-logo-sub">BoE Proceedings Digest</div>
     </div>
   </a>
   <div class="nav-links">
-    <a href="{{ '/meetings/' | url }}" class="nav-link">Meeting Summaries</a>
-    <a href="{{ '/topics/' | url }}" class="nav-link" style="color:var(--gold); font-weight:700;">Topics Index</a>
+    <a href="{{ '/meetings/' | url }}" class="nav-link">Meetings</a>
+    <a href="{{ '/topics/' | url }}" class="nav-link" style="color:var(--gold); font-weight:700;">Topics</a>
   </div>
 </nav>
 
 {{ content | safe }}
 
 <footer>
-  <p><strong>Community Resource:</strong> This is a community-built resource and not an official SPSD website.</p>
-  <p><strong>AI Disclosure:</strong> Summaries are AI-generated and may contain errors; defer to official materials as the source of truth.</p>
+  <div class="footer-disclosure">
+    <div class="footer-disclosure-heading">Community Resource &amp; AI Disclosures</div>
+    This is a community-built resource and not an official South Portland School Department (SPSD) website.<br>
+    Meeting summaries and highlights are AI-generated and may contain errors.<br>
+    <strong>For the official record, please defer to the video recordings and official meeting materials.</strong>
+  </div>
   <p class="footer-small">Contact: <a href="mailto:sopoforward@gmail.com">sopoforward@gmail.com</a> · <a href="{{ '/status/' | url }}">Data Status Dashboard</a></p>
 </footer>
 

@@ -4,3 +4,6 @@ static/
 .env
 master_material_map.json
 apptegy_events_raw.json
+.venv/
+__pycache__/
+*.py[cod]
