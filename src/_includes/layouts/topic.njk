@@ -89,7 +89,7 @@ layout: layouts/base.njk
         {% set relevant_bullets = [] %}
         {% if m.data.summary %}
           {% for s in m.data.summary %}
-            {% if topic | lower in s.topic | lower or topic | lower in s.text | lower %}
+            {% if topic | lower in s.topic | lower or s.topic | lower in topic | lower or topic | lower in s.text | lower %}
               {% set _ = relevant_bullets.push(s) %}
             {% endif %}
           {% endfor %}

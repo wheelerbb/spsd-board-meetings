@@ -361,7 +361,7 @@ def post_process():
                 m_date = m.get('display_date', m.get('slug', ''))
                 m_url = f"/meetings/{m['slug']}/"
                 summary_bullets = m.get('summary', [])
-                topic_bullets = [b['text'] for b in summary_bullets if topic.lower() in b['topic'].lower() or topic.lower() in b['text'].lower()]
+                topic_bullets = [b['text'] for b in summary_bullets if topic.lower() in b['topic'].lower() or b['topic'].lower() in topic.lower() or topic.lower() in b['text'].lower()]
                 if topic_bullets:
                     evidence_list.append(f"Meeting: {m_date} ({m_url})\n" + "\n".join([f"- {b}" for b in topic_bullets]))
         
