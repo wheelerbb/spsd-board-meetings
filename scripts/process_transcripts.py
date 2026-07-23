@@ -37,6 +37,7 @@ GLOSSARY = """
 - Skillin Elementary School (NOT Skillen)
 - SPESPA (Support Professionals)
 - SPTA (Teachers)
+- Angela Atkinson Duina (Superintendent; NOT Atkinson-Dena or Atkinson Dena)
 """
 
 # --- SCHEMA ---
@@ -68,6 +69,27 @@ class MeetingReport(BaseModel):
     summary: list[SummaryItem]
     timeline: list[TimelineItem]
     board_attendance: list[AttendanceMember]
+
+def _load_official_terms_from_gcs(slug, bucket_uri):
+    """Load cached proper nouns extracted from official docs for a given meeting slug."""
+    if not bucket_uri:
+        return []
+    try:
+        from google.cloud import storage
+        bucket_name = bucket_uri[5:]  # strip gs://
+        blobs = [b for b in storage.Client().bucket(bucket_name).list_blobs(prefix=f"official_docs/{slug}/")
+                 if b.name.endswith('.json')]
+        all_terms = []
+        for blob in blobs:
+            try:
+                all_terms.extend(json.loads(blob.download_as_text()))
+            except Exception:
+                pass
+        return all_terms
+    except Exception as e:
+        print(f"    Warning: could not load official terms for {slug}: {e}")
+        return []
+
 
 # --- VTT SOURCES ---
 
@@ -117,7 +139,7 @@ def fetch_vtt_content(path):
 
 # --- PROCESSING ---
 
-def process_single_meeting(date_slug, vtt_path):
+def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
     njk_path = f"src/meetings/{date_slug}.njk"
     if not os.path.exists(njk_path): return None
 
@@ -128,12 +150,21 @@ def process_single_meeting(date_slug, vtt_path):
     print(f"Analyzing: {date_slug} (source: {vtt_path[:40]}...)...")
     transcript = fetch_vtt_content(vtt_path)
 
+    glossary_text = GLOSSARY
+    official_terms = _load_official_terms_from_gcs(date_slug, bucket_uri)
+    if official_terms:
+        term_hints = '\n'.join(
+            f"- {n['term']} ({n.get('type', '')}" + (f", {n['context']}" if n.get('context') else "") + ") — use this exact spelling"
+            for n in official_terms if n.get('term')
+        )
+        glossary_text = GLOSSARY + "\nCanonical proper nouns from official documents (use these exact spellings):\n" + term_hints
+
     prompt = f"""
     Analyze the school board meeting transcript for {date_slug}.
     Extract: blurb, formal votes, high-level summary bullets, timestamped timeline, and topic tags.
 
     IMPORTANT: Identify perspectives from: Board, Administration, Teachers, Citizens.
-    Glossary: {GLOSSARY}
+    Glossary: {glossary_text}
 
     Guidelines:
     - Blurb: 1-2 sentence hook for the landing page.
@@ -248,7 +279,7 @@ def main():
         return
     print(f"Targeting {len(to_process)} meetings...", flush=True)
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {executor.submit(process_single_meeting, slug, path): slug for slug, path in to_process.items()}
+        futures = {executor.submit(process_single_meeting, slug, path, bucket): slug for slug, path in to_process.items()}
         rate_limited = []
         for future in as_completed(futures):
             res = future.result()

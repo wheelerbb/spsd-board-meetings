@@ -23,7 +23,9 @@ GLOSSARY = {
     "Caler": "Kaler",
     "Skillen": "Skillin",
     "Skillens": "Skillins",
-    "Caler's": "Kaler's"
+    "Caler's": "Kaler's",
+    "Atkinson-Dena": "Atkinson Duina",
+    "Atkinson Dena": "Atkinson Duina",
 }
 
 TOPIC_BLACKLIST = ["Personnel", "Contracts", "Finance", "Budget"]
@@ -59,6 +61,87 @@ def _read_doc_text_from_drive(url, max_chars=8000):
     except Exception as e:
         print(f"    Warning: could not read Drive doc: {e}")
         return None
+
+
+def _extract_official_terms(meeting_data, bucket_uri):
+    """Extract canonical proper nouns from agenda/packet/minutes docs; raw text and terms cached in GCS."""
+    from sourcing import drive as drive_mod
+    from google.cloud import storage
+
+    docs = meeting_data.get('docs') or []
+    qualifying = [d for d in docs if d.get('type') in ('agenda', 'packet', 'minutes', 'min')]
+    if not qualifying:
+        return []
+
+    slug = meeting_data['slug']
+    bucket_name = bucket_uri[5:]  # strip gs://
+    gcs_client = storage.Client()
+    gcs_bucket = gcs_client.bucket(bucket_name)
+    svc = drive_mod.get_drive_service()
+
+    all_terms = []
+    for doc in qualifying:
+        url = doc.get('url', '')
+        fid_match = re.search(r'/file/d/([^/?]+)', url)
+        if not fid_match:
+            continue
+        file_id = fid_match.group(1)
+        doc_type = 'minutes' if doc.get('type') == 'min' else doc.get('type', 'doc')
+
+        try:
+            meta = svc.files().get(fileId=file_id, fields='modifiedTime').execute()
+            mod_time = meta.get('modifiedTime', 'unknown').replace(':', '-')
+        except Exception as e:
+            print(f"    Warning: could not get Drive metadata for {file_id}: {e}")
+            continue
+
+        folder = f"official_docs/{slug}/{doc_type}-{file_id}"
+        json_blob = gcs_bucket.blob(f"{folder}/{mod_time}.json")
+
+        if json_blob.exists():
+            try:
+                cached = json.loads(json_blob.download_as_text())
+                all_terms.extend(cached)
+                print(f"    Loaded {len(cached)} terms for {slug}/{doc_type} from cache.")
+            except Exception:
+                pass
+            continue
+
+        text = _read_doc_text_from_drive(url)
+        if not text:
+            continue
+
+        # Store raw text for audit/reprocessing
+        gcs_bucket.blob(f"{folder}/{mod_time}.txt").upload_from_string(text, content_type='text/plain')
+
+        prompt = (
+            "Extract all proper nouns from this school board meeting document. Include:\n"
+            "- People with official roles (board members, administrators, staff)\n"
+            "- Named places (schools, buildings, streets, districts)\n"
+            "- Organizations and associations (unions, parent groups, state agencies)\n"
+            "- Named programs, policies, or initiatives\n\n"
+            "Return ONLY a JSON array: "
+            "[{\"term\": \"...\", \"type\": \"person|place|organization|program\", "
+            "\"context\": \"short description or role\"}]\n"
+            "Use the exact spelling from the document. Return [] if nothing qualifies.\n\n"
+            f"Document type: {doc_type}\n"
+            f"Document text:\n{text}"
+        )
+        try:
+            response = client.models.generate_content(
+                model=model_name, contents=prompt, config={'temperature': 0.0}
+            )
+            raw = response.text.strip()
+            raw = re.sub(r'^```(?:json)?\s*', '', raw)
+            raw = re.sub(r'\s*```$', '', raw)
+            terms = json.loads(raw)
+            json_blob.upload_from_string(json.dumps(terms), content_type='application/json')
+            print(f"    Extracted and cached {len(terms)} terms for {slug}/{doc_type}.")
+            all_terms.extend(terms)
+        except Exception as e:
+            print(f"    Warning: could not extract terms for {slug}/{doc_type}: {e}")
+
+    return all_terms
 
 
 def generate_agenda_preview(meeting_data, meeting_dir):
@@ -179,6 +262,13 @@ def post_process():
     summary_lib_path = 'src/_data/topic_summaries.json'
     hashes_lib_path = 'scripts/topic_hashes.json'
 
+    bucket_uri = None
+    if '--bucket' in sys.argv:
+        idx = sys.argv.index('--bucket')
+        if idx + 1 < len(sys.argv):
+            bucket_uri = sys.argv[idx + 1]
+    bucket_uri = bucket_uri or os.getenv('GCS_BUCKET_URI') or None
+
     # 1. Enforce Glossary & Extract Data
     print("Enforcing Glossary and scanning meetings...")
     all_discovered_topics = set()
@@ -203,6 +293,14 @@ def post_process():
                 meetings_data.append(data)
                 if 'topics' in data: all_discovered_topics.update(data['topics'])
             except: pass
+
+    # 1.5. Extract canonical names from official docs (agenda/packet/minutes) → cache in GCS
+    if bucket_uri:
+        print("Extracting canonical names from official meeting documents...")
+        for m in meetings_data:
+            docs = m.get('docs') or []
+            if any(d.get('type') in ('agenda', 'packet', 'minutes', 'min') for d in docs):
+                _extract_official_terms(m, bucket_uri)
 
     # 2. Topics Lib (Sorted by recency)
     print("Updating topics library...")

@@ -57,7 +57,7 @@ jobs:
           python scripts/process_transcripts.py --batch --bucket "${{ vars.GCS_BUCKET_URI }}"
 
           # 3. Post-process to update library, generate blurbs, and synthesize summaries
-          python scripts/post_process.py
+          python scripts/post_process.py --bucket "${{ vars.GCS_BUCKET_URI }}"
           
       - name: Commit Automated Changes
         run: |
