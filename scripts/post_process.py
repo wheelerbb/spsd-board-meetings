@@ -10,6 +10,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import socket
+socket.setdefaulttimeout(120)
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 from sourcing.auth import get_credentials
@@ -75,7 +78,7 @@ def _extract_official_terms(meeting_data, bucket_uri):
 
     slug = meeting_data['slug']
     bucket_name = bucket_uri[5:]  # strip gs://
-    gcs_client = storage.Client()
+    gcs_client = storage.Client(credentials=credentials, project=project_id)
     gcs_bucket = gcs_client.bucket(bucket_name)
     svc = drive_mod.get_drive_service()
 
@@ -98,11 +101,11 @@ def _extract_official_terms(meeting_data, bucket_uri):
         folder = f"official_docs/{slug}/{doc_type}-{file_id}"
         json_blob = gcs_bucket.blob(f"{folder}/{mod_time}.json")
 
-        if json_blob.exists():
+        if json_blob.exists(timeout=60):
             try:
-                cached = json.loads(json_blob.download_as_text())
+                cached = json.loads(json_blob.download_as_text(timeout=60))
                 all_terms.extend(cached)
-                print(f"    Loaded {len(cached)} terms for {slug}/{doc_type} from cache.")
+                print(f"    Loaded {len(cached)} terms for {slug}/{doc_type} from cache.", flush=True)
             except Exception:
                 pass
             continue
@@ -112,7 +115,7 @@ def _extract_official_terms(meeting_data, bucket_uri):
             continue
 
         # Store raw text for audit/reprocessing
-        gcs_bucket.blob(f"{folder}/{mod_time}.txt").upload_from_string(text, content_type='text/plain')
+        gcs_bucket.blob(f"{folder}/{mod_time}.txt").upload_from_string(text, content_type='text/plain', timeout=60)
 
         prompt = (
             "Extract all proper nouns from this school board meeting document. Include:\n"
@@ -135,11 +138,11 @@ def _extract_official_terms(meeting_data, bucket_uri):
             raw = re.sub(r'^```(?:json)?\s*', '', raw)
             raw = re.sub(r'\s*```$', '', raw)
             terms = json.loads(raw)
-            json_blob.upload_from_string(json.dumps(terms), content_type='application/json')
-            print(f"    Extracted and cached {len(terms)} terms for {slug}/{doc_type}.")
+            json_blob.upload_from_string(json.dumps(terms), content_type='application/json', timeout=60)
+            print(f"    Extracted and cached {len(terms)} terms for {slug}/{doc_type}.", flush=True)
             all_terms.extend(terms)
         except Exception as e:
-            print(f"    Warning: could not extract terms for {slug}/{doc_type}: {e}")
+            print(f"    Warning: could not extract terms for {slug}/{doc_type}: {e}", flush=True)
 
     return all_terms
 
@@ -270,7 +273,7 @@ def post_process():
     bucket_uri = bucket_uri or os.getenv('GCS_BUCKET_URI') or None
 
     # 1. Enforce Glossary & Extract Data
-    print("Enforcing Glossary and scanning meetings...")
+    print("Enforcing Glossary and scanning meetings...", flush=True)
     all_discovered_topics = set()
     meetings_data = []
 
@@ -296,11 +299,14 @@ def post_process():
 
     # 1.5. Extract canonical names from official docs (agenda/packet/minutes) → cache in GCS
     if bucket_uri:
-        print("Extracting canonical names from official meeting documents...")
+        print("Extracting canonical names from official meeting documents...", flush=True)
         for m in meetings_data:
             docs = m.get('docs') or []
             if any(d.get('type') in ('agenda', 'packet', 'minutes', 'min') for d in docs):
-                _extract_official_terms(m, bucket_uri)
+                try:
+                    _extract_official_terms(m, bucket_uri)
+                except Exception as e:
+                    print(f"  Warning: term extraction failed for {m.get('slug')}: {e}", flush=True)
 
     # 2. Topics Lib (Sorted by recency)
     print("Updating topics library...")

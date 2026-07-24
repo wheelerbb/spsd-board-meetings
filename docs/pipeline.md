@@ -84,7 +84,7 @@ All per-meeting AI outputs are written to the `.njk` front matter. Cross-meeting
 | Field | Type | Description |
 |-------|------|-------------|
 | `blurb` | `string` | 1-2 sentence hook for the landing page |
-| `topics` | `string[]` | 3-5 specific, time-bound topic tags |
+| `topics` | `string[]` | 3-5 specific, time-bound topic tags — see [topic-taxonomy.md](topic-taxonomy.md) for criteria |
 | `votes` | `{motion, result, count, moved_2nd}[]` | All formal board votes |
 | `summary` | `{topic, text}[]` | 5-8 bullets tracing the arc of the meeting; each includes a perspective attribution (Board / Administration / Teachers / Citizens) |
 | `timeline` | `{time, seconds, topic, desc}[]` | 10-15 timestamped moments for Vimeo deep-linking |
@@ -97,8 +97,8 @@ These are set when a meeting moves from `stub: true` → `stub: false`. `process
 
 | File | Description |
 |------|-------------|
-| `src/_data/topics.json` | Sorted list of all active topics (newest activity first); excludes `TOPIC_BLACKLIST` terms |
-| `src/_data/topic_summaries.json` | Per-topic 2-3 paragraph "Current Status & Evolution" narrative synthesized from all meeting evidence, newest-first |
+| `src/_data/topics.json` | Sorted list of all active topics (newest activity first); excludes `TOPIC_BLACKLIST` terms — see [topic-taxonomy.md](topic-taxonomy.md) |
+| `src/_data/topic_summaries.json` | Per-topic narrative synthesized from all meeting evidence — prompt template in [prompts.md](prompts.md#2-topic-synthesis-post_processpy) |
 | `scripts/topic_hashes.json` | MD5 hash of the evidence fed to the LLM per topic; used to skip redundant API calls when evidence hasn't changed |
 
 `topic_hashes.json` is pipeline state, not Eleventy data — it lives in `scripts/` and is committed to git so the cache persists across CI runs.

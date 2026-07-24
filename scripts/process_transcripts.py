@@ -77,7 +77,7 @@ def _load_official_terms_from_gcs(slug, bucket_uri):
     try:
         from google.cloud import storage
         bucket_name = bucket_uri[5:]  # strip gs://
-        blobs = [b for b in storage.Client().bucket(bucket_name).list_blobs(prefix=f"official_docs/{slug}/")
+        blobs = [b for b in storage.Client(credentials=credentials, project=project_id).bucket(bucket_name).list_blobs(prefix=f"official_docs/{slug}/")
                  if b.name.endswith('.json')]
         all_terms = []
         for blob in blobs:
