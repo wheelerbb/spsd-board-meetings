@@ -368,8 +368,10 @@ def post_process():
                 m_url = f"/meetings/{m['slug']}/"
                 summary_bullets = m.get('summary', [])
                 topic_bullets = [b['text'] for b in summary_bullets if topic.lower() in b['topic'].lower() or b['topic'].lower() in topic.lower() or topic.lower() in b['text'].lower()]
-                if topic_bullets:
-                    evidence_list.append(f"Meeting: {m_date} ({m_url})\n" + "\n".join([f"- {b}" for b in topic_bullets]))
+                # Fall back to all bullets when none match by name — meeting is still tagged with this topic
+                bullets = topic_bullets or [b['text'] for b in summary_bullets]
+                if bullets:
+                    evidence_list.append(f"Meeting: {m_date} ({m_url})\n" + "\n".join([f"- {b}" for b in bullets]))
         
         if not evidence_list: continue
         
