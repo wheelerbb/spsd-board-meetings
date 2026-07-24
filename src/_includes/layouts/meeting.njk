@@ -102,7 +102,7 @@ layout: layouts/base.njk
     {# 3. TIMELINE #}
     {% if timeline and timeline.length %}
     <div class="content-block">
-      <div class="section-head">Transcript Highlights with Timestamps</div>
+      <div class="section-head">Detailed Proceedings</div>
       <p class="tl-caption">Note: Transcripts are generated from video auto-captions. While highly accurate, they are non-official and do not meet State Archivist record-keeping requirements.</p>
       <ul class="timeline">
         {% for item in timeline %}
@@ -120,6 +120,24 @@ layout: layouts/base.njk
           <div class="tl-body">
             <div class="tl-topic">{{ item.topic }}</div>
             <div class="tl-desc">{{ item.desc }}</div>
+            {% if item.children and item.children.length %}
+            <ul class="tl-children">
+              {% for child in item.children %}
+              <li class="tl-child">
+                <div class="tl-child-meta">
+                  {% if has_video %}
+                  <a href="{{ video_url }}#t={{ child.seconds }}s" target="_blank" class="tl-time-btn tl-time-btn--sm">
+                    <svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6V2z"/></svg>
+                    {{ child.seconds | secondsToTime }}
+                  </a>
+                  {% endif %}
+                  <span class="tl-child-speaker">{{ child.speaker }}</span>
+                </div>
+                <div class="tl-child-text">{{ child.text }}</div>
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
           </div>
         </li>
         {% endfor %}

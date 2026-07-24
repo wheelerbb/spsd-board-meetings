@@ -330,6 +330,12 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .tl-topic { font-weight:500; font-size:.9rem; margin-bottom:.3rem; color:var(--navy); }
 .tl-desc { font-size:.8rem; color:var(--muted); line-height:1.55; }
 .tl-caption { font-size:.82rem; color:var(--muted); line-height:1.6; margin-bottom:1.5rem; font-style:italic; }
+.tl-children { list-style:none; margin:.75rem 0 0; border-top:1px solid var(--rule); padding-top:.65rem; display:flex; flex-direction:column; gap:.6rem; }
+.tl-child { display:flex; flex-direction:column; gap:.25rem; }
+.tl-child-meta { display:flex; align-items:center; gap:.5rem; }
+.tl-time-btn--sm { font-size:.6rem; padding:.25rem .4rem; width:auto; flex-shrink:0; }
+.tl-child-speaker { font-weight:600; font-size:.8rem; color:var(--navy); }
+.tl-child-text { font-size:.78rem; color:var(--muted); line-height:1.5; }
 
 /* VOTE TABLE */
 .vote-table { width:100%; border-collapse:collapse; font-size:.85rem; table-layout:auto; }

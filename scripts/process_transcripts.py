@@ -38,6 +38,16 @@ GLOSSARY = """
 - SPESPA (Support Professionals)
 - SPTA (Teachers)
 - Angela Atkinson Duina (Superintendent; NOT Atkinson-Dena or Atkinson Dena)
+Board members (use full names in attendance roll call):
+- Rosemarie DeAngelis (Board Chair)
+- Tyler Smith (Board Vice Chair)
+- Daniel Feller
+- Claire Holman
+- Eleni Richardson
+- George Risch
+Student Representatives (use full names in attendance):
+- Sarah Lian
+- Lizette Rios Blas
 """
 
 # --- SCHEMA ---
@@ -51,11 +61,17 @@ class SummaryItem(BaseModel):
     topic: str
     text: str
 
+class TimelineChild(BaseModel):
+    seconds: int
+    speaker: str
+    text: str
+
 class TimelineItem(BaseModel):
     time: str
     seconds: int
     topic: str
     desc: str
+    children: list[TimelineChild] = []
 
 class AttendanceMember(BaseModel):
     name: str
@@ -169,10 +185,25 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
     Guidelines:
     - Blurb: 1-2 sentence hook for the landing page.
     - Tags: Identify 3-5 specific, time-bound or scoped topic tags (e.g., '2026 Equity Policy Update' instead of 'Equity', 'FY26 Transportation Challenges' instead of 'Transportation'). Avoid broad, generic nouns unless referring to a standing systemic issue (like 'Reconfiguration'). Use {allowed_tags} to reuse existing specific tags where appropriate.
-    - Votes: Exact motion, result, count, and movers.
-    - Summary: 5-8 bullets showing the arc of conversation.
-    - Timeline: 10-15 key moments with timestamps (H:MM:SS) and total seconds.
-    - Board Attendance: Extract the roll call. For each person called, record name, status (Present or Absent), and role (Board or Student Rep).
+    - Votes: Exact motion, result (use "Passed" or "Failed" — a unanimous vote is "Passed"), count, and movers.
+    - Summary: 5-8 bullets capturing the high-level arc of the meeting. Topics should be
+      issue-level (e.g. "FY2026 Budget Update", "Cell Phone Policy") not speaker-level.
+      Do not create separate bullets per speaker; perspectives can be noted briefly within
+      a bullet's text if important.
+    - Timeline: 20-30 entries covering the full meeting arc with timestamps (H:MM:SS) and
+      total seconds. Use children[] for grouped speaker sections:
+      - Public comment periods: one parent entry (topic: "Public Comment", seconds at period start,
+        desc summarizing the period) with one child per NAMED commenter (seconds at their start,
+        speaker full name, text 2-3 sentences). Unnamed speakers described in parent desc only.
+      - Board discussion sections where multiple members speak: one parent entry
+        (topic: "Board Discussion on [Subject]") with one child per member who speaks substantively.
+      - All other entries: flat (empty children).
+      Topic format: "Description (Speaker)" for flat entries — no possessive constructions
+      (use "Reconfiguration Priorities (Daniel Feller)" not "Feller's Reconfiguration Priorities").
+      Each desc/text should be 2-3 sentences of substance.
+    - Board Attendance: Extract the roll call. For each person called, record name, status
+      (Present or Absent), and role — use exactly "Board" for board members and "Student Rep"
+      for student representatives.
 
     Transcript:
     {transcript}

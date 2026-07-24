@@ -83,13 +83,13 @@ layout: layouts/base.njk
   <div class="evolution-timeline">
     <h3 class="evolution-section-title">Meeting History</h3>
 
-    {% for m in collections.all | sort(true, false, "data.date") %}
+    {% for m in collections.all | sort(true, false, "date") %}
       {% if m.data.topics and topic in m.data.topics %}
 
         {% set relevant_bullets = [] %}
         {% if m.data.summary %}
           {% for s in m.data.summary %}
-            {% if topic | lower in s.topic | lower or s.topic | lower in topic | lower or topic | lower in s.text | lower %}
+            {% if topic | lower in s.topic | lower or s.topic | lower in topic | lower %}
               {% set _ = relevant_bullets.push(s) %}
             {% endif %}
           {% endfor %}

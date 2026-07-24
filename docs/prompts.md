@@ -32,11 +32,25 @@ Guidelines:
   instead of 'Equity', 'FY26 Transportation Challenges' instead of 'Transportation'). Avoid broad,
   generic nouns unless referring to a standing systemic issue (like 'Reconfiguration'). Use
   {allowed_tags} to reuse existing specific tags where appropriate.
-- Votes: Exact motion, result, count, and movers.
-- Summary: 5-8 bullets showing the arc of conversation.
-- Timeline: 10-15 key moments with timestamps (H:MM:SS) and total seconds.
+- Votes: Exact motion, result (use "Passed" or "Failed" — a unanimous vote is "Passed"), count, and movers.
+- Summary: 5-8 bullets capturing the high-level arc of the meeting. Topics should be
+  issue-level (e.g. "FY2026 Budget Update", "Cell Phone Policy") not speaker-level.
+  Do not create separate bullets per speaker; perspectives can be noted briefly within
+  a bullet's text if important.
+- Timeline: 20-30 entries covering the full meeting arc with timestamps (H:MM:SS) and
+  total seconds. Use children[] for grouped speaker sections:
+  - Public comment periods: one parent entry (topic: "Public Comment", seconds at period start,
+    desc summarizing the period) with one child per NAMED commenter (seconds at their start,
+    speaker full name, text 2-3 sentences). Unnamed speakers described in parent desc only.
+  - Board discussion sections where multiple members speak: one parent entry
+    (topic: "Board Discussion on [Subject]") with one child per member who speaks substantively.
+  - All other entries: flat (empty children).
+  Topic format: "Description (Speaker)" for flat entries — no possessive constructions
+  (use "Reconfiguration Priorities (Daniel Feller)" not "Feller's Reconfiguration Priorities").
+  Each desc/text should be 2-3 sentences of substance.
 - Board Attendance: Extract the roll call. For each person called, record name, status
-  (Present or Absent), and role (Board or Student Rep).
+  (Present or Absent), and role — use exactly "Board" for board members and "Student Rep"
+  for student representatives.
 
 Transcript:
 {transcript}
