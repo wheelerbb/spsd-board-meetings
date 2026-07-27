@@ -3,7 +3,10 @@ import json
 import re
 import sys
 import time
+import socket
 import yaml
+
+socket.setdefaulttimeout(300)  # 5-min cap on all HTTP connections; prevents Gemini hangs
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from google import genai
 from pydantic import BaseModel, Field
@@ -28,9 +31,10 @@ client = genai.Client(credentials=credentials, project=project_id, location='us-
 
 DEFAULT_MODEL = 'gemini-2.5-pro'
 FLASH_MODEL = 'gemini-2.5-flash'
-MAX_WORKERS = 4
+MAX_WORKERS = 2
 
 CUTOFF_DATE = "2023-08-01"
+SCRIPT_VERSION = '2026-07-24'
 
 GLOSSARY = """
 - Kaler Elementary School (NOT Caler)
@@ -252,6 +256,7 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
         data['stub'] = False
         data['has_transcript'] = True
         data['processed_date'] = date.today().isoformat()
+        data['pipeline_version'] = SCRIPT_VERSION
         data['blurb'] = report_data.pop('blurb', '')
         data['topics'] = report_data.pop('tags', [])
         extracted_attendance = report_data.pop('board_attendance', [])
@@ -292,6 +297,7 @@ def main():
     to_process = {}
 
     if "--batch" in args:
+        force = "--force" in args
         meeting_dir = 'src/meetings/'
         for filename in os.listdir(meeting_dir):
             if not filename.endswith('.njk'): continue
@@ -299,8 +305,13 @@ def main():
             if slug not in mapping: continue
             with open(os.path.join(meeting_dir, filename), 'r') as f:
                 content = f.read()
-            if 'stub: true' in content:
+            if force:
+                if f"pipeline_version: '{SCRIPT_VERSION}'" in content:
+                    continue  # already processed at this version
                 to_process[slug] = mapping[slug]
+            else:
+                if 'stub: true' in content:
+                    to_process[slug] = mapping[slug]
     else:
         for arg in args:
             if arg in mapping: to_process[arg] = mapping[arg]
@@ -313,7 +324,11 @@ def main():
         futures = {executor.submit(process_single_meeting, slug, path, bucket): slug for slug, path in to_process.items()}
         rate_limited = []
         for future in as_completed(futures):
-            res = future.result()
+            slug = futures[future]
+            try:
+                res = future.result()
+            except Exception as e:
+                res = {"slug": slug, "status": f"Error: {e}"}
             if res:
                 print(f"Finished {res['slug']}: {res['status']}", flush=True)
                 if res['status'] == 'RateLimit':
