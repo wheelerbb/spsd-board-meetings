@@ -3,12 +3,13 @@ import json
 import re
 import sys
 import time
-import socket
 import yaml
-
-socket.setdefaulttimeout(300)  # 5-min cap on all HTTP connections; prevents Gemini hangs
+import queue as _stdlib_queue
+from datetime import datetime as _dt
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from multiprocessing import Process, Queue as MpQueue
 from google import genai
+from google.genai import types as genai_types
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from datetime import date
@@ -27,14 +28,17 @@ _vimeo_map = {}
 
 # --- CONFIGURATION ---
 credentials, project_id = get_credentials()
-client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
+client = genai.Client(
+    credentials=credentials, project=project_id, location='us-central1', vertexai=True,
+    http_options=genai_types.HttpOptions(client_args={'timeout': 120.0}),  # 2-min read timeout
+)
 
 DEFAULT_MODEL = 'gemini-2.5-pro'
 FLASH_MODEL = 'gemini-2.5-flash'
 MAX_WORKERS = 2
 
 CUTOFF_DATE = "2023-08-01"
-SCRIPT_VERSION = '2026-07-24'
+SCRIPT_VERSION = '2026-07-28'
 
 GLOSSARY = """
 - Kaler Elementary School (NOT Caler)
@@ -84,11 +88,31 @@ class AttendanceMember(BaseModel):
 
 class MeetingReport(BaseModel):
     blurb: str = Field(description="An extremely concise (1-2 sentence) summary.")
-    tags: list[str] = Field(description="3-5 high-level topic tags.")
     votes: list[Vote]
     summary: list[SummaryItem]
     timeline: list[TimelineItem]
     board_attendance: list[AttendanceMember]
+
+GEMINI_TIMEOUT = 300  # seconds; enforced via subprocess SIGTERM
+
+def _call_gemini_subprocess(model_name, prompt_text, result_queue):
+    """Runs the Gemini call in a separate process so SIGTERM can hard-kill it on timeout."""
+    local_credentials, local_project_id = get_credentials()
+    local_client = genai.Client(
+        credentials=local_credentials, project=local_project_id,
+        location='us-central1', vertexai=True,
+        http_options=genai_types.HttpOptions(client_args={'timeout': 120.0}),
+    )
+    try:
+        response = local_client.models.generate_content(
+            model=model_name,
+            contents=prompt_text,
+            config={'response_mime_type': 'application/json', 'response_schema': MeetingReport, 'temperature': 0.1},
+        )
+        result_queue.put(('ok', response.text))
+    except Exception as e:
+        result_queue.put(('err', str(e)))
+
 
 def _load_official_terms_from_gcs(slug, bucket_uri):
     """Load cached proper nouns extracted from official docs for a given meeting slug."""
@@ -163,10 +187,6 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
     njk_path = f"src/meetings/{date_slug}.njk"
     if not os.path.exists(njk_path): return None
 
-    allowed_tags = []
-    if os.path.exists('src/_data/topics.json'):
-        with open('src/_data/topics.json', 'r') as f: allowed_tags = json.load(f)
-
     print(f"Analyzing: {date_slug} (source: {vtt_path[:40]}...)...")
     transcript = fetch_vtt_content(vtt_path)
 
@@ -181,14 +201,13 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
 
     prompt = f"""
     Analyze the school board meeting transcript for {date_slug}.
-    Extract: blurb, formal votes, high-level summary bullets, timestamped timeline, and topic tags.
+    Extract: blurb, formal votes, high-level summary bullets, timestamped timeline, and board attendance.
 
     IMPORTANT: Identify perspectives from: Board, Administration, Teachers, Citizens.
     Glossary: {glossary_text}
 
     Guidelines:
     - Blurb: 1-2 sentence hook for the landing page.
-    - Tags: Identify 3-5 specific, time-bound or scoped topic tags (e.g., '2026 Equity Policy Update' instead of 'Equity', 'FY26 Transportation Challenges' instead of 'Transportation'). Avoid broad, generic nouns unless referring to a standing systemic issue (like 'Reconfiguration'). Use {allowed_tags} to reuse existing specific tags where appropriate.
     - Votes: Exact motion, result (use "Passed" or "Failed" — a unanimous vote is "Passed"), count, and movers.
     - Summary: 5-8 bullets capturing the high-level arc of the meeting. Topics should be
       issue-level (e.g. "FY2026 Budget Update", "Cell Phone Policy") not speaker-level.
@@ -218,13 +237,23 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
         models_to_try = [FLASH_MODEL, DEFAULT_MODEL]
         response = None
         for model in models_to_try:
-            print(f"  Sending request to Gemini ({model}) for {date_slug}...", flush=True)
+            print(f"  Sending request to Gemini ({model}) for {date_slug} at {_dt.now().strftime('%H:%M:%S')}...", flush=True)
             try:
-                response = client.models.generate_content(
-                    model=model,
-                    contents=prompt,
-                    config={'response_mime_type': 'application/json', 'response_schema': MeetingReport, 'temperature': 0.1}
-                )
+                q = MpQueue()
+                p = Process(target=_call_gemini_subprocess, args=(model, prompt, q), daemon=True)
+                p.start()
+                p.join(timeout=GEMINI_TIMEOUT)
+                if p.is_alive():
+                    p.terminate()
+                    p.join()
+                    raise TimeoutError(f"Gemini request timed out after {GEMINI_TIMEOUT}s")
+                try:
+                    kind, val = q.get_nowait()
+                except _stdlib_queue.Empty:
+                    raise Exception("Subprocess exited with no result")
+                if kind == 'err':
+                    raise Exception(val)
+                response = type('R', (), {'text': val})()  # lightweight wrapper
                 break
             except Exception as model_err:
                 if "429" in str(model_err):
@@ -234,7 +263,7 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
         if response is None:
             print(f"  All models rate-limited for {date_slug}. Run via production pipeline for higher limits.", flush=True)
             return {"slug": date_slug, "status": "RateLimit"}
-        print(f"  Received response for {date_slug}.")
+        print(f"  Received response for {date_slug} at {_dt.now().strftime('%H:%M:%S')}.")
         report_data = json.loads(response.text)
 
         print(f"  Updating .njk file for {date_slug}...")
@@ -258,7 +287,6 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
         data['processed_date'] = date.today().isoformat()
         data['pipeline_version'] = SCRIPT_VERSION
         data['blurb'] = report_data.pop('blurb', '')
-        data['topics'] = report_data.pop('tags', [])
         extracted_attendance = report_data.pop('board_attendance', [])
         data.update(report_data)  # votes, summary, timeline
         data['votes_source'] = 'Transcript (Unofficial)'

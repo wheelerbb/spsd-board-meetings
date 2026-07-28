@@ -1,11 +1,15 @@
 import os
 import sys
+import io
 import json
 import re
 import yaml
 import hashlib
+import queue as _stdlib_queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from multiprocessing import Process, Queue as MpQueue
 from google import genai
+from google.genai import types as genai_types
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,11 +20,107 @@ socket.setdefaulttimeout(120)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 from sourcing.auth import get_credentials
+from sourcing import drive as drive_mod
 
 credentials, project_id = get_credentials()
 client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
 model_name = 'gemini-2.5-flash'
 MAX_WORKERS = 4
+TAGGING_TIMEOUT = 120  # seconds; enforced via subprocess SIGTERM
+
+def _tagging_subprocess(prompt_text, result_queue):
+    """Run a tagging Gemini call in a separate process so SIGTERM can hard-kill it on timeout."""
+    local_credentials, local_project_id = get_credentials()
+    local_client = genai.Client(
+        credentials=local_credentials, project=local_project_id, location='us-central1', vertexai=True,
+    )
+    try:
+        response = local_client.models.generate_content(
+            model=model_name,
+            contents=prompt_text,
+            config={'response_mime_type': 'application/json', 'temperature': 0.1},
+        )
+        result_queue.put(('ok', response.text))
+    except Exception as e:
+        result_queue.put(('err', str(e)))
+
+_MATCH_STOP = {'and', 'the', 'in', 'of', 'for', 'a', 'an', 'on', 'at', 'to', 'by', 'or', 'its', 'is', 'are', 'was', 'were', 'with', 'from'}
+
+def _sig_words(s):
+    """Significant words: 4+ chars, not stopwords."""
+    words = re.sub(r'[^\w]', ' ', s.lower()).split()
+    return {w for w in words if len(w) >= 4 and w not in _MATCH_STOP}
+
+def _fy_norm(s):
+    """Normalize FY20XX to FYXX for matching (e.g. FY2024 → FY24)."""
+    return re.sub(r'\bfy20(\d{2})\b', r'fy\1', s.lower())
+
+def _evidence_match(topic, bullet_topic, bullet_text):
+    """True if this bullet is evidence for the given topic tag."""
+    t_n = _fy_norm(topic)
+    bt_n = _fy_norm(bullet_topic)
+    # Existing substring checks with FY normalization
+    if t_n in bt_n or bt_n in t_n or t_n in _fy_norm(bullet_text):
+        return True
+    # 2-word significant overlap with bullet topic name
+    if len(_sig_words(topic) & _sig_words(bullet_topic)) >= 2:
+        return True
+    # 3-word significant overlap with bullet text body (only triggers for 3+ word tags)
+    if len(_sig_words(topic) & _sig_words(bullet_text)) >= 3:
+        return True
+    return False
+
+_TAG_GENERIC_EXAMPLES = "Policy Review, Community Engagement, School Operations, Board Governance, Student Recognition"
+
+def _normalize_fy(tag):
+    """Normalize FY20YY → FYYYY in a tag string (e.g. FY2027 → FY27)."""
+    return re.sub(r'\bFY20(\d{2})\b', lambda m: f'FY{m.group(1)}', tag)
+
+def _update_topics_lib(new_tags, path='src/_data/topics.json'):
+    existing = json.load(open(path)) if os.path.exists(path) else []
+    existing_set = set(existing)
+    added = [t for t in new_tags if t not in existing_set]
+    if added:
+        with open(path, 'w') as f:
+            json.dump(added + existing, f, indent=2)
+
+def generate_tags(slug, summary_bullets, allowed_tags):
+    """Call Gemini to generate topic tags from a meeting's summary bullets."""
+    summary_text = '\n'.join(f'- {b["topic"]}: {b["text"]}' for b in summary_bullets)
+    prompt = f"""You are tagging a school board meeting. Given the meeting summary below, identify 3-5 topic tags for the PRIMARY issues discussed.
+
+**First-order rule:** Only tag a topic if it received substantial, independent discussion — not just a passing mention or as context within another topic. Ask: "Would a reader coming to this meeting specifically for this topic find meaningful content?" If not, omit the tag.
+
+**Tag selection rules, in priority order:**
+1. **Reuse an existing tag** from {allowed_tags} when it accurately describes the topic.
+2. **Adapt an existing tag** for a new time-bound instance of a recurring theme — add fiscal year or scope (e.g. "FY27 Labor Contract Negotiations" not "Union Contracts").
+3. **Create a new specific tag** when no existing tag fits. Name the specific issue, not a category — "SPESPA Contract 2025" not "Union Contracts"; "FY26 Staff Reductions" not "Property Taxes". Generic category nouns ({_TAG_GENERIC_EXAMPLES}) are never valid tags.
+
+**Format rules:** Fiscal years must use FYYY format (FY27, FY26) — never FY2027 or FY2026. No parentheses or acronyms. No concatenated words. No symbols (&, /, etc.).
+
+Meeting: {slug}
+Summary:
+{summary_text}
+
+Respond with a JSON array of tag strings only. Example: ["Elementary School Reconfiguration", "FY27 Budget"]"""
+
+    q = MpQueue()
+    p = Process(target=_tagging_subprocess, args=(prompt, q), daemon=True)
+    p.start()
+    p.join(timeout=TAGGING_TIMEOUT)
+    if p.is_alive():
+        p.terminate()
+        p.join()
+        raise TimeoutError(f"Tagging timed out after {TAGGING_TIMEOUT}s for {slug}")
+    try:
+        kind, val = q.get_nowait()
+    except _stdlib_queue.Empty:
+        raise Exception("Tagging subprocess exited with no result")
+    if kind == 'err':
+        raise Exception(val)
+    tags = json.loads(val)
+    return [_normalize_fy(t) for t in tags]
+
 
 GLOSSARY = {
     "Caler": "Kaler",
@@ -31,12 +131,23 @@ GLOSSARY = {
     "Atkinson Dena": "Atkinson Duina",
 }
 
-TOPIC_BLACKLIST = ["Personnel", "Contracts", "Finance", "Budget"]
+def _read_njk(path):
+    with open(path, 'r') as f:
+        content = f.read()
+    m = re.match(r'^---\s*\n(.*?)\n---\s*\n?(.*)', content, re.DOTALL)
+    if not m:
+        raise ValueError(f"Malformed front matter: {path}")
+    return yaml.safe_load(m.group(1)) or {}, m.group(2)
+
+
+def _write_njk(path, data, body):
+    fm = yaml.dump(data, sort_keys=False, default_flow_style=False, allow_unicode=True)
+    with open(path, 'w') as f:
+        f.write(f'---\n{fm}---\n{body}')
+
 
 def _read_doc_text_from_drive(url, max_chars=8000):
     """Download readable text from a Drive file URL. Returns None on failure."""
-    import io
-    from sourcing import drive as drive_mod
     fid_match = re.search(r'/file/d/([^/?]+)', url)
     if not fid_match:
         return None
@@ -68,7 +179,6 @@ def _read_doc_text_from_drive(url, max_chars=8000):
 
 def _extract_official_terms(meeting_data, bucket_uri):
     """Extract canonical proper nouns from agenda/packet/minutes docs; raw text and terms cached in GCS."""
-    from sourcing import drive as drive_mod
     from google.cloud import storage
 
     docs = meeting_data.get('docs') or []
@@ -110,6 +220,7 @@ def _extract_official_terms(meeting_data, bucket_uri):
                 pass
             continue
 
+        print(f"    Extracting terms for {slug}/{doc_type} (not in cache)...", flush=True)
         text = _read_doc_text_from_drive(url)
         if not text:
             continue
@@ -179,18 +290,10 @@ def generate_agenda_preview(meeting_data, meeting_dir):
         raw = response.text.strip()
         raw = re.sub(r'^```(?:html)?\s*', '', raw)
         raw = re.sub(r'\s*```$', '', raw)
-        preview_html = raw
         njk_path = os.path.join(meeting_dir, slug + '.njk')
-        with open(njk_path, 'r') as f:
-            content = f.read()
-        parts = re.split(r'^---+\s*$', content, flags=re.MULTILINE)
-        if len(parts) < 3:
-            return
-        fm = yaml.safe_load(parts[1]) or {}
-        fm['agenda_preview'] = preview_html
-        fm_yaml = yaml.dump(fm, sort_keys=False, default_flow_style=False, allow_unicode=True)
-        with open(njk_path, 'w') as f:
-            f.write(f'---\n{fm_yaml}---\n{"---".join(parts[2:])}')
+        data, body = _read_njk(njk_path)
+        data['agenda_preview'] = raw
+        _write_njk(njk_path, data, body)
         print(f"    Written agenda preview for {slug}.")
     except Exception as e:
         print(f"    Error generating agenda preview for {slug}: {e}")
@@ -198,25 +301,20 @@ def generate_agenda_preview(meeting_data, meeting_dir):
 
 def generate_blurb(local, meeting_dir):
     print(f"  Generating blurb for {local['slug']}...")
-    prompt = f"Write an extremely concise 1-2 sentence objective summary (a 'blurb') of this school board meeting based on these notes. Do not use quotes or introductory filler:\n"
+    prompt = "Write an extremely concise 1-2 sentence objective summary (a 'blurb') of this school board meeting based on these notes. Do not use quotes or introductory filler:\n"
     prompt += "\n".join([f"- {s.get('text', '')}" for s in local.get('summary', [])])
     try:
         response = client.models.generate_content(model=model_name, contents=prompt, config={'temperature': 0.1})
-        blurb = response.text.strip().replace('\n', ' ').replace('"', "'")
-        
-        # Update NJK file
+        blurb = response.text.strip().replace('\n', ' ')
         njk_path = os.path.join(meeting_dir, local['slug'] + '.njk')
-        with open(njk_path, 'r') as f: content = f.read()
-        
-        if 'blurb:' not in content:
-            content = content.replace('---\n', f'---\nblurb: "{blurb}"\n', 1)
-        else:
-            content = re.sub(r'blurb:.*', f'blurb: "{blurb}"', content)
-        with open(njk_path, 'w') as f: f.write(content)
+        data, body = _read_njk(njk_path)
+        data['blurb'] = blurb
+        _write_njk(njk_path, data, body)
         return local['slug'], blurb
     except Exception as e:
         print(f"  Error generating blurb for {local['slug']}: {e}")
         return local['slug'], None
+
 
 def synthesize_topic(topic, evidence, display_date):
     print(f"  Synthesizing: {topic}...")
@@ -247,7 +345,6 @@ def synthesize_topic(topic, evidence, display_date):
     try:
         response = client.models.generate_content(model=model_name, contents=prompt, config={'temperature': 0.1})
         raw = response.text.strip()
-        # Strip code fences if present
         raw = re.sub(r'^```(?:json)?\s*', '', raw)
         raw = re.sub(r'\s*```$', '', raw)
         result = json.loads(raw)
@@ -259,11 +356,14 @@ def synthesize_topic(topic, evidence, display_date):
         print(f"  Error synthesizing {topic}: {e}")
         return topic, None
 
+
 def post_process():
     meeting_dir = 'src/meetings/'
     topics_lib_path = 'src/_data/topics.json'
     summary_lib_path = 'src/_data/topic_summaries.json'
     hashes_lib_path = 'scripts/topic_hashes.json'
+
+    retag = '--retag' in sys.argv
 
     bucket_uri = None
     if '--bucket' in sys.argv:
@@ -272,58 +372,83 @@ def post_process():
             bucket_uri = sys.argv[idx + 1]
     bucket_uri = bucket_uri or os.getenv('GCS_BUCKET_URI') or None
 
+    if retag:
+        with open(topics_lib_path, 'w') as f:
+            json.dump([], f)
+        with open(hashes_lib_path, 'w') as f:
+            json.dump({}, f)
+        print("Retag mode: cleared topics.json and topic_hashes.json", flush=True)
+
     # 1. Enforce Glossary & Extract Data
     print("Enforcing Glossary and scanning meetings...", flush=True)
-    all_discovered_topics = set()
     meetings_data = []
 
     for filename in sorted(os.listdir(meeting_dir)):
         if not filename.endswith('.njk'): continue
         filepath = os.path.join(meeting_dir, filename)
-        
-        with open(filepath, 'r') as f: content = f.read()
-        
-        orig = content
-        for w, r in GLOSSARY.items(): content = content.replace(w, r)
-        if content != orig:
-            with open(filepath, 'w') as f: f.write(content)
 
-        match = re.search(r'^(---\s*\n(.*?)\n---\s*(?:\n|$))', content, re.DOTALL)
-        if match:
+        with open(filepath, 'r') as f:
+            content = f.read()
+
+        orig = content
+        for w, r in GLOSSARY.items():
+            content = content.replace(w, r)
+        if content != orig:
+            with open(filepath, 'w') as f:
+                f.write(content)
+
+        m = re.match(r'^---\s*\n(.*?)\n---\s*\n?(.*)', content, re.DOTALL)
+        if m:
             try:
-                data = yaml.safe_load(match.group(2))
+                data = yaml.safe_load(m.group(1)) or {}
                 data['slug'] = filename.replace('.njk', '')
                 meetings_data.append(data)
-                if 'topics' in data: all_discovered_topics.update(data['topics'])
-            except: pass
+            except Exception as e:
+                print(f"  Warning: could not parse {filename}: {e}")
 
-    # 1.5. Extract canonical names from official docs (agenda/packet/minutes) → cache in GCS
+    # 2. Extract canonical names from official docs (agenda/packet/minutes) → cache in GCS
     if bucket_uri:
         print("Extracting canonical names from official meeting documents...", flush=True)
-        for m in meetings_data:
-            docs = m.get('docs') or []
-            if any(d.get('type') in ('agenda', 'packet', 'minutes', 'min') for d in docs):
-                try:
-                    _extract_official_terms(m, bucket_uri)
-                except Exception as e:
-                    print(f"  Warning: term extraction failed for {m.get('slug')}: {e}", flush=True)
+        term_targets = [
+            m for m in meetings_data
+            if any(d.get('type') in ('agenda', 'packet', 'minutes', 'min') for d in (m.get('docs') or []))
+        ]
+        def _extract_terms_task(m):
+            try:
+                _extract_official_terms(m, bucket_uri)
+            except Exception as e:
+                print(f"  Warning: term extraction failed for {m.get('slug')}: {e}", flush=True)
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = [executor.submit(_extract_terms_task, m) for m in term_targets]
+            for future in as_completed(futures):
+                future.result()
 
-    # 2. Topics Lib (Sorted by recency)
-    print("Updating topics library...")
-    # Find the most recent date for each topic
-    topic_recent_dates = {}
-    for m in meetings_data:
-        m_date = str(m.get('date', m.get('slug', '')))
-        for t in m.get('topics', []):
-            if t not in TOPIC_BLACKLIST:
-                if t not in topic_recent_dates or m_date > topic_recent_dates[t]:
-                    topic_recent_dates[t] = m_date
-                    
-    # Sort topics based on the date (newest first)
-    new_lib = sorted(list(topic_recent_dates.keys()), key=lambda x: topic_recent_dates[x], reverse=True)
-    with open(topics_lib_path, 'w') as f: json.dump(new_lib, f, indent=2)
+    # 3. Generate topic tags from summary bullets (sequential, chronological)
+    print("Generating topic tags from meeting summaries...", flush=True)
+    allowed_tags = json.load(open(topics_lib_path)) if os.path.exists(topics_lib_path) else []
+    tag_candidates = sorted(
+        [m for m in meetings_data if not m.get('stub') and m.get('summary')],
+        key=lambda m: m['slug']
+    )
+    for m in tag_candidates:
+        if not retag and m.get('topics'):
+            continue
+        slug = m['slug']
+        print(f"  Tagging {slug}...", flush=True)
+        try:
+            tags = generate_tags(slug, m['summary'], allowed_tags)
+            njk_path = os.path.join(meeting_dir, f"{slug}.njk")
+            data, body = _read_njk(njk_path)
+            data['topics'] = tags
+            _write_njk(njk_path, data, body)
+            m['topics'] = tags  # keep in-memory data in sync for synthesis step
+            _update_topics_lib(tags, topics_lib_path)
+            allowed_tags = json.load(open(topics_lib_path))
+            print(f"    → {tags}")
+        except Exception as e:
+            print(f"  Warning: tagging failed for {slug}: {e}", flush=True)
 
-    # 3. Generate Agenda Previews for upcoming stubs that have a packet/agenda doc
+    # 4. Generate Agenda Previews for upcoming stubs with a packet/agenda doc
     print("Generating agenda previews for upcoming meetings...")
     import datetime as _dt
     today_slug = _dt.date.today().isoformat()
@@ -335,7 +460,7 @@ def post_process():
     for m in preview_tasks:
         generate_agenda_preview(m, meeting_dir)
 
-    # 4. Generate Missing Blurbs (write directly to .njk files; meetings.json is derived at build time)
+    # 5. Generate missing blurbs
     print("Generating blurbs for unprocessed meetings...")
     blurb_tasks = [m for m in meetings_data
                    if not m.get('stub') and not m.get('blurb') and m.get('summary')]
@@ -343,40 +468,54 @@ def post_process():
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = {executor.submit(generate_blurb, local, meeting_dir): local for local in blurb_tasks}
             for future in as_completed(futures):
-                future.result()  # generate_blurb writes blurb back to the .njk file
+                future.result()
 
-    # 4. Generate Synthesized Summaries (Concurrent + Caching)
+    # 6. Generate synthesized topic summaries (concurrent + hash caching)
     print("Generating high-level topic summaries...")
+    topics_lib = []
+    if os.path.exists(topics_lib_path):
+        with open(topics_lib_path, 'r') as f:
+            topics_lib = json.load(f)
+
     summaries = {}
     if os.path.exists(summary_lib_path):
-        with open(summary_lib_path, 'r') as f: summaries = json.load(f)
-        
+        with open(summary_lib_path, 'r') as f:
+            summaries = json.load(f)
+
     hashes = {}
     if os.path.exists(hashes_lib_path):
-        with open(hashes_lib_path, 'r') as f: hashes = json.load(f)
+        with open(hashes_lib_path, 'r') as f:
+            hashes = json.load(f)
+
+    # Build inverted index {topic: [meeting, ...]} newest-first — avoids O(topics × meetings) scan
+    sorted_m = sorted(meetings_data, key=lambda x: str(x.get('date', x.get('slug', ''))), reverse=True)
+    topic_meetings = {}
+    for m in sorted_m:
+        for t in m.get('topics', []):
+            topic_meetings.setdefault(t, []).append(m)
 
     topic_tasks = []
-    sorted_m = sorted(meetings_data, key=lambda x: str(x.get('date', x.get('slug', ''))), reverse=True)
-
-    for topic in new_lib:
+    for topic in topics_lib:
+        topic_sorted = topic_meetings.get(topic, [])
+        display_date = topic_sorted[0].get('display_date', 'recent dates') if topic_sorted else 'recent dates'
         evidence_list = []
-        display_date = sorted_m[0].get('display_date', 'recent dates') if sorted_m else 'recent dates'
-        
-        for m in sorted_m:
-            if topic in m.get('topics', []):
-                m_date = m.get('display_date', m.get('slug', ''))
-                m_url = f"/meetings/{m['slug']}/"
-                summary_bullets = m.get('summary', [])
-                topic_bullets = [b['text'] for b in summary_bullets if topic.lower() in b['topic'].lower() or b['topic'].lower() in topic.lower() or topic.lower() in b['text'].lower()]
-                if topic_bullets:
-                    evidence_list.append(f"Meeting: {m_date} ({m_url})\n" + "\n".join([f"- {b}" for b in topic_bullets]))
-        
-        if not evidence_list: continue
-        
-        evidence_str = "---".join(evidence_list[:15])
+
+        for m in topic_sorted:
+            m_date = m.get('display_date', m.get('slug', ''))
+            m_url = f"/meetings/{m['slug']}/"
+            topic_bullets = [
+                b['text'] for b in m.get('summary', [])
+                if _evidence_match(topic, b.get('topic', ''), b.get('text', ''))
+            ]
+            if topic_bullets:
+                evidence_list.append(f"Meeting: {m_date} ({m_url})\n" + "\n".join([f"- {b}" for b in topic_bullets]))
+
+        if not evidence_list:
+            continue
+
+        evidence_str = "---".join(evidence_list[:15])  # cap at 15 to stay within token limits
         current_hash = hashlib.md5(evidence_str.encode('utf-8')).hexdigest()
-        
-        # Check cache: Only synthesize if hash changed or summary missing
+
         if current_hash != hashes.get(topic) or topic not in summaries:
             topic_tasks.append((topic, evidence_str, display_date, current_hash))
         else:
@@ -389,13 +528,14 @@ def post_process():
                 topic, result_text = future.result()
                 if result_text:
                     summaries[topic] = result_text
-                    # Update hash only on success
-                    original_task = futures[future]
-                    hashes[topic] = original_task[3]
+                    hashes[topic] = futures[future][3]
 
-    with open(summary_lib_path, 'w') as f: json.dump(summaries, f, indent=2)
-    with open(hashes_lib_path, 'w') as f: json.dump(hashes, f, indent=2)
+    with open(summary_lib_path, 'w') as f:
+        json.dump(summaries, f, indent=2)
+    with open(hashes_lib_path, 'w') as f:
+        json.dump(hashes, f, indent=2)
     print("Post-processing complete.")
+
 
 if __name__ == "__main__":
     post_process()
