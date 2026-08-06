@@ -15,23 +15,20 @@ Reference for all Gemini prompt templates used in the pipeline. Code retains the
 
 - **GLOSSARY** — hardcoded proper noun corrections (Kaler, Skillin, Angela Atkinson Duina, etc.)
 - **Canonical terms from official docs** — extracted from GCS cache (`official_docs/{slug}/`) when available; appended to glossary as "use this exact spelling" hints
-- **Existing topic list** — `src/_data/topics.json` injected as `allowed_tags` so Gemini reuses known tags
+
+Note: this script does **not** generate topic tags — that moved to `post_process.py`'s `generate_tags()` / `batch_tag_all_meetings()` (§2/§3 below) when tagging became summary-based. Do not reintroduce a `tags`/`allowed_tags` field here; `topics.json` is owned by `post_process.py`.
 
 ### Prompt template
 
 ```
 Analyze the school board meeting transcript for {date_slug}.
-Extract: blurb, formal votes, high-level summary bullets, timestamped timeline, and topic tags.
+Extract: blurb, formal votes, high-level summary bullets, timestamped timeline, and board attendance.
 
 IMPORTANT: Identify perspectives from: Board, Administration, Teachers, Citizens.
 Glossary: {glossary_text}
 
 Guidelines:
 - Blurb: 1-2 sentence hook for the landing page.
-- Tags: Identify 3-5 specific, time-bound or scoped topic tags (e.g., '2026 Equity Policy Update'
-  instead of 'Equity', 'FY26 Transportation Challenges' instead of 'Transportation'). Avoid broad,
-  generic nouns unless referring to a standing systemic issue (like 'Reconfiguration'). Use
-  {allowed_tags} to reuse existing specific tags where appropriate.
 - Votes: Exact motion, result (use "Passed" or "Failed" — a unanimous vote is "Passed"), count, and movers.
 - Summary: 5-8 bullets capturing the high-level arc of the meeting. Topics should be
   issue-level (e.g. "FY2026 Budget Update", "Cell Phone Policy") not speaker-level.
@@ -60,7 +57,6 @@ Transcript:
 
 ```python
 blurb: str
-tags: list[str]                      # becomes topics: in .njk frontmatter
 votes: list[Vote]                    # {motion, result, count, moved_2nd}
 summary: list[SummaryItem]           # {topic, text}
 timeline: list[TimelineItem]         # {time, seconds, topic, desc}
@@ -69,7 +65,155 @@ board_attendance: list[AttendanceMember]  # {name, status, role}
 
 ---
 
-## 2. Topic Synthesis (`post_process.py`)
+## 2. Topic Tag Generation — Single Meeting (`post_process.py`)
+
+**Script:** `scripts/post_process.py → generate_tags()`
+**Model:** `gemini-2.5-flash`
+**Temperature:** default (no `temperature` override in this call's config)
+**Output:** JSON array of `{tag, evidence_bullets}` objects (parsed manually — not Pydantic), then post-processed by `_normalize_fy()` and `_strip_modifiers()`. Returns `(tags, evidence)` where `evidence` is `{tag: [summary_bullet_index, ...]}`.
+**Called from:** the incremental (non-`--retag`) branch of `post_process()`'s tagging step — one call per meeting that doesn't yet have `topics:`, in chronological order. Also used by `--dry-run-tag` for testing.
+
+### Injected context
+
+- **Existing tags + `current_status`** (`topic_context`) — every tag in `topics.json`, paired with its synthesized `current_status` blurb from `topic_summaries.json` when one exists, so the model can judge topical fit by what a tag actually covers, not just its name.
+- **Most recent prior meeting's tags** (`recent_topics`) — signals a likely-continuing thread.
+- **Agenda excerpt** (`agenda_text`) — from `_load_cached_agenda_text()` (§4), district-authored item framing independent of the Gemini-generated summary.
+
+### Prompt template
+
+```
+You are tagging a school board meeting. Given the meeting summary below, identify 3-5 topic tags for the PRIMARY issues discussed.
+
+**First-order rule:** Only tag a topic if it received substantial, independent discussion — not just a passing mention or as context within another topic. Ask: "Would a reader coming to this meeting specifically for this topic find meaningful content?" If not, omit the tag.
+
+**Existing tags** (name: what it currently covers, when known):
+{allowed_text}
+
+**Topics discussed at the board's most recent prior meeting:** {recent_text}
+If this meeting's content continues one of those threads, that's a strong signal to reuse the same tag rather than coin a new one — even if the wording of this meeting's bullets doesn't closely match the tag's name. Use the "what it currently covers" descriptions above, not just name-matching, to judge whether an existing tag fits.
+{agenda_section}
+**Tag selection rules, in priority order:**
+1. **Reuse an existing tag** when it accurately describes the topic — judge this by what the tag covers (its description above and the recent-meeting context), not by superficial wording overlap with the tag's name.
+2. **Time-binding — 3 categories.** Whether (and how granularly) a tag carries a year/FY depends on what kind of issue it is:
+   - **Cyclical** (budget cycles, audits, bargaining rounds, calendar approval): time-bound, but **one tag per fiscal year, period**. If a tag already exists for this fiscal year's instance of the cycle (e.g. an existing "FY27 Budget"), reuse it — do NOT create a new tag for a different phase or sub-event within the same cycle (no separate "FY27 Budget Approval" / "FY27 Budget Development" / "FY27 Budget Challenges"). Use a small, fixed vocabulary for the theme name itself — "Budget", "Audit", "School Calendar", "Collective Bargaining" — never invent a new theme word like "Financial Deficit" or "Staffing Adjustments" for what is really just that year's budget cycle. This includes deficits, shortfalls, and funding gaps — those are always part of that year's budget story, never a standalone tag; always keep the FY prefix on them ("FY27 Budget", never bare "Financial Deficit"). This district's fiscal year is named for its ending year and runs July 1 - June 30 (e.g. FY27 = July 2026-June 2027). Budget deliberation for a fiscal year typically happens in the spring before it starts (roughly January-June) — a budget-related tag from that window usually belongs to the UPCOMING fiscal year, not the one about to end. Occasionally a district starts budget planning for a later fiscal year unusually early (e.g. discussing next year's budget in December instead of the following spring) — when the content clearly indicates that, tag it with the fiscal year actually being discussed, not the one implied by a rigid calendar cutoff.
+   - **Discrete initiatives** (a specific search, closure, or policy rollout): bind to a year/era only when the same type of event could plausibly recur later and future disambiguation will matter (e.g. "Superintendent Search", "Student Cell Phone Policy 2026").
+   - **Evergreen** (standing, systemic domains with no natural end — special ed, transportation, facilities, equity, governance): never time-bound.
+3. **Subject, not process stage.** A tag names the SUBJECT being discussed, never what stage of board deliberation it's at. Words like "Development", "Presentation", "Discussion", "Update", "Overview", "Review", "Consideration", "Process", "Session", "Report", "Debate", "Announcement", "Revision(s)", "Projection" describe *where something is in the meeting cycle*, not *what the topic is* — never end a tag with one of these (e.g. "Cell Phone Policy Development" → "Cell Phone Policy"). Words naming a specific, substantive outcome — "Closure", "Adoption", "Referendum", "Resignation", "Appointment" — are fine to keep; they're not process-stage words.
+4. **Create a new specific tag** when no existing tag fits. Name the specific issue, not a category — "SPESPA Contract 2025" not "Union Contracts"; "FY26 Staff Reductions" not "Property Taxes". Generic category nouns (Policy Review, Community Engagement, School Operations, Board Governance, Student Recognition) are never valid tags.
+
+**Format rules:** Fiscal years must use FYYY format (FY27, FY26) — never FY2027 or FY2026. No parentheses or acronyms. No concatenated words. No symbols (&, /, etc.).
+
+Meeting: {slug}
+Summary (numbered):
+{summary_text}
+
+Respond with a JSON array of objects, one per tag: [{"tag": "...", "evidence_bullets": [0, 2]}, ...]
+"evidence_bullets" are the 0-indexed numbers from the Summary list above that support this tag —
+every tag must cite at least one. Example:
+[{"tag": "Elementary School Reconfiguration", "evidence_bullets": [0]}, {"tag": "FY27 Budget", "evidence_bullets": [1, 3]}]
+```
+
+### Evidence linkage (todos/012)
+
+The Summary is rendered with 0-indexed bullet numbers, and the model reports which bullet(s) support each tag directly in its response — this replaces `_evidence_match()`'s fuzzy text matching for any meeting tagged after this was added. `synthesize_topic()`'s evidence-gathering step (§5) prefers a meeting's `topic_evidence` frontmatter field when present, falling back to fuzzy matching only for meetings tagged before this existed. See `docs/topic-taxonomy.md` for the frontmatter shape.
+
+### Shared rule text (todos/005)
+
+Rules 2–4 above (`_RULE_TIME_BINDING`, `_RULE_SUBJECT_NOT_PROCESS`, `_RULE_GENERIC_NOUN` in `post_process.py`) are single Python constants interpolated into *both* this prompt and §3's batch prompt — not copy-pasted prose kept in sync by hand. If you're editing tag-quality rules, edit the constant once; it updates both tagging paths. This mirrors the shared `src/_data/topic_blacklist.json` artifact (also referenced from `_RULE_GENERIC_NOUN`'s rendered text) — the general principle for this pipeline is: topic-tagging logic that needs to behave the same way across the single-meeting and batch paths should be one shared artifact/constant, not two things a human has to remember to update together.
+
+### Post-processing (applies to every generated tag, both here and in §3)
+
+- **`_normalize_fy()`** — `FY2027` → `FY27`.
+- **`_strip_modifiers()`** — deterministically strips a trailing generic process-stage word (`Development`, `Presentation`, `Discussion`, `Update(s)`, `Overview`, `Review(s)`, `Consideration`, `Process`, `Session`, `Report(s)`, `Debate`, `Announcement`, `Revision(s)`, `Projection(s)`; plus `Approval`/`Vote(s)` only for FY-prefixed cyclical tags), repeated until none remain. Backstops rule 3 above regardless of how well the model follows the prompt — added after a full-corpus batch run (§3) violated the modifier rule extensively despite the instruction being present, showing the constraint needed to be enforced in code, not just requested.
+- **`_warn_if_budget_synonym()`** — logs (does not rewrite) when a tag matching `deficit`/`shortfall` survives without an FY prefix, so a human notices if the fiscal-year calibration text in rule 2 above didn't take. Deliberately detection-only, not an auto-fix: an earlier attempt to guess the fiscal year from the meeting's date alone was reverted after checking it against real data — the district's actual budget calendar doesn't follow a rigid month cutoff (e.g. a December 2025 meeting was legitimately discussing the *next* fiscal year's budget early), so a date formula risked silently mis-tagging exactly the cases that matter most.
+- **`_drop_blacklisted()`** — removes (not just warns on) any tag that's an exact match for `src/_data/topic_blacklist.json` (`Personnel`, `Contracts`, `Finance`, `Budget`, `Policy`, `Board Governance`). Unlike the budget-synonym check, this one *does* rewrite (by dropping), because bare category nouns have no ambiguous edge case the way a mis-dated fiscal year does — a tag named exactly "Finance" is never correct regardless of context. Added after batch-mode tagging repeatedly reverted to exactly these words despite rule 4's explicit instruction not to, at large-corpus scale — see todos/005.
+
+---
+
+## 3. Topic Tag Generation — Batch (`post_process.py`)
+
+**Script:** `scripts/post_process.py → batch_tag_all_meetings()`
+**Model:** `gemini-2.5-flash`
+**Temperature:** 0.0
+**Output:** Structured JSON via `BatchTagResponse` Pydantic schema (`{results: [{slug, tags: [{tag, evidence_bullets}]}]}`)
+**Timeout:** 600s (`BATCH_TAGGING_TIMEOUT`), enforced via subprocess `SIGTERM` — same pattern as §2, just longer given the much larger input/output
+**Called from:** the `--retag` branch of `post_process()`'s tagging step — one call covering every non-stub meeting with a summary, instead of looping §2's single-meeting call once per meeting. Reserved for periodic full recalibration, not the daily incremental path (full-corpus retagging on every cron run risks topic churn on a public site).
+
+### Why batch mode exists
+
+Tagging one meeting at a time — even with the recent-meeting hint in §2 — is structurally the wrong shape for recognizing a narrative that spans many meetings (e.g. a school closure recommended, voted on, then worked through logistically over several later meetings): the model never sees the whole story at once. Batch mode feeds every meeting's summary and agenda excerpt into a single call so the model can assign self-consistent tags across the full corpus in one pass.
+
+### Injected context
+
+Same shape as §2 per meeting (transcript summary + agenda excerpt from `_load_cached_agenda_text()`, §4), but for **every** meeting at once, chronologically ordered — no `allowed_tags`/`topic_context`/`recent_topics`, since the model is deciding the entire tag set directly from the full evidence rather than reusing an externally-tracked list.
+
+### Prompt template
+
+```
+You are tagging the full history of a school board's meetings with topic tags, all at once.
+For EACH meeting below, identify 3-5 topic tags for the PRIMARY issues discussed.
+
+**First-order rule:** Only tag a topic if it received substantial, independent discussion in that meeting — not just a passing mention or as context within another topic.
+
+**Consistency is the whole point of tagging everything at once:** if the same underlying story spans multiple meetings (e.g. a school closure that gets recommended, voted on, and then has its logistics worked out over several later meetings), use the SAME tag across all of them, even if the specific wording of each meeting's summary differs. You are the single source of truth for the entire tag set here — there is no external tag list to consult, decide it directly from the evidence across the whole corpus.
+
+**Tag selection rules:**
+1. **Reuse the same tag** for the same underlying story wherever it recurs across meetings — this is the most important rule for this pass.
+2. **Time-binding — 3 categories.**
+   - **Cyclical** (budget cycles, audits, bargaining rounds, calendar approval): time-bound, but **one tag per fiscal year, period** — never split a single fiscal year's cycle into phase-specific tags (no separate "FY27 Budget Approval" / "FY27 Budget Development" / "FY27 Budget Challenges" — just "FY27 Budget"). Use a small, fixed vocabulary for the theme name — "Budget", "Audit", "School Calendar", "Collective Bargaining" — never invent a new theme word like "Financial Deficit" or "Staffing Adjustments" for what is really just that year's budget cycle. This includes deficits, shortfalls, and funding gaps — those are always part of that year's budget story, never a standalone tag; always keep the FY prefix on them ("FY27 Budget", never bare "Financial Deficit"). This district's fiscal year is named for its ending year and runs July 1 - June 30 (e.g. FY27 = July 2026-June 2027). Budget deliberation for a fiscal year typically happens in the spring before it starts (roughly January-June) — a budget-related tag from that window usually belongs to the UPCOMING fiscal year, not the one about to end. Occasionally a district starts budget planning for a later fiscal year unusually early (e.g. discussing next year's budget in December instead of the following spring) — when the content clearly indicates that, tag it with the fiscal year actually being discussed, not the one implied by a rigid calendar cutoff. This rule is the one most often violated when tagging many meetings at once — before finalizing, scan your own output for every budget-adjacent tag (including ones without an FY prefix that should have one) and collapse any that share a fiscal year and theme into one.
+   - **Discrete initiatives** (a specific search, closure, or policy rollout): bind to a year/era only when the same type of event could plausibly recur later and future disambiguation will matter.
+   - **Evergreen** (standing, systemic domains with no natural end — special ed, transportation, facilities, equity, governance): never time-bound.
+3. **Subject, not process stage.** A tag names the SUBJECT being discussed, never what stage of board deliberation it's at. Words like "Development", "Presentation", "Discussion", "Update", "Overview", "Review", "Consideration", "Process", "Session", "Report", "Debate", "Announcement", "Revision(s)", "Projection" describe *where something is in the meeting cycle*, not *what the topic is* — never end a tag with one of these (e.g. "Cell Phone Policy Development" → "Cell Phone Policy"). Words naming a specific, substantive outcome — "Closure", "Adoption", "Referendum", "Resignation", "Appointment" — are fine to keep; they're not process-stage words.
+4. **Name the specific issue, not a category** — "SPESPA Contract 2025" not "Union Contracts". Generic category nouns are never valid tags.
+
+**Format rules:** Fiscal years must use FYYY format (FY27, FY26) — never FY2027 or FY2026. No parentheses or acronyms. No concatenated words. No symbols (&, /, etc.).
+
+Meetings (chronological):
+{meetings_text}
+
+Respond with tags for every meeting listed above, keyed by its slug. For each tag, cite which
+0-indexed bullet number(s) from THAT meeting's own numbered Summary support it — every tag must
+cite at least one bullet from its own meeting.
+```
+
+Each meeting's Summary is rendered with its own 0-indexed bullet numbers (restarting at 0 per meeting) — same evidence-linkage mechanism as §2, see that section's "Evidence linkage" note.
+
+### Known failure mode
+
+A first attempt at this prompt (without rule 2's explicit "scan your own output" instruction and fixed theme vocabulary, and without §2's `_strip_modifiers()` backstop existing yet) produced *worse* fragmentation than the single-meeting path it replaced — e.g. seven separate FY26 budget tags (`FY26 Budget Development`, `Presentation`, `Referendum`, `Approval`, `Discussion`, `Projection`, `Financial Deficit`) instead of one. Removing the external `allowed_tags` anchor that keeps §2 grounded, and asking the model to hold self-consistency across ~57 meetings of output in a single generation pass, turned out to need much more explicit reinforcement than the single-meeting prompt did. `_strip_modifiers()` (§2) now backstops the modifier-word part of this regardless of prompt compliance; the fixed-vocabulary instruction is the current mitigation for the theme-synonym part (e.g. "Financial Deficit" vs "Budget"), which has no equivalent deterministic backstop yet.
+
+A second, different failure mode showed up after adding evidence-bullet citation (todos/012): tags reverted toward bare generic category nouns (`Personnel`, `Policy`, `Finance`, `Board Governance`) that rule 4 already explicitly prohibits. Hypothesis: a generic tag is trivially easy to "back" with almost any bullet, so requiring per-tag evidence at 57-meeting scale seems to have nudged the model toward tags chosen for citability rather than specificity — the single-meeting path (§2), tested at much smaller scale via `--dry-run-tag`, didn't show this. Rule 4 now explicitly warns against this exact trade-off ("pick the specific tag first... never let ease of citation pull you toward a broader tag"), and `_drop_blacklisted()` (§2's Post-processing) backstops it in code regardless — this is the same lesson as the first failure mode: prompt-only fixes for this class of problem have repeatedly needed a deterministic backstop once observed failing at full-corpus scale.
+
+---
+
+## 4. Agenda Text Retrieval (`post_process.py`)
+
+**Script:** `scripts/post_process.py → _load_cached_agenda_text()`
+**Model:** `gemini-2.5-flash` (only when the packet-isolation fallback below triggers)
+**Temperature:** 0.0
+**Output:** Plain text (agenda excerpt), truncated to `max_chars` (default 2500)
+**Called from:** §2 and §3, to ground tagging in the district's own agenda item framing rather than only the Gemini-generated transcript summary.
+
+### Behavior
+
+1. Look for a cached standalone `agenda`-type doc under `official_docs/{slug}/` in GCS (populated by `_extract_official_terms()`, §6) — if found, return its text.
+2. Otherwise, if a `packet`-type doc is cached (agendas are sometimes bundled into the packet rather than standing alone), isolate just the agenda/order-of-business items from it via the prompt below — a one-time Gemini call, cached back to GCS (`{packet_blob}.agenda-extract.txt`) so it never re-runs for the same packet.
+3. Returns `None` if neither is cached for that slug.
+
+### Prompt template (packet-isolation fallback only)
+
+```
+This is a school board meeting packet, which bundles the agenda with supporting materials.
+Extract ONLY the agenda / order-of-business item list (the itemized list of what the board
+will discuss or vote on) — not the attached supporting documents, reports, or exhibits.
+Return the isolated agenda text only, no commentary or markdown fences.
+
+{packet_text}
+```
+
+---
+
+## 5. Topic Synthesis (`post_process.py`)
 
 **Script:** `scripts/post_process.py → synthesize_topic()`  
 **Model:** `gemini-2.5-flash`  
@@ -114,13 +258,15 @@ Meeting: {display_date} ({meeting_url})
 - {summary_bullet_text}
 ```
 
+Which bullets go into a given topic's chunk: a meeting's `topic_evidence` frontmatter field (`{tag: [bullet_index, ...]}`, populated by §2/§3's tagging calls) is used directly when present. `_evidence_match()` fuzzy text matching is only a fallback, for meetings tagged before `topic_evidence` existed (see todos/012).
+
 ### Cache strategy
 
 MD5 hash of the evidence string stored in `scripts/topic_hashes.json`. Synthesis is skipped when hash is unchanged AND an existing dict-format summary exists.
 
 ---
 
-## 3. Official Document Term Extraction (`post_process.py`)
+## 6. Official Document Term Extraction (`post_process.py`)
 
 **Script:** `scripts/post_process.py → _extract_official_terms()`  
 **Model:** `gemini-2.5-flash`  
@@ -159,7 +305,7 @@ gs://{bucket}/official_docs/{slug}/{doc_type}-{file_id}/{modifiedTime}.json  ←
 
 ---
 
-## 4. Agenda Preview (`post_process.py`)
+## 7. Agenda Preview (`post_process.py`)
 
 **Script:** `scripts/post_process.py → generate_agenda_preview()`  
 **Model:** `gemini-2.5-flash`  
@@ -194,7 +340,7 @@ Agenda text:
 
 ---
 
-## 5. Blurb Generation (`post_process.py`)
+## 8. Blurb Generation (`post_process.py`)
 
 **Script:** `scripts/post_process.py → generate_blurb()`  
 **Model:** `gemini-2.5-flash`  

@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import Process, Queue as MpQueue
 from google import genai
 from google.genai import types as genai_types
+from pydantic import BaseModel
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -72,9 +73,65 @@ def _evidence_match(topic, bullet_topic, bullet_text):
 
 _TAG_GENERIC_EXAMPLES = "Policy Review, Community Engagement, School Operations, Board Governance, Student Recognition"
 
+# Single source of truth shared with src/_data/meetings.js — do not hardcode this list in either
+# place (see todos/005). Exact-match only: "Board Governance" is dropped, but a more specific tag
+# like "Board Governance Ethics Policy" is untouched.
+TOPIC_BLACKLIST_PATH = 'src/_data/topic_blacklist.json'
+TOPIC_BLACKLIST = set(json.load(open(TOPIC_BLACKLIST_PATH))) if os.path.exists(TOPIC_BLACKLIST_PATH) else set()
+
+def _drop_blacklisted(tag, slug):
+    """Deterministic backstop for the generic-noun prompt rule — batch-scale tagging has
+    repeatedly drifted toward exactly these bare category words despite explicit instructions
+    not to, so this actually removes them rather than just warning."""
+    if tag in TOPIC_BLACKLIST:
+        print(f"    Dropped blacklisted tag '{tag}' for {slug} (see src/_data/topic_blacklist.json)")
+        return None
+    return tag
+
 def _normalize_fy(tag):
     """Normalize FY20YY → FYYYY in a tag string (e.g. FY2027 → FY27)."""
     return re.sub(r'\bFY20(\d{2})\b', lambda m: f'FY{m.group(1)}', tag)
+
+# Generic, subject-agnostic words describing what STAGE of board deliberation something is at
+# ("X Development" / "X Discussion" could describe any topic at any point) — safe to strip from
+# the end of any tag. Deliberately excludes words naming a substantive OUTCOME (Closure, Adoption,
+# Referendum, Resignation, Appointment, ...) — those carry real meaning and must never be stripped.
+_MODIFIER_SUFFIXES = {
+    'Development', 'Presentation', 'Discussion', 'Update', 'Updates', 'Overview', 'Review', 'Reviews',
+    'Consideration', 'Process', 'Session', 'Report', 'Reports', 'Debate', 'Announcement',
+    'Revision', 'Revisions', 'Projection', 'Projections',
+}
+# Only stripped from cyclical (FY-prefixed) tags, where "one tag per fiscal year" already forces
+# every phase — including the approval/vote moment — under a single tag regardless of wording.
+_CYCLICAL_ONLY_SUFFIXES = {'Approval', 'Vote', 'Votes'}
+_FY_PREFIX_RE = re.compile(r'^FY\d{2}\b')
+
+def _strip_modifiers(tag):
+    """Strip trailing generic process-stage words from a tag, e.g. 'FY26 Budget Development' ->
+    'FY26 Budget', 'Cell Phone Policy Development' -> 'Cell Phone Policy'. Repeats until no more
+    strippable trailing word remains."""
+    words = tag.split()
+    strip_set = _MODIFIER_SUFFIXES | _CYCLICAL_ONLY_SUFFIXES if _FY_PREFIX_RE.match(tag) else _MODIFIER_SUFFIXES
+    while len(words) > 1 and words[-1] in strip_set:
+        words = words[:-1]
+    return ' '.join(words)
+
+# Budget-cycle synonyms that sometimes get generated WITHOUT an FY prefix, which lets them slip
+# past the cyclical "one tag per fiscal year" rule entirely (that rule only fires on tags that
+# already start with "FY\d\d"). Deficits/shortfalls are always part of that year's budget story,
+# not a separate topic — but which FY they belong to can't be reliably guessed from the meeting
+# date alone: the district's actual budget calendar drifts year to year (e.g. 2025-11-03 is still
+# "FY26 Budget" while 2025-12-17 is already "FY27 Budget" — a fixed month cutoff would mis-tag
+# either the deficit talk in between, or meetings elsewhere in the corpus). So this only flags the
+# gap for human visibility rather than guessing a fiscal year and risking silently wrong data —
+# the actual fix is the prompt instruction above, which has full context to get the FY right.
+_BUDGET_SYNONYM_KEYWORDS = ('deficit', 'shortfall')
+
+def _warn_if_budget_synonym(tag, slug):
+    if not _FY_PREFIX_RE.match(tag) and any(kw in tag.lower() for kw in _BUDGET_SYNONYM_KEYWORDS):
+        print(f"    Warning: '{tag}' ({slug}) looks budget-related but has no FY prefix — "
+              f"review whether it should be folded into that meeting's FY Budget tag.")
+    return tag
 
 def _update_topics_lib(new_tags, path='src/_data/topics.json'):
     existing = json.load(open(path)) if os.path.exists(path) else []
@@ -84,15 +141,41 @@ def _update_topics_lib(new_tags, path='src/_data/topics.json'):
         with open(path, 'w') as f:
             json.dump(added + existing, f, indent=2)
 
-def generate_tags(slug, summary_bullets, allowed_tags, topic_context=None, recent_topics=None):
+# Shared tag-quality rule text, interpolated into both generate_tags()'s (single-meeting) and
+# batch_tag_all_meetings()'s (batch) prompts. Kept as single constants — not copy-pasted prose in
+# each prompt — specifically so a future fix to one of these rules can't drift out of sync between
+# the two tagging paths the way earlier iterations of this file had to be hand-synced.
+_RULE_TIME_BINDING = """**Time-binding — 3 categories.** Whether (and how granularly) a tag carries a year/FY depends on what kind of issue it is:
+   - **Cyclical** (budget cycles, audits, bargaining rounds, calendar approval): time-bound, but **one tag per fiscal year, period**. If a tag already exists for this fiscal year's instance of the cycle (e.g. an existing "FY27 Budget"), reuse it — do NOT create a new tag for a different phase or sub-event within the same cycle (no separate "FY27 Budget Approval" / "FY27 Budget Development" / "FY27 Budget Challenges"). Use a small, fixed vocabulary for the theme name itself — "Budget", "Audit", "School Calendar", "Collective Bargaining" — never invent a new theme word like "Financial Deficit" or "Staffing Adjustments" for what is really just that year's budget cycle. This includes deficits, shortfalls, and funding gaps — those are always part of that year's budget story, never a standalone tag; always keep the FY prefix on them ("FY27 Budget", never bare "Financial Deficit"). This district's fiscal year is named for its ending year and runs July 1 - June 30 (e.g. FY27 = July 2026-June 2027). Budget deliberation for a fiscal year typically happens in the spring before it starts (roughly January-June) — a budget-related tag from that window usually belongs to the UPCOMING fiscal year, not the one about to end. Occasionally a district starts budget planning for a later fiscal year unusually early (e.g. discussing next year's budget in December instead of the following spring) — when the content clearly indicates that, tag it with the fiscal year actually being discussed, not the one implied by a rigid calendar cutoff.
+   - **Discrete initiatives** (a specific search, closure, or policy rollout): bind to a year/era only when the same type of event could plausibly recur later and future disambiguation will matter (e.g. "Superintendent Search", "Student Cell Phone Policy 2026").
+   - **Evergreen** (standing, systemic domains with no natural end — special ed, transportation, facilities, equity, governance): never time-bound."""
+
+_RULE_SUBJECT_NOT_PROCESS = """**Subject, not process stage.** A tag names the SUBJECT being discussed, never what stage of board deliberation it's at. Words like "Development", "Presentation", "Discussion", "Update", "Overview", "Review", "Consideration", "Process", "Session", "Report", "Debate", "Announcement", "Revision(s)", "Projection" describe *where something is in the meeting cycle*, not *what the topic is* — never end a tag with one of these (e.g. "Cell Phone Policy Development" → "Cell Phone Policy"). Words naming a specific, substantive outcome — "Closure", "Adoption", "Referendum", "Resignation", "Appointment" — are fine to keep; they're not process-stage words."""
+
+_RULE_GENERIC_NOUN = (
+    f'Generic category nouns ({_TAG_GENERIC_EXAMPLES}) are never valid tags — this includes exact matches '
+    f'for the blacklisted words ({", ".join(sorted(TOPIC_BLACKLIST))}), which are dropped automatically even '
+    f'if generated, so naming one just wastes the tag slot. This rule does not relax just because you\'re also '
+    f'citing evidence bullets — pick the specific tag first, exactly as you would without an evidence '
+    f'requirement, THEN find which bullets support it, never let ease of citation pull you toward a broader tag.'
+)
+
+
+def generate_tags(slug, summary_bullets, allowed_tags, topic_context=None, recent_topics=None, agenda_text=None):
     """Call Gemini to generate topic tags from a meeting's summary bullets.
 
     topic_context: optional {tag: current_status} — gives the model a description of what each
     existing tag actually covers, not just its bare name, so it can recognize a continuing thread.
     recent_topics: optional list of tags used at the board's most recent prior meeting.
+    agenda_text: optional excerpt of the official agenda (or agenda items isolated from a packet)
+    for this meeting — district-authored item framing, independent of the Gemini-generated summary.
+
+    Returns (tags, evidence) — evidence is {tag: [summary_bullet_index, ...]}, populated by the
+    model itself alongside the tags so synthesis doesn't have to reverse-engineer which bullets
+    support which tag via fuzzy text matching (see _evidence_match / todos/012).
     """
     topic_context = topic_context or {}
-    summary_text = '\n'.join(f'- {b["topic"]}: {b["text"]}' for b in summary_bullets)
+    summary_text = '\n'.join(f'{i}. {b["topic"]}: {b["text"]}' for i, b in enumerate(summary_bullets))
 
     allowed_lines = []
     for t in allowed_tags:
@@ -101,6 +184,7 @@ def generate_tags(slug, summary_bullets, allowed_tags, topic_context=None, recen
     allowed_text = '\n'.join(allowed_lines) if allowed_lines else '(none yet)'
 
     recent_text = ', '.join(recent_topics) if recent_topics else '(none — this is the first tagged meeting)'
+    agenda_section = f"\n**Official agenda excerpt for this meeting:**\n{agenda_text}\n" if agenda_text else ""
 
     prompt = f"""You are tagging a school board meeting. Given the meeting summary below, identify 3-5 topic tags for the PRIMARY issues discussed.
 
@@ -111,22 +195,23 @@ def generate_tags(slug, summary_bullets, allowed_tags, topic_context=None, recen
 
 **Topics discussed at the board's most recent prior meeting:** {recent_text}
 If this meeting's content continues one of those threads, that's a strong signal to reuse the same tag rather than coin a new one — even if the wording of this meeting's bullets doesn't closely match the tag's name. Use the "what it currently covers" descriptions above, not just name-matching, to judge whether an existing tag fits.
-
+{agenda_section}
 **Tag selection rules, in priority order:**
 1. **Reuse an existing tag** when it accurately describes the topic — judge this by what the tag covers (its description above and the recent-meeting context), not by superficial wording overlap with the tag's name.
-2. **Time-binding — 3 categories.** Whether (and how granularly) a tag carries a year/FY depends on what kind of issue it is:
-   - **Cyclical** (budget cycles, audits, bargaining rounds, calendar approval): time-bound, but **one tag per fiscal year, period**. If a tag already exists for this fiscal year's instance of the cycle (e.g. an existing "FY27 Budget"), reuse it — do NOT create a new tag for a different phase or sub-event within the same cycle (no separate "FY27 Budget Approval" / "FY27 Budget Development" / "FY27 Budget Challenges").
-   - **Discrete initiatives** (a specific search, closure, or policy rollout): bind to a year/era only when the same type of event could plausibly recur later and future disambiguation will matter (e.g. "Superintendent Search", "Student Cell Phone Policy 2026").
-   - **Evergreen** (standing, systemic domains with no natural end — special ed, transportation, facilities, equity, governance): never time-bound.
-3. **Create a new specific tag** when no existing tag fits. Name the specific issue, not a category — "SPESPA Contract 2025" not "Union Contracts"; "FY26 Staff Reductions" not "Property Taxes". Generic category nouns ({_TAG_GENERIC_EXAMPLES}) are never valid tags.
+2. {_RULE_TIME_BINDING}
+3. {_RULE_SUBJECT_NOT_PROCESS}
+4. **Create a new specific tag** when no existing tag fits. Name the specific issue, not a category — "SPESPA Contract 2025" not "Union Contracts"; "FY26 Staff Reductions" not "Property Taxes". {_RULE_GENERIC_NOUN}
 
 **Format rules:** Fiscal years must use FYYY format (FY27, FY26) — never FY2027 or FY2026. No parentheses or acronyms. No concatenated words. No symbols (&, /, etc.).
 
 Meeting: {slug}
-Summary:
+Summary (numbered):
 {summary_text}
 
-Respond with a JSON array of tag strings only. Example: ["Elementary School Reconfiguration", "FY27 Budget"]"""
+Respond with a JSON array of objects, one per tag: [{{"tag": "...", "evidence_bullets": [0, 2]}}, ...]
+"evidence_bullets" are the 0-indexed numbers from the Summary list above that support this tag —
+every tag must cite at least one. Example:
+[{{"tag": "Elementary School Reconfiguration", "evidence_bullets": [0]}}, {{"tag": "FY27 Budget", "evidence_bullets": [1, 3]}}]"""
 
     q = MpQueue()
     p = Process(target=_tagging_subprocess, args=(prompt, q), daemon=True)
@@ -142,8 +227,21 @@ Respond with a JSON array of tag strings only. Example: ["Elementary School Reco
         raise Exception("Tagging subprocess exited with no result")
     if kind == 'err':
         raise Exception(val)
-    tags = json.loads(val)
-    return [_normalize_fy(t) for t in tags]
+    raw = json.loads(val)
+
+    evidence = {}
+    tags = []
+    n_bullets = len(summary_bullets)
+    for entry in raw:
+        tag = _drop_blacklisted(_warn_if_budget_synonym(_strip_modifiers(_normalize_fy(entry['tag'])), slug), slug)
+        if tag is None:
+            continue
+        bullets = [i for i in entry.get('evidence_bullets', []) if isinstance(i, int) and 0 <= i < n_bullets]
+        if tag not in evidence:
+            tags.append(tag)
+            evidence[tag] = []
+        evidence[tag] = sorted(set(evidence[tag]) | set(bullets))
+    return tags, evidence
 
 
 GLOSSARY = {
@@ -282,6 +380,76 @@ def _extract_official_terms(meeting_data, bucket_uri):
     return all_terms
 
 
+def _load_cached_agenda_text(slug, bucket_uri, max_chars=2500):
+    """Read cached agenda-doc text for a meeting from GCS (populated by _extract_official_terms).
+    Falls back to isolating the agenda/order-of-business items out of a cached packet, via a
+    Gemini call cached back to GCS so it only runs once per packet. Read-only otherwise —
+    no new Drive fetches. Returns None if nothing is cached at all for this slug."""
+    if not bucket_uri:
+        return None
+    from google.cloud import storage
+    bucket_name = bucket_uri[5:]  # strip gs://
+    gcs_bucket = storage.Client(credentials=credentials, project=project_id).bucket(bucket_name)
+    prefix = f"official_docs/{slug}/"
+    try:
+        blobs = list(gcs_bucket.list_blobs(prefix=prefix))
+    except Exception as e:
+        print(f"    Warning: could not list cached docs for {slug}: {e}")
+        return None
+
+    def _doc_type(blob_name):
+        # official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.txt
+        segment = blob_name[len(prefix):].split('/', 1)[0]
+        return segment.split('-', 1)[0]
+
+    # Exclude our own isolated-extract cache blobs from being mistaken for raw source text —
+    # they live alongside the original .txt under the same {doc_type}-{file_id}/ folder.
+    text_blobs = [b for b in blobs if b.name.endswith('.txt') and '.agenda-extract' not in b.name]
+    agenda_blobs = [b for b in text_blobs if _doc_type(b.name) == 'agenda']
+    if agenda_blobs:
+        text = '\n\n'.join(b.download_as_text(timeout=60) for b in agenda_blobs)
+        return text[:max_chars]
+
+    packet_blobs = [b for b in text_blobs if _doc_type(b.name) == 'packet']
+    if not packet_blobs:
+        return None
+
+    packet_blob = packet_blobs[0]
+    isolated_blob = gcs_bucket.blob(packet_blob.name[:-4] + '.agenda-extract.txt')
+    if isolated_blob.exists(timeout=60):
+        try:
+            return isolated_blob.download_as_text(timeout=60)[:max_chars]
+        except Exception:
+            pass
+
+    try:
+        packet_text = packet_blob.download_as_text(timeout=60)
+    except Exception as e:
+        print(f"    Warning: could not read cached packet for {slug}: {e}")
+        return None
+
+    print(f"    Isolating agenda items from packet for {slug} (not cached)...", flush=True)
+    try:
+        response = client.models.generate_content(
+            model=model_name,
+            contents=(
+                "This is a school board meeting packet, which bundles the agenda with supporting "
+                "materials. Extract ONLY the agenda / order-of-business item list (the itemized "
+                "list of what the board will discuss or vote on) — not the attached supporting "
+                "documents, reports, or exhibits. Return the isolated agenda text only, no "
+                "commentary or markdown fences.\n\n"
+                f"{packet_text}"
+            ),
+            config={'temperature': 0.0},
+        )
+        isolated = response.text.strip()
+        isolated_blob.upload_from_string(isolated, content_type='text/plain', timeout=60)
+        return isolated[:max_chars]
+    except Exception as e:
+        print(f"    Warning: could not isolate agenda from packet for {slug}: {e}")
+        return None
+
+
 def generate_agenda_preview(meeting_data, meeting_dir):
     """Generate and write a topic-structured agenda_preview for an upcoming stub."""
     docs = meeting_data.get('docs') or []
@@ -381,7 +549,153 @@ def synthesize_topic(topic, evidence, display_date):
         return topic, None
 
 
-def dry_run_tag(slugs, meeting_dir='src/meetings/',
+class TaggedTopic(BaseModel):
+    tag: str
+    evidence_bullets: list[int]  # 0-indexed positions into that meeting's own numbered summary
+
+
+class MeetingTagSet(BaseModel):
+    slug: str
+    tags: list[TaggedTopic]
+
+
+class BatchTagResponse(BaseModel):
+    results: list[MeetingTagSet]
+
+
+BATCH_TAGGING_TIMEOUT = 600  # seconds; enforced via subprocess SIGTERM
+
+
+def _batch_tagging_subprocess(prompt_text, result_queue):
+    """Runs the batch tagging Gemini call in a separate process so SIGTERM can hard-kill it on timeout."""
+    local_credentials, local_project_id = get_credentials()
+    local_client = genai.Client(
+        credentials=local_credentials, project=local_project_id, location='us-central1', vertexai=True,
+    )
+    try:
+        response = local_client.models.generate_content(
+            model=model_name,
+            contents=prompt_text,
+            config={'response_mime_type': 'application/json', 'response_schema': BatchTagResponse, 'temperature': 0.0},
+        )
+        result_queue.put(('ok', response.text))
+    except Exception as e:
+        result_queue.put(('err', str(e)))
+
+
+def batch_tag_all_meetings(meetings_data, bucket_uri, meeting_dir, topics_lib_path):
+    """Tag the entire meeting corpus in a single Gemini call, using each meeting's transcript summary
+    plus cached agenda text at once — lets the model assign self-consistent tags across a narrative
+    that spans many meetings (e.g. a school closure) instead of reconstructing continuity one meeting
+    at a time. Used for periodic full recalibration (--retag), not the daily incremental path."""
+    candidates = sorted(
+        [m for m in meetings_data if not m.get('stub') and m.get('summary')],
+        key=lambda m: m['slug']
+    )
+    if not candidates:
+        print("  No meetings to tag.")
+        return
+
+    print(f"  Gathering context for {len(candidates)} meetings (agenda text from cache)...", flush=True)
+    meeting_blocks = []
+    for m in candidates:
+        slug = m['slug']
+        summary_text = '\n'.join(f'  {i}. {b["topic"]}: {b["text"]}' for i, b in enumerate(m['summary']))
+        agenda_text = _load_cached_agenda_text(slug, bucket_uri)
+        block = f"### Meeting: {slug}\nSummary (numbered):\n{summary_text}"
+        if agenda_text:
+            block += f"\nOfficial agenda excerpt:\n{agenda_text}"
+        meeting_blocks.append(block)
+    meetings_text = '\n\n'.join(meeting_blocks)
+
+    prompt = f"""You are tagging the full history of a school board's meetings with topic tags, all at once.
+For EACH meeting below, identify 3-5 topic tags for the PRIMARY issues discussed.
+
+**First-order rule:** Only tag a topic if it received substantial, independent discussion in that meeting — not just a passing mention or as context within another topic.
+
+**Consistency is the whole point of tagging everything at once:** if the same underlying story spans multiple meetings (e.g. a school closure that gets recommended, voted on, and then has its logistics worked out over several later meetings), use the SAME tag across all of them, even if the specific wording of each meeting's summary differs. You are the single source of truth for the entire tag set here — there is no external tag list to consult, decide it directly from the evidence across the whole corpus.
+
+**Tag selection rules:**
+1. **Reuse the same tag** for the same underlying story wherever it recurs across meetings — this is the most important rule for this pass.
+2. {_RULE_TIME_BINDING} This rule is the one most often violated when tagging many meetings at once — before finalizing, scan your own output for every budget-adjacent tag (including ones without an FY prefix that should have one) and collapse any that share a fiscal year and theme into one.
+3. {_RULE_SUBJECT_NOT_PROCESS}
+4. **Name the specific issue, not a category** — "SPESPA Contract 2025" not "Union Contracts". {_RULE_GENERIC_NOUN}
+
+**Format rules:** Fiscal years must use FYYY format (FY27, FY26) — never FY2027 or FY2026. No parentheses or acronyms. No concatenated words. No symbols (&, /, etc.).
+
+Meetings (chronological):
+{meetings_text}
+
+Respond with tags for every meeting listed above, keyed by its slug. For each tag, cite which
+0-indexed bullet number(s) from THAT meeting's own numbered Summary support it — every tag must
+cite at least one bullet from its own meeting. The citation is bookkeeping for a tag you've already
+chosen on its merits, not a factor in choosing it."""
+
+    q = MpQueue()
+    p = Process(target=_batch_tagging_subprocess, args=(prompt, q), daemon=True)
+    p.start()
+    p.join(timeout=BATCH_TAGGING_TIMEOUT)
+    if p.is_alive():
+        p.terminate()
+        p.join()
+        raise TimeoutError(f"Batch tagging timed out after {BATCH_TAGGING_TIMEOUT}s")
+    try:
+        kind, val = q.get_nowait()
+    except _stdlib_queue.Empty:
+        raise Exception("Batch tagging subprocess exited with no result")
+    if kind == 'err':
+        raise Exception(val)
+
+    parsed = json.loads(val)
+    n_bullets_by_slug = {m['slug']: len(m['summary']) for m in candidates}
+
+    results = {}
+    for r in parsed['results']:
+        slug = r['slug']
+        n_bullets = n_bullets_by_slug.get(slug, 0)
+        tags, evidence = [], {}
+        for entry in r['tags']:
+            tag = _drop_blacklisted(_warn_if_budget_synonym(_strip_modifiers(_normalize_fy(entry['tag'])), slug), slug)
+            if tag is None:
+                continue
+            bullets = [i for i in entry['evidence_bullets'] if 0 <= i < n_bullets]
+            if tag not in evidence:
+                tags.append(tag)
+                evidence[tag] = []
+            evidence[tag] = sorted(set(evidence[tag]) | set(bullets))
+        results[slug] = (tags, evidence)
+
+    last_seen = {}  # tag -> most recent slug mentioning it
+    tagged_count = 0
+    for m in candidates:  # candidates is chronological (oldest first), so later writes win
+        slug = m['slug']
+        result = results.get(slug)
+        if result is None:
+            print(f"  Warning: no tags returned for {slug}")
+            continue
+        tags, evidence = result
+        njk_path = os.path.join(meeting_dir, f"{slug}.njk")
+        data, body = _read_njk(njk_path)
+        data['topics'] = tags
+        data['topic_evidence'] = evidence
+        _write_njk(njk_path, data, body)
+        m['topics'] = tags
+        m['topic_evidence'] = evidence
+        for t in tags:
+            last_seen[t] = slug
+        tagged_count += 1
+        print(f"  {slug} → {tags}")
+
+    # Recency order (most recently active topic first) — matches the incremental path's
+    # prepend-on-first-seen behavior (_update_topics_lib) and the /topics index's display order,
+    # which reads topics.json array order directly with no re-sorting of its own.
+    ordered_tags = sorted(last_seen, key=lambda t: last_seen[t], reverse=True)
+    with open(topics_lib_path, 'w') as f:
+        json.dump(ordered_tags, f, indent=2)
+    print(f"  Tagged {tagged_count}/{len(candidates)} meetings; {len(ordered_tags)} unique tags.")
+
+
+def dry_run_tag(slugs, bucket_uri, meeting_dir='src/meetings/',
                  topics_lib_path='src/_data/topics.json',
                  summary_lib_path='src/_data/topic_summaries.json'):
     """Test generate_tags() against real current context for given meeting slug(s). Writes nothing —
@@ -409,10 +723,14 @@ def dry_run_tag(slugs, meeting_dir='src/meetings/',
             prior_data, _ = _read_njk(os.path.join(meeting_dir, f"{prior_slug}.njk"))
             recent_topics = prior_data.get('topics')
 
-        print(f"  Dry-run tagging {slug} (prior meeting: {prior_slug or 'none'})...")
+        agenda_text = _load_cached_agenda_text(slug, bucket_uri)
+
+        print(f"  Dry-run tagging {slug} (prior meeting: {prior_slug or 'none'}, agenda context: {'yes' if agenda_text else 'no'})...")
         try:
-            tags = generate_tags(slug, data['summary'], allowed_tags, topic_context, recent_topics)
+            tags, evidence = generate_tags(slug, data['summary'], allowed_tags, topic_context, recent_topics, agenda_text)
             print(f"    → {tags}")
+            for t in tags:
+                print(f"      {t}: bullets {evidence.get(t, [])}")
         except Exception as e:
             print(f"  Warning: dry-run tagging failed for {slug}: {e}")
 
@@ -423,17 +741,6 @@ def post_process():
     summary_lib_path = 'src/_data/topic_summaries.json'
     hashes_lib_path = 'scripts/topic_hashes.json'
 
-    if '--dry-run-tag' in sys.argv:
-        idx = sys.argv.index('--dry-run-tag')
-        if idx + 1 >= len(sys.argv):
-            print("Usage: --dry-run-tag SLUG[,SLUG...]")
-            return
-        slugs = [s.strip() for s in sys.argv[idx + 1].split(',') if s.strip()]
-        dry_run_tag(slugs, meeting_dir, topics_lib_path, summary_lib_path)
-        return
-
-    retag = '--retag' in sys.argv
-
     bucket_uri = None
     if '--bucket' in sys.argv:
         idx = sys.argv.index('--bucket')
@@ -441,12 +748,25 @@ def post_process():
             bucket_uri = sys.argv[idx + 1]
     bucket_uri = bucket_uri or os.getenv('GCS_BUCKET_URI') or None
 
+    if '--dry-run-tag' in sys.argv:
+        idx = sys.argv.index('--dry-run-tag')
+        if idx + 1 >= len(sys.argv):
+            print("Usage: --dry-run-tag SLUG[,SLUG...] [--bucket gs://...]")
+            return
+        slugs = [s.strip() for s in sys.argv[idx + 1].split(',') if s.strip()]
+        dry_run_tag(slugs, bucket_uri, meeting_dir, topics_lib_path, summary_lib_path)
+        return
+
+    retag = '--retag' in sys.argv
+
     if retag:
         with open(topics_lib_path, 'w') as f:
             json.dump([], f)
         with open(hashes_lib_path, 'w') as f:
             json.dump({}, f)
-        print("Retag mode: cleared topics.json and topic_hashes.json", flush=True)
+        with open(summary_lib_path, 'w') as f:
+            json.dump({}, f)
+        print("Retag mode: cleared topics.json, topic_hashes.json, and topic_summaries.json", flush=True)
 
     # 1. Enforce Glossary & Extract Data
     print("Enforcing Glossary and scanning meetings...", flush=True)
@@ -492,35 +812,45 @@ def post_process():
             for future in as_completed(futures):
                 future.result()
 
-    # 3. Generate topic tags from summary bullets (sequential, chronological)
-    print("Generating topic tags from meeting summaries...", flush=True)
-    allowed_tags = json.load(open(topics_lib_path)) if os.path.exists(topics_lib_path) else []
-    topic_context = {
-        t: s.get('current_status', '')
-        for t, s in (json.load(open(summary_lib_path)) if os.path.exists(summary_lib_path) else {}).items()
-    }
-    tag_candidates = sorted(
-        [m for m in meetings_data if not m.get('stub') and m.get('summary')],
-        key=lambda m: m['slug']
-    )
-    for i, m in enumerate(tag_candidates):
-        if not retag and m.get('topics'):
-            continue
-        slug = m['slug']
-        recent_topics = tag_candidates[i - 1].get('topics') if i > 0 else None
-        print(f"  Tagging {slug}...", flush=True)
+    # 3. Generate topic tags from summary bullets
+    if retag:
+        print("Batch-tagging the full meeting corpus in a single call...", flush=True)
         try:
-            tags = generate_tags(slug, m['summary'], allowed_tags, topic_context, recent_topics)
-            njk_path = os.path.join(meeting_dir, f"{slug}.njk")
-            data, body = _read_njk(njk_path)
-            data['topics'] = tags
-            _write_njk(njk_path, data, body)
-            m['topics'] = tags  # keep in-memory data in sync for synthesis step
-            _update_topics_lib(tags, topics_lib_path)
-            allowed_tags = json.load(open(topics_lib_path))
-            print(f"    → {tags}")
+            batch_tag_all_meetings(meetings_data, bucket_uri, meeting_dir, topics_lib_path)
         except Exception as e:
-            print(f"  Warning: tagging failed for {slug}: {e}", flush=True)
+            print(f"  Warning: batch tagging failed: {e}", flush=True)
+    else:
+        print("Generating topic tags from meeting summaries...", flush=True)
+        allowed_tags = json.load(open(topics_lib_path)) if os.path.exists(topics_lib_path) else []
+        topic_context = {
+            t: s.get('current_status', '')
+            for t, s in (json.load(open(summary_lib_path)) if os.path.exists(summary_lib_path) else {}).items()
+        }
+        tag_candidates = sorted(
+            [m for m in meetings_data if not m.get('stub') and m.get('summary')],
+            key=lambda m: m['slug']
+        )
+        for i, m in enumerate(tag_candidates):
+            if m.get('topics'):
+                continue
+            slug = m['slug']
+            recent_topics = tag_candidates[i - 1].get('topics') if i > 0 else None
+            agenda_text = _load_cached_agenda_text(slug, bucket_uri)
+            print(f"  Tagging {slug}...", flush=True)
+            try:
+                tags, evidence = generate_tags(slug, m['summary'], allowed_tags, topic_context, recent_topics, agenda_text)
+                njk_path = os.path.join(meeting_dir, f"{slug}.njk")
+                data, body = _read_njk(njk_path)
+                data['topics'] = tags
+                data['topic_evidence'] = evidence
+                _write_njk(njk_path, data, body)
+                m['topics'] = tags  # keep in-memory data in sync for synthesis step
+                m['topic_evidence'] = evidence
+                _update_topics_lib(tags, topics_lib_path)
+                allowed_tags = json.load(open(topics_lib_path))
+                print(f"    → {tags}")
+            except Exception as e:
+                print(f"  Warning: tagging failed for {slug}: {e}", flush=True)
 
     # 4. Generate Agenda Previews for upcoming stubs with a packet/agenda doc
     print("Generating agenda previews for upcoming meetings...")
@@ -577,10 +907,17 @@ def post_process():
         for m in topic_sorted:
             m_date = m.get('display_date', m.get('slug', ''))
             m_url = f"/meetings/{m['slug']}/"
-            topic_bullets = [
-                b['text'] for b in m.get('summary', [])
-                if _evidence_match(topic, b.get('topic', ''), b.get('text', ''))
-            ]
+            summary = m.get('summary', [])
+            # Prefer the evidence linkage the tagging call reported for itself (todos/012) — falls
+            # back to fuzzy text matching only for meetings tagged before that field existed.
+            evidence_indices = (m.get('topic_evidence') or {}).get(topic)
+            if evidence_indices is not None:
+                topic_bullets = [summary[i]['text'] for i in evidence_indices if 0 <= i < len(summary)]
+            else:
+                topic_bullets = [
+                    b['text'] for b in summary
+                    if _evidence_match(topic, b.get('topic', ''), b.get('text', ''))
+                ]
             if topic_bullets:
                 evidence_list.append(f"Meeting: {m_date} ({m_url})\n" + "\n".join([f"- {b}" for b in topic_bullets]))
 

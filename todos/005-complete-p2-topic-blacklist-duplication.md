@@ -1,6 +1,6 @@
 ---
 name: topic-blacklist-duplication
-status: pending
+status: complete
 priority: p2
 issue_id: "005"
 tags: [code-review, architecture, maintainability]
@@ -58,9 +58,18 @@ Add a test that loads both files and asserts the sets match.
 **Risk**: Low but slightly higher than Option A
 
 ## Acceptance Criteria
-- [ ] TOPIC_BLACKLIST has a single authoritative source
-- [ ] Both `meetings.js` and `post_process.py` read from that source at runtime
-- [ ] Adding a new topic to the blacklist requires changing exactly one file
+- [x] TOPIC_BLACKLIST has a single authoritative source
+- [x] Both `meetings.js` and `post_process.py` read from that source at runtime
+- [x] Adding a new topic to the blacklist requires changing exactly one file
+
+## Resolution
+
+Implemented Option A as originally proposed: `src/_data/topic_blacklist.json` (`["Personnel", "Contracts", "Finance", "Budget", "Policy", "Board Governance"]` — extended with two entries during resolution, see below) is now the single source. `meetings.js` loads it via `require('./topic_blacklist.json')`; `post_process.py` loads it via `json.load()` into a module-level `TOPIC_BLACKLIST` set.
+
+Found while resolving: by the time this was picked up, `post_process.py`'s copy hadn't just drifted from `meetings.js` — it had been dropped entirely at some point (no `TOPIC_BLACKLIST` reference existed in the Python pipeline at all). That meant blacklisted words weren't just *inconsistently* filtered, they were **not filtered from `topics.json`/page generation at all** — only hidden from one UI element (the meetings-list filter chips). A full-corpus batch retag surfaced this concretely: a bare `Finance` tag (exact blacklist match) generated a live `/topics/finance/` page. Fixed by adding `_drop_blacklisted()` in `post_process.py`, applied as a deterministic filter (not just a warning) in both tagging paths (`generate_tags()` and `batch_tag_all_meetings()`) — consistent with this session's general pattern of backstopping prompt rules in code once they've been observed to not hold reliably on their own at batch scale.
+
+Extended the list with `Policy` and `Board Governance` (both already listed as bad examples in `_TAG_GENERIC_EXAMPLES`) after they kept recurring as bare, low-value tags in batch-mode output despite explicit prompt instructions not to use them.
 
 ## Work Log
 - 2026-06-08: Identified by maintainability-reviewer (M03) in ce:review of nav/data-derivation refactor
+- 2026-08-06: Resolved (Option A) during topic-identification batch-tagging iteration; see Resolution above.

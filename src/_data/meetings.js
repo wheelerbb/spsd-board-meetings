@@ -15,8 +15,9 @@ function schoolYear(slug) {
   return m >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
 }
 
-// Topics filtered out of the public index (matches post_process.py TOPIC_BLACKLIST).
-const TOPIC_BLACKLIST = new Set(['Personnel', 'Contracts', 'Finance', 'Budget']);
+// Topics filtered out of the public index. Single source of truth shared with post_process.py —
+// see src/_data/topic_blacklist.json (do not hardcode this list here or in the Python pipeline).
+const TOPIC_BLACKLIST = new Set(require('./topic_blacklist.json'));
 
 // Parse meeting type from meeting_tag front matter field.
 // Examples: "Regular Meeting · May 2026", "Exec. Session · April 2026",
