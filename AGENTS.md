@@ -91,10 +91,11 @@ This tool analyzes raw `.vtt` transcripts using Gemini via Vertex AI.
   - `votes`: Exact motion text, result, vote count, and movers.
   - `summary`: 5-8 bullets reflecting the arc of conversation, with explicit tracking of viewpoints from the Board, Administration, Teachers, and Citizens.
   - `timeline`: 10-15 key moments with timestamps (H:MM:SS) to support video deep-linking.
+- **`SCRIPT_VERSION`:** A `YYYY-MM-DD` constant stamped into every processed `.njk` file. **Bump it to today's date whenever you change the prompt or processing logic** — this ensures the auto-run pipeline re-processes meetings that pre-date the change.
 
 ### 2. Synthesis: `scripts/post_process.py`
-This maintenance tool synchronizes the global metadata and generates high-level thematic content.
-- **Topic Taxonomy:** Sorts the global `topics.json` library by recent activity (newest first). Filters out generic blacklisted tags (e.g., "Personnel").
+This maintenance tool generates high-level thematic content from the already-processed meeting files.
+- **Topic List Ownership:** `generate_tags()` reads each meeting's summary bullets, tags it with 3-5 topics (reusing existing ones from `src/_data/topics.json` where possible), writes the tags into the meeting's `.njk` frontmatter, and prepends any new tags to `src/_data/topics.json`. This is the sole owner of that file — do not modify it from `process_transcripts.py`.
 - **Missing Blurbs:** Automatically generates blurbs for older meetings that lack them.
 - **Evidence Caching:** Hashes the chronological evidence for each topic. If the hash hasn't changed, the API call is skipped to save credits.
 - **Topic Explorer Generation:** Synthesizes chronological evidence (fed newest-first) into a 'Current Status & Evolution' summary for each topic.
@@ -111,9 +112,11 @@ When summarizing meeting discussions, identify viewpoints from these four groups
 4. **Citizens:** Public comment, parents, and community members.
 
 ### Topic Identification
-- **Specificity:** Topics MUST be specific, contextual, and ideally time-bound. Avoid generic nouns like "Transportation" or "Equity" unless they represent a standing, systemic issue spanning multiple years.
-- **Examples:** Use "FY26 Transportation Challenges" instead of "Transportation"; "2026 Equity Policy Update" instead of "Equity".
-- **Consistency:** Use `src/_data/topics.json` as the authoritative list. Re-use existing specific tags where appropriate.
+- **Consistency:** `src/_data/topics.json` is the authoritative list, maintained by `post_process.py`'s `generate_tags()`. Re-use existing tags whenever possible — the prompt passes the full list to the model. New tags are prepended automatically after each meeting is processed.
+- **Time-binding — 3 categories** (full rationale + examples in `docs/topic-taxonomy.md`):
+  1. **Cyclical** (budget cycles, audits, bargaining rounds, calendar approval): always time-bound, but **one tag per fiscal year total** — don't fragment a single FY's cycle into phase-specific tags (e.g. reuse `FY27 Budget` for approval/development/challenges, don't mint separate tags per phase).
+  2. **Discrete initiatives** (`Superintendent Search`, `Kaler Closure`, `Student Cell Phone Policy 2026`): bind to a year/era only when the same type of event could plausibly recur later and disambiguation will matter in hindsight.
+  3. **Evergreen** (`Reconfiguration`, `Special Education`, `Transportation`, `Facilities`, `Equity`, `Board Governance`): never time-bound — standing policy domains with no natural end.
 
 ### SPELING & Terminology
 - **Schools:** Kaler, Dyer, Skillin, Brown, Small, Mahoney, Memorial.

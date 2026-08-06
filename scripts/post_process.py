@@ -84,16 +84,40 @@ def _update_topics_lib(new_tags, path='src/_data/topics.json'):
         with open(path, 'w') as f:
             json.dump(added + existing, f, indent=2)
 
-def generate_tags(slug, summary_bullets, allowed_tags):
-    """Call Gemini to generate topic tags from a meeting's summary bullets."""
+def generate_tags(slug, summary_bullets, allowed_tags, topic_context=None, recent_topics=None):
+    """Call Gemini to generate topic tags from a meeting's summary bullets.
+
+    topic_context: optional {tag: current_status} — gives the model a description of what each
+    existing tag actually covers, not just its bare name, so it can recognize a continuing thread.
+    recent_topics: optional list of tags used at the board's most recent prior meeting.
+    """
+    topic_context = topic_context or {}
     summary_text = '\n'.join(f'- {b["topic"]}: {b["text"]}' for b in summary_bullets)
+
+    allowed_lines = []
+    for t in allowed_tags:
+        status = topic_context.get(t, '')
+        allowed_lines.append(f"- {t}: {status}" if status else f"- {t}")
+    allowed_text = '\n'.join(allowed_lines) if allowed_lines else '(none yet)'
+
+    recent_text = ', '.join(recent_topics) if recent_topics else '(none — this is the first tagged meeting)'
+
     prompt = f"""You are tagging a school board meeting. Given the meeting summary below, identify 3-5 topic tags for the PRIMARY issues discussed.
 
 **First-order rule:** Only tag a topic if it received substantial, independent discussion — not just a passing mention or as context within another topic. Ask: "Would a reader coming to this meeting specifically for this topic find meaningful content?" If not, omit the tag.
 
+**Existing tags** (name: what it currently covers, when known):
+{allowed_text}
+
+**Topics discussed at the board's most recent prior meeting:** {recent_text}
+If this meeting's content continues one of those threads, that's a strong signal to reuse the same tag rather than coin a new one — even if the wording of this meeting's bullets doesn't closely match the tag's name. Use the "what it currently covers" descriptions above, not just name-matching, to judge whether an existing tag fits.
+
 **Tag selection rules, in priority order:**
-1. **Reuse an existing tag** from {allowed_tags} when it accurately describes the topic.
-2. **Adapt an existing tag** for a new time-bound instance of a recurring theme — add fiscal year or scope (e.g. "FY27 Labor Contract Negotiations" not "Union Contracts").
+1. **Reuse an existing tag** when it accurately describes the topic — judge this by what the tag covers (its description above and the recent-meeting context), not by superficial wording overlap with the tag's name.
+2. **Time-binding — 3 categories.** Whether (and how granularly) a tag carries a year/FY depends on what kind of issue it is:
+   - **Cyclical** (budget cycles, audits, bargaining rounds, calendar approval): time-bound, but **one tag per fiscal year, period**. If a tag already exists for this fiscal year's instance of the cycle (e.g. an existing "FY27 Budget"), reuse it — do NOT create a new tag for a different phase or sub-event within the same cycle (no separate "FY27 Budget Approval" / "FY27 Budget Development" / "FY27 Budget Challenges").
+   - **Discrete initiatives** (a specific search, closure, or policy rollout): bind to a year/era only when the same type of event could plausibly recur later and future disambiguation will matter (e.g. "Superintendent Search", "Student Cell Phone Policy 2026").
+   - **Evergreen** (standing, systemic domains with no natural end — special ed, transportation, facilities, equity, governance): never time-bound.
 3. **Create a new specific tag** when no existing tag fits. Name the specific issue, not a category — "SPESPA Contract 2025" not "Union Contracts"; "FY26 Staff Reductions" not "Property Taxes". Generic category nouns ({_TAG_GENERIC_EXAMPLES}) are never valid tags.
 
 **Format rules:** Fiscal years must use FYYY format (FY27, FY26) — never FY2027 or FY2026. No parentheses or acronyms. No concatenated words. No symbols (&, /, etc.).
@@ -357,11 +381,56 @@ def synthesize_topic(topic, evidence, display_date):
         return topic, None
 
 
+def dry_run_tag(slugs, meeting_dir='src/meetings/',
+                 topics_lib_path='src/_data/topics.json',
+                 summary_lib_path='src/_data/topic_summaries.json'):
+    """Test generate_tags() against real current context for given meeting slug(s). Writes nothing —
+    for cheaply iterating on the tagging prompt without a full --retag."""
+    allowed_tags = json.load(open(topics_lib_path)) if os.path.exists(topics_lib_path) else []
+    topic_context = {
+        t: s.get('current_status', '')
+        for t, s in (json.load(open(summary_lib_path)) if os.path.exists(summary_lib_path) else {}).items()
+    }
+    all_slugs = sorted(f[:-4] for f in os.listdir(meeting_dir) if f.endswith('.njk'))
+
+    for slug in slugs:
+        njk_path = os.path.join(meeting_dir, f"{slug}.njk")
+        if not os.path.exists(njk_path):
+            print(f"  {slug}: not found")
+            continue
+        data, _ = _read_njk(njk_path)
+        if not data.get('summary'):
+            print(f"  {slug}: no summary bullets to tag from")
+            continue
+
+        prior_slug = next((s for s in reversed(all_slugs) if s < slug), None)
+        recent_topics = None
+        if prior_slug:
+            prior_data, _ = _read_njk(os.path.join(meeting_dir, f"{prior_slug}.njk"))
+            recent_topics = prior_data.get('topics')
+
+        print(f"  Dry-run tagging {slug} (prior meeting: {prior_slug or 'none'})...")
+        try:
+            tags = generate_tags(slug, data['summary'], allowed_tags, topic_context, recent_topics)
+            print(f"    → {tags}")
+        except Exception as e:
+            print(f"  Warning: dry-run tagging failed for {slug}: {e}")
+
+
 def post_process():
     meeting_dir = 'src/meetings/'
     topics_lib_path = 'src/_data/topics.json'
     summary_lib_path = 'src/_data/topic_summaries.json'
     hashes_lib_path = 'scripts/topic_hashes.json'
+
+    if '--dry-run-tag' in sys.argv:
+        idx = sys.argv.index('--dry-run-tag')
+        if idx + 1 >= len(sys.argv):
+            print("Usage: --dry-run-tag SLUG[,SLUG...]")
+            return
+        slugs = [s.strip() for s in sys.argv[idx + 1].split(',') if s.strip()]
+        dry_run_tag(slugs, meeting_dir, topics_lib_path, summary_lib_path)
+        return
 
     retag = '--retag' in sys.argv
 
@@ -426,17 +495,22 @@ def post_process():
     # 3. Generate topic tags from summary bullets (sequential, chronological)
     print("Generating topic tags from meeting summaries...", flush=True)
     allowed_tags = json.load(open(topics_lib_path)) if os.path.exists(topics_lib_path) else []
+    topic_context = {
+        t: s.get('current_status', '')
+        for t, s in (json.load(open(summary_lib_path)) if os.path.exists(summary_lib_path) else {}).items()
+    }
     tag_candidates = sorted(
         [m for m in meetings_data if not m.get('stub') and m.get('summary')],
         key=lambda m: m['slug']
     )
-    for m in tag_candidates:
+    for i, m in enumerate(tag_candidates):
         if not retag and m.get('topics'):
             continue
         slug = m['slug']
+        recent_topics = tag_candidates[i - 1].get('topics') if i > 0 else None
         print(f"  Tagging {slug}...", flush=True)
         try:
-            tags = generate_tags(slug, m['summary'], allowed_tags)
+            tags = generate_tags(slug, m['summary'], allowed_tags, topic_context, recent_topics)
             njk_path = os.path.join(meeting_dir, f"{slug}.njk")
             data, body = _read_njk(njk_path)
             data['topics'] = tags
