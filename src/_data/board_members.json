@@ -84,5 +84,59 @@
       { "start": "2026-01-01", "end": null }
     ],
     "roles": []
+  },
+  {
+    "name": "Ms. Kinney",
+    "seat": null,
+    "terms": [
+      { "start": "2024-01-08", "end": "2024-01-22" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Ms. Ratliff",
+    "seat": null,
+    "terms": [
+      { "start": "2024-01-08", "end": "2024-01-22" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Ms. Rauscher",
+    "seat": null,
+    "terms": [
+      { "start": "2024-01-08", "end": "2024-01-22" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Ms. Ryan",
+    "seat": null,
+    "terms": [
+      { "start": "2024-01-08", "end": "2024-01-22" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Ms. Schen",
+    "seat": null,
+    "terms": [
+      { "start": "2024-01-08", "end": "2024-01-22" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Mr. Domingos",
+    "seat": "Student Representative",
+    "terms": [
+      { "start": "2024-01-08", "end": "2024-01-22" }
+    ],
+    "roles": [],
+    "auto_discovered": true
   }
 ]
