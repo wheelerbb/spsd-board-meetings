@@ -122,7 +122,7 @@ pageScript: |
   <div class="filter-content">
     <div class="topics-container" id="topicFilterContainer">
       <button class="filter-btn topic-filter-btn active" data-topic="all" onclick="filterTopic('all',this)">All Topics</button>
-      {% for topic in topics %}
+      {% for topic in all_topics %}
       <button class="filter-btn topic-filter-btn" data-topic="{{ topic }}" onclick="filterTopic('{{ topic }}',this)">{{ topic }}</button>
       {% endfor %}
     </div>

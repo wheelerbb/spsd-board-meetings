@@ -218,6 +218,9 @@ nav a.nav-link:hover { color:var(--gold-light); }
 /* TOPIC EXPLORER */
 .main-topic { padding-top:0; background:#fdfdfd; }
 .summary-text { font-size:1.1rem; line-height:1.7; }
+.summary-text p { margin:0 0 1rem; }
+.summary-text p:last-child { margin-bottom:0; }
+.summary-text a { color:var(--navy); }
 .topic-summary-box {
   background:#fff; border:1px solid var(--gold); border-radius:8px; padding:2rem;
   margin-top:-2rem; position:relative; box-shadow:0 10px 30px rgba(0,0,0,.05);
@@ -244,6 +247,7 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .vote-table td { line-height:1.5; }
 .vote-date-cell { white-space:nowrap; font-weight:700; }
 .vote-date-cell a, .vote-table a { color:var(--navy); }
+.table-scroll { overflow-x:auto; }
 
 .evolution-timeline { max-width:900px; margin:5rem auto; padding:0 1.5rem; }
 .evolution-section-title {
@@ -263,9 +267,10 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .evolution-meeting-title a { color:var(--navy); text-decoration:none; }
 .evolution-body { color:var(--text); line-height:1.7; font-size:1.05rem; }
 .evolution-bullet { margin-bottom:1rem; padding:1rem; background:#fff; border:1px solid var(--rule); border-radius:6px; }
+.evolution-blurb { color:var(--muted); font-size:.95rem; }
 .evolution-topic-label { color:var(--gold); font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; font-weight:700; display:block; margin-bottom:.25rem; }
-.evolution-docs { display:flex; gap:.75rem; margin-top:1.5rem; flex-wrap:wrap; }
-.evolution-docs .doc-link { padding:6px 12px; font-size:.75rem; }
+.evolution-materials-link { display:inline-block; margin-top:1.25rem; font-size:.8rem; font-weight:700; color:var(--gold); text-decoration:none; }
+.evolution-materials-link:hover { text-decoration:underline; }
 
 /* MEETING HEADER */
 .meeting-header { background:var(--navy); padding:3.5rem 2.5rem 3rem; position:relative; overflow:hidden; }

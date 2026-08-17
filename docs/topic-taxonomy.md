@@ -23,7 +23,7 @@ Whether a topic should carry a year/FY suffix — and how granular that suffix s
 | **B. Discrete initiatives** | Bind to a year/era only when the same *type* of event could plausibly recur later and future disambiguation will matter. Otherwise leave undated. | `Superintendent Search`, `Kaler Closure`, `Student Cell Phone Policy 2026` |
 | **C. Evergreen** | Never time-bound. Standing, systemic domains discussed continuously with no natural end. | `Reconfiguration`, `Special Education`, `Transportation`, `Facilities`, `Equity`, `Board Governance`, `Student Mental Health` |
 
-**The most common failure mode** is treating category A like category B — minting a new tag for every sub-event of the same fiscal year's budget cycle instead of reusing one FY-scoped tag. When tagging, check `src/_data/topics.json` for an existing same-FY tag on the same cyclical theme before creating a new one.
+**The most common failure mode** is treating category A like category B — minting a new tag for every sub-event of the same fiscal year's budget cycle instead of reusing one FY-scoped tag. When tagging, check `src/_data/all_topics.json` for an existing same-FY tag on the same cyclical theme before creating a new one.
 
 **Fiscal year convention:** named for its ending year, runs July 1 – June 30 (`FY27` = July 2026–June 2027). Budget deliberation for a fiscal year typically happens in the spring before it starts (roughly January–June) — a budget-related tag from that window usually belongs to the *upcoming* fiscal year, not the one about to end. Occasionally the district starts planning a later fiscal year's budget unusually early (e.g. discussing next year's budget in December instead of the following spring) — when content clearly indicates that, the tag should reflect the fiscal year actually being discussed, not whatever a rigid calendar cutoff would imply. This is deliberately left to the model's judgment rather than a date formula — a formula was tried and reverted after checking it against real data (see `docs/prompts.md` §2–3).
 
@@ -54,7 +54,7 @@ Both tagging paths report which of a meeting's own summary bullets support each 
 
 ## Blacklist
 
-Single source of truth: `src/_data/topic_blacklist.json` — both `src/_data/meetings.js` (filters the meeting-list filter chips) and `scripts/post_process.py` (`_drop_blacklisted()`, filters `topics.json`/page generation itself) load from this one file. Don't hardcode the list in either place (todos/005). Exact match only — a more specific tag containing one of these words untouched (e.g. `Board Governance Ethics Policy` is not dropped, only bare `Board Governance` is).
+Single source of truth: `src/_data/topic_blacklist.json` — both `src/_data/meetings.js` (filters the meeting-list filter chips) and `scripts/post_process.py` (`_drop_blacklisted()`, filters `all_topics.json`/page generation itself) load from this one file. Don't hardcode the list in either place (todos/005). Exact match only — a more specific tag containing one of these words untouched (e.g. `Board Governance Ethics Policy` is not dropped, only bare `Board Governance` is).
 
 ```
 Personnel, Contracts, Finance, Budget, Policy, Board Governance
@@ -66,21 +66,21 @@ Personnel, Contracts, Finance, Budget, Policy, Board Governance
 
 ## Current Topics
 
-`src/_data/topics.json` is the live, authoritative list (100+ entries and growing) — it is not hand-maintained and this doc does not attempt to mirror it. Use the topic index page (`/topics/`) or `cat src/_data/topics.json` to see the current set.
+`src/_data/all_topics.json` is the live, authoritative list (100+ entries and growing) — it is not hand-maintained and this doc does not attempt to mirror it. Use the topic index page (`/topics/`) or `cat src/_data/all_topics.json` to see the current set.
 
 ---
 
 ## How to Add a Topic
 
 1. Tag one or more meetings with the new topic name in their `.njk` frontmatter `topics:` list
-2. Run `post_process.py` — the topic is added to `topics.json` automatically and a summary is synthesized
+2. Run `post_process.py` — the topic is added to `all_topics.json` automatically and a summary is synthesized
 
 ## How to Retire a Topic
 
 1. Remove the topic from all meeting `.njk` `topics:` frontmatter entries
 2. Delete the topic's entry from `src/_data/topic_summaries.json`
 3. Delete the topic's hash from `scripts/topic_hashes.json`
-4. Run `post_process.py` — the topic drops from `topics.json`
+4. Run `post_process.py` — the topic drops from `all_topics.json`
 
 ## Merging Topics
 

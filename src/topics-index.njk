@@ -15,7 +15,7 @@ permalink: "/topics/index.html"
 
 <main class="main">
   <div class="topics-grid">
-    {% for topic in topics %}
+    {% for topic in all_topics %}
     <a href="{{ ('/topics/' + topic | slugify + '/') | url }}" class="topic-card">
       <h2>{{ topic }}</h2>
       <div class="topic-card-summary">

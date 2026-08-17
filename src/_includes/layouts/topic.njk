@@ -12,19 +12,29 @@ layout: layouts/base.njk
 <main class="main main-topic">
 
   {% set ts = topic_summaries[topic] %}
+
+  {# Meetings tagged with this topic, newest first — the single source list reused below
+     by the votes table, the meeting-history timeline, and the overview date-linker. #}
+  {% set topic_meetings = [] %}
+  {% for m in collections.meetings | sort(true, false, "date") %}
+    {% if m.data.topics and topic in m.data.topics %}
+      {% set _ = topic_meetings.push({ date: m.data.display_date, url: (m.url | url), data: m.data }) %}
+    {% endif %}
+  {% endfor %}
+
   <div class="topic-summary-box">
 
     {% if ts and ts.current_status %}
     <div class="topic-section">
       <div class="topic-status-label">Current Status</div>
-      <div class="summary-text">{{ ts.current_status }}</div>
+      <div class="summary-text">{{ ts.current_status | paragraphs | linkMeetingDates(topic_meetings) | safe }}</div>
     </div>
     {% endif %}
 
     {% if ts and ts.overview %}
     <div class="topic-section">
       <div class="topic-section-label">Overview</div>
-      <div class="summary-text">{{ ts.overview | replace('\n', '<br>') | safe }}</div>
+      <div class="summary-text">{{ ts.overview | paragraphs | linkMeetingDates(topic_meetings) | safe }}</div>
     </div>
     {% endif %}
 
@@ -35,7 +45,7 @@ layout: layouts/base.njk
         {% for group, text in ts.perspectives %}
         <div class="perspective-card">
           <div class="perspective-card-label">{{ group }}</div>
-          <div>{{ text }}</div>
+          <div>{{ text | paragraphs | linkMeetingDates(topic_meetings) | safe }}</div>
         </div>
         {% endfor %}
       </div>
@@ -43,39 +53,39 @@ layout: layouts/base.njk
     {% endif %}
 
     {% set recent_votes = [] %}
-    {% for m in collections.all | sort(true, false, "date") %}
-      {% if m.data.topics and topic in m.data.topics %}
-        {% if m.data.votes %}
-          {% for v in m.data.votes %}
-            {% if topic | lower in v.motion | lower %}
-              {% set _ = recent_votes.push({ vote: v, date: m.data.display_date, url: m.url }) %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
+    {% for tm in topic_meetings %}
+      {% if tm.data.votes %}
+        {% for v in tm.data.votes %}
+          {% if v.motion | topicMatch(topic) %}
+            {% set _ = recent_votes.push({ vote: v, date: tm.date, url: tm.url }) %}
+          {% endif %}
+        {% endfor %}
       {% endif %}
     {% endfor %}
 
     {% if recent_votes.length > 0 %}
     <div class="topic-votes">
       <div class="topic-votes-label">Key Resolutions &amp; Votes</div>
-      <table class="vote-table vote-table--topic">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Motion</th>
-            <th>Result</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in recent_votes %}
-          <tr>
-            <td class="vote-date-cell"><a href="{{ item.url | url }}">{{ item.date }}</a></td>
-            <td>{{ item.vote.motion }}</td>
-            <td><span class="vote-chip {{ item.vote.result | lower }}">{{ item.vote.result }}</span></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-scroll">
+        <table class="vote-table vote-table--topic">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Motion</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in recent_votes %}
+            <tr>
+              <td class="vote-date-cell"><a href="{{ item.url }}">{{ item.date }}</a></td>
+              <td>{{ item.vote.motion }}</td>
+              <td><span class="vote-chip {{ item.vote.result | voteChipClass }}">{{ item.vote.result }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
     {% endif %}
   </div>
@@ -83,55 +93,39 @@ layout: layouts/base.njk
   <div class="evolution-timeline">
     <h3 class="evolution-section-title">Meeting History</h3>
 
-    {% for m in collections.all | sort(true, false, "date") %}
-      {% if m.data.topics and topic in m.data.topics %}
+    {% for tm in topic_meetings %}
 
-        {% set relevant_bullets = [] %}
-        {% if m.data.summary %}
-          {% for s in m.data.summary %}
-            {% if topic | lower in s.topic | lower or s.topic | lower in topic | lower %}
-              {% set _ = relevant_bullets.push(s) %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
+      {% set relevant_bullets = [] %}
+      {% if tm.data.summary %}
+        {% for s in tm.data.summary %}
+          {% if topic | lower in s.topic | lower or s.topic | lower in topic | lower %}
+            {% set _ = relevant_bullets.push(s) %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
 
-        {% set related_docs = [] %}
-        {% if m.data.docs %}
-          {% for d in m.data.docs %}
-            {% if topic | lower in d.label | lower %}
-              {% set _ = related_docs.push(d) %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
+      <div class="evolution-item">
+        <div class="evolution-date">{{ tm.date }}</div>
+        <h4 class="evolution-meeting-title"><a href="{{ tm.url }}">{{ tm.data.title }}</a></h4>
 
-        {% if relevant_bullets.length > 0 or related_docs.length > 0 %}
-        <div class="evolution-item">
-          <div class="evolution-date">{{ m.data.display_date }}</div>
-          <h4 class="evolution-meeting-title"><a href="{{ m.url | url }}">{{ m.data.title }}</a></h4>
-
-          <div class="evolution-body">
+        <div class="evolution-body">
+          {% if relevant_bullets.length > 0 %}
             {% for s in relevant_bullets %}
               <div class="evolution-bullet">
                 <span class="evolution-topic-label">{{ s.topic }}</span>
                 {{ s.text }}
               </div>
             {% endfor %}
-          </div>
-
-          {% if related_docs.length > 0 %}
-          <div class="evolution-docs">
-            {% for d in related_docs %}
-            <a href="{{ d.url }}" target="_blank" class="doc-link">
-              <div class="doc-icon {{ d.type | docClass }}">{{ d.type | docIcon }}</div>
-              {{ d.label }}
-            </a>
-            {% endfor %}
-          </div>
+          {% elif tm.data.blurb %}
+            <div class="evolution-blurb">{{ tm.data.blurb | safe }}</div>
           {% endif %}
         </div>
-        {% endif %}
 
-      {% endif %}
+        {% if tm.data.docs and tm.data.docs.length > 0 %}
+        <a href="{{ tm.url }}" class="evolution-materials-link">View {{ tm.data.docs.length }} meeting material{% if tm.data.docs.length != 1 %}s{% endif %} &rarr;</a>
+        {% endif %}
+      </div>
+
     {% endfor %}
   </div>
 
