@@ -13,10 +13,10 @@ Reference for all Gemini prompt templates used in the pipeline. Code retains the
 
 ### Injected context
 
-- **GLOSSARY** — hardcoded proper noun corrections (Kaler, Skillin, Angela Atkinson Duina, etc.)
-- **Canonical terms from official docs** — extracted from GCS cache (`official_docs/{slug}/`) when available; appended to glossary as "use this exact spelling" hints
+- **Static glossary** (`src/_data/glossary.json`) — hand-maintained spelling corrections only (school names, acronyms, name misspellings) that hold true for the entire archive regardless of meeting date. Rendered into prompt-hint text by `scripts/glossary_utils.py::render_glossary_hints()`. Deliberately contains no time-varying facts (roles, roster membership) — see §6 and `src/_data/board_members.json`.
+- **Canonical terms from official docs** — extracted from GCS cache (`official_docs/{slug}/`) when available; appended to the static glossary as "use this exact spelling" hints, per-meeting.
 
-Note: this script does **not** generate topic tags — that moved to `post_process.py`'s `generate_tags()` / `batch_tag_all_meetings()` (§2/§3 below) when tagging became summary-based. Do not reintroduce a `tags`/`allowed_tags` field here; `topics.json` is owned by `post_process.py`.
+Note: this script does **not** generate topic tags — that moved to `post_process.py`'s `generate_tags()` / `batch_tag_all_meetings()` (§2/§3 below) when tagging became summary-based. Do not reintroduce a `tags`/`allowed_tags` field here; `all_topics.json` is owned by `post_process.py`.
 
 ### Prompt template
 
@@ -75,7 +75,7 @@ board_attendance: list[AttendanceMember]  # {name, status, role}
 
 ### Injected context
 
-- **Existing tags + `current_status`** (`topic_context`) — every tag in `topics.json`, paired with its synthesized `current_status` blurb from `topic_summaries.json` when one exists, so the model can judge topical fit by what a tag actually covers, not just its name.
+- **Existing tags + `current_status`** (`topic_context`) — every tag in `all_topics.json`, paired with its synthesized `current_status` blurb from `topic_summaries.json` when one exists, so the model can judge topical fit by what a tag actually covers, not just its name.
 - **Most recent prior meeting's tags** (`recent_topics`) — signals a likely-continuing thread.
 - **Agenda excerpt** (`agenda_text`) — from `_load_cached_agenda_text()` (§4), district-authored item framing independent of the Gemini-generated summary.
 
@@ -276,6 +276,8 @@ MD5 hash of the evidence string stored in `scripts/topic_hashes.json`. Synthesis
 ### Purpose
 
 Extracts canonical proper noun spellings from agenda/packet/minutes PDFs stored in Drive, caches results in GCS, and injects them into the transcript extraction prompt as authoritative spelling hints.
+
+This is the dynamic, per-meeting counterpart to the static `src/_data/glossary.json` (§1) — use the static file only for spellings that never change over the archive's lifetime; use this mechanism for anything specific to a given meeting's own documents, including anything role- or date-dependent.
 
 ### Prompt template
 

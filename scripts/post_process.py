@@ -133,7 +133,7 @@ def _warn_if_budget_synonym(tag, slug):
               f"review whether it should be folded into that meeting's FY Budget tag.")
     return tag
 
-def _update_topics_lib(new_tags, path='src/_data/topics.json'):
+def _update_topics_lib(new_tags, path='src/_data/all_topics.json'):
     existing = json.load(open(path)) if os.path.exists(path) else []
     existing_set = set(existing)
     added = [t for t in new_tags if t not in existing_set]
@@ -244,14 +244,46 @@ every tag must cite at least one. Example:
     return tags, evidence
 
 
-GLOSSARY = {
-    "Caler": "Kaler",
-    "Skillen": "Skillin",
-    "Skillens": "Skillins",
-    "Caler's": "Kaler's",
-    "Atkinson-Dena": "Atkinson Duina",
-    "Atkinson Dena": "Atkinson Duina",
-}
+from glossary_utils import load_glossary, to_replacement_map
+
+# Single source of truth shared with process_transcripts.py — do not hardcode spelling
+# corrections in either place (see todos/013).
+GLOSSARY_PATH = 'src/_data/glossary.json'
+GLOSSARY_REPLACEMENTS = to_replacement_map(load_glossary(GLOSSARY_PATH)) if os.path.exists(GLOSSARY_PATH) else {}
+
+
+def _enforce_glossary_pass(meeting_dir, replacements=None):
+    """Deterministic find/replace pass over every .njk file's raw content, using
+    alias->correct pairs derived from src/_data/glossary.json. Writes back only
+    changed files; returns parsed meetings_data list."""
+    if replacements is None:
+        replacements = GLOSSARY_REPLACEMENTS
+    meetings_data = []
+    for filename in sorted(os.listdir(meeting_dir)):
+        if not filename.endswith('.njk'):
+            continue
+        filepath = os.path.join(meeting_dir, filename)
+
+        with open(filepath, 'r') as f:
+            content = f.read()
+
+        orig = content
+        for w, r in replacements.items():
+            content = content.replace(w, r)
+        if content != orig:
+            with open(filepath, 'w') as f:
+                f.write(content)
+
+        m = re.match(r'^---\s*\n(.*?)\n---\s*\n?(.*)', content, re.DOTALL)
+        if m:
+            try:
+                data = yaml.safe_load(m.group(1)) or {}
+                data['slug'] = filename.replace('.njk', '')
+                meetings_data.append(data)
+            except Exception as e:
+                print(f"  Warning: could not parse {filename}: {e}")
+    return meetings_data
+
 
 def _read_njk(path):
     with open(path, 'r') as f:
@@ -688,7 +720,7 @@ chosen on its merits, not a factor in choosing it."""
 
     # Recency order (most recently active topic first) — matches the incremental path's
     # prepend-on-first-seen behavior (_update_topics_lib) and the /topics index's display order,
-    # which reads topics.json array order directly with no re-sorting of its own.
+    # which reads all_topics.json array order directly with no re-sorting of its own.
     ordered_tags = sorted(last_seen, key=lambda t: last_seen[t], reverse=True)
     with open(topics_lib_path, 'w') as f:
         json.dump(ordered_tags, f, indent=2)
@@ -696,7 +728,7 @@ chosen on its merits, not a factor in choosing it."""
 
 
 def dry_run_tag(slugs, bucket_uri, meeting_dir='src/meetings/',
-                 topics_lib_path='src/_data/topics.json',
+                 topics_lib_path='src/_data/all_topics.json',
                  summary_lib_path='src/_data/topic_summaries.json'):
     """Test generate_tags() against real current context for given meeting slug(s). Writes nothing —
     for cheaply iterating on the tagging prompt without a full --retag."""
@@ -737,7 +769,7 @@ def dry_run_tag(slugs, bucket_uri, meeting_dir='src/meetings/',
 
 def post_process():
     meeting_dir = 'src/meetings/'
-    topics_lib_path = 'src/_data/topics.json'
+    topics_lib_path = 'src/_data/all_topics.json'
     summary_lib_path = 'src/_data/topic_summaries.json'
     hashes_lib_path = 'scripts/topic_hashes.json'
 
@@ -766,34 +798,11 @@ def post_process():
             json.dump({}, f)
         with open(summary_lib_path, 'w') as f:
             json.dump({}, f)
-        print("Retag mode: cleared topics.json, topic_hashes.json, and topic_summaries.json", flush=True)
+        print("Retag mode: cleared all_topics.json, topic_hashes.json, and topic_summaries.json", flush=True)
 
     # 1. Enforce Glossary & Extract Data
     print("Enforcing Glossary and scanning meetings...", flush=True)
-    meetings_data = []
-
-    for filename in sorted(os.listdir(meeting_dir)):
-        if not filename.endswith('.njk'): continue
-        filepath = os.path.join(meeting_dir, filename)
-
-        with open(filepath, 'r') as f:
-            content = f.read()
-
-        orig = content
-        for w, r in GLOSSARY.items():
-            content = content.replace(w, r)
-        if content != orig:
-            with open(filepath, 'w') as f:
-                f.write(content)
-
-        m = re.match(r'^---\s*\n(.*?)\n---\s*\n?(.*)', content, re.DOTALL)
-        if m:
-            try:
-                data = yaml.safe_load(m.group(1)) or {}
-                data['slug'] = filename.replace('.njk', '')
-                meetings_data.append(data)
-            except Exception as e:
-                print(f"  Warning: could not parse {filename}: {e}")
+    meetings_data = _enforce_glossary_pass(meeting_dir)
 
     # 2. Extract canonical names from official docs (agenda/packet/minutes) → cache in GCS
     if bucket_uri:

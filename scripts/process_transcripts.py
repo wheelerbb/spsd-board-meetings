@@ -1,4 +1,5 @@
 import os
+import io
 import json
 import re
 import sys
@@ -40,23 +41,20 @@ MAX_WORKERS = 2
 CUTOFF_DATE = "2023-08-01"
 SCRIPT_VERSION = '2026-07-28'
 
-GLOSSARY = """
-- Kaler Elementary School (NOT Caler)
-- Skillin Elementary School (NOT Skillen)
-- SPESPA (Support Professionals)
-- SPTA (Teachers)
-- Angela Atkinson Duina (Superintendent; NOT Atkinson-Dena or Atkinson Dena)
-Board members (use full names in attendance roll call):
-- Rosemarie DeAngelis (Board Chair)
-- Tyler Smith (Board Vice Chair)
-- Daniel Feller
-- Claire Holman
-- Eleni Richardson
-- George Risch
-Student Representatives (use full names in attendance):
-- Sarah Lian
-- Lizette Rios Blas
-"""
+from glossary_utils import load_glossary, render_glossary_hints
+from board_members_utils import (
+    load_board_members, save_board_members, active_members,
+    canonicalize_attendance_names, unresolved_attendance, apply_discovered_members,
+)
+
+GLOSSARY_PATH = 'src/_data/glossary.json'
+# Single source of truth shared with post_process.py — do not hardcode spelling
+# corrections in either place (see todos/013). Board/role facts are intentionally
+# NOT here; those come from src/_data/board_members.json and per-meeting official-
+# document extraction only (see _load_official_terms_from_gcs below).
+GLOSSARY_HINTS = render_glossary_hints(load_glossary(GLOSSARY_PATH))
+
+BOARD_MEMBERS = load_board_members()
 
 # --- SCHEMA ---
 class Vote(BaseModel):
@@ -91,6 +89,10 @@ class MeetingReport(BaseModel):
     votes: list[Vote]
     summary: list[SummaryItem]
     timeline: list[TimelineItem]
+    board_attendance: list[AttendanceMember]
+
+class VotesAndAttendance(BaseModel):
+    votes: list[Vote]
     board_attendance: list[AttendanceMember]
 
 GEMINI_TIMEOUT = 300  # seconds; enforced via subprocess SIGTERM
@@ -133,6 +135,91 @@ def _load_official_terms_from_gcs(slug, bucket_uri):
     except Exception as e:
         print(f"    Warning: could not load official terms for {slug}: {e}")
         return []
+
+
+def _find_priority_source_doc(docs):
+    """Pick the best written record of votes/attendance for a meeting, preferring official
+    minutes, then a meeting summary doc, over the transcript. Board packets often include an
+    unratified "Meeting Summary" of a meeting well before its minutes are formally approved at
+    a later meeting — that's still a far more reliable source than an auto-caption transcript.
+    Returns (source_label, doc) or (None, None)."""
+    docs = docs or []
+    for d in docs:
+        # No meeting in the archive currently tags its own full-board minutes this way (only
+        # committee minutes use type=minutes/min today), but check first in case that changes.
+        if d.get('type') in ('minutes', 'min') and 'committee' not in (d.get('label') or '').lower():
+            return 'Minutes', d
+    summary_docs = [d for d in docs if d.get('type') == 'pdf' and 'summary' in (d.get('label') or '').lower()]
+    if summary_docs:
+        # Prefer the plain meeting summary over an executive-session or standalone workshop one.
+        preferred = [d for d in summary_docs
+                     if 'workshop' not in d['label'].lower() and 'executive session' not in d['label'].lower()]
+        return 'Meeting Summary', (preferred[0] if preferred else summary_docs[0])
+    return None, None
+
+
+def _read_doc_text(url, max_pages=10, max_chars=15000):
+    """Download and extract text from a Drive PDF (or Google Doc) URL. Returns None on failure."""
+    fid_match = re.search(r'/file/d/([^/?]+)', url)
+    if not fid_match:
+        return None
+    file_id = fid_match.group(1)
+    try:
+        svc = drive.get_drive_service()
+        meta = svc.files().get(fileId=file_id, fields='mimeType,size').execute()
+        mime = meta.get('mimeType', '')
+        if int(meta.get('size', 0) or 0) > 10_000_000:
+            return None
+        from googleapiclient.http import MediaIoBaseDownload
+        fh = io.BytesIO()
+        req = svc.files().export_media(fileId=file_id, mimeType='text/plain') if 'google-apps.document' in mime else svc.files().get_media(fileId=file_id)
+        dl = MediaIoBaseDownload(fh, req)
+        done = False
+        while not done:
+            _, done = dl.next_chunk()
+        if 'pdf' in mime:
+            import pypdf
+            fh.seek(0)
+            text = '\n'.join(p.extract_text() or '' for p in pypdf.PdfReader(fh).pages[:max_pages])
+        else:
+            text = fh.getvalue().decode('utf-8', errors='replace')
+        return text[:max_chars] if text.strip() else None
+    except Exception as e:
+        print(f"    Warning: could not read doc text: {e}")
+        return None
+
+
+def _extract_votes_attendance_from_doc(text, glossary_text):
+    """Extract votes and board attendance from an official written record (minutes or meeting
+    summary) — preferred over transcript-derived data when available."""
+    prompt = f"""
+    Extract formal board votes and attendance from this official school board document.
+
+    Glossary: {glossary_text}
+
+    Guidelines:
+    - Votes: Exact motion, result (use "Passed" or "Failed" — a unanimous vote is "Passed"),
+      count, and movers. For moved_2nd, use last names only (e.g. "DeAngelis, Richardson") —
+      not full names, titles, or "Moved by X, seconded by Y" phrasing. Return [] if this
+      document doesn't record any votes.
+    - Board Attendance: Each board member or student representative this document states was
+      present or absent. Use each person's full name as stated in the document (not just
+      surname), with role "Board" or "Student Rep". Only include people whose presence/absence
+      this document actually states — do not infer or guess at a full roster.
+      Return [] if attendance isn't stated in this document.
+
+    Document text:
+    {text}
+    """
+    try:
+        response = client.models.generate_content(
+            model=FLASH_MODEL, contents=prompt,
+            config={'response_mime_type': 'application/json', 'response_schema': VotesAndAttendance, 'temperature': 0.1},
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        print(f"    Warning: could not extract votes/attendance from doc: {e}")
+        return None
 
 
 # --- VTT SOURCES ---
@@ -190,14 +277,14 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
     print(f"Analyzing: {date_slug} (source: {vtt_path[:40]}...)...")
     transcript = fetch_vtt_content(vtt_path)
 
-    glossary_text = GLOSSARY
+    glossary_text = GLOSSARY_HINTS
     official_terms = _load_official_terms_from_gcs(date_slug, bucket_uri)
     if official_terms:
         term_hints = '\n'.join(
             f"- {n['term']} ({n.get('type', '')}" + (f", {n['context']}" if n.get('context') else "") + ") — use this exact spelling"
             for n in official_terms if n.get('term')
         )
-        glossary_text = GLOSSARY + "\nCanonical proper nouns from official documents (use these exact spellings):\n" + term_hints
+        glossary_text = GLOSSARY_HINTS + "\nCanonical proper nouns from official documents (use these exact spellings):\n" + term_hints
 
     prompt = f"""
     Analyze the school board meeting transcript for {date_slug}.
@@ -209,6 +296,8 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
     Guidelines:
     - Blurb: 1-2 sentence hook for the landing page.
     - Votes: Exact motion, result (use "Passed" or "Failed" — a unanimous vote is "Passed"), count, and movers.
+      For moved_2nd, use last names only (e.g. "DeAngelis, Richardson") — not full names, titles,
+      or "Moved by X, seconded by Y" phrasing.
     - Summary: 5-8 bullets capturing the high-level arc of the meeting. Topics should be
       issue-level (e.g. "FY2026 Budget Update", "Cell Phone Policy") not speaker-level.
       Do not create separate bullets per speaker; perspectives can be noted briefly within
@@ -224,9 +313,9 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
       Topic format: "Description (Speaker)" for flat entries — no possessive constructions
       (use "Reconfiguration Priorities (Daniel Feller)" not "Feller's Reconfiguration Priorities").
       Each desc/text should be 2-3 sentences of substance.
-    - Board Attendance: Extract the roll call. For each person called, record name, status
-      (Present or Absent), and role — use exactly "Board" for board members and "Student Rep"
-      for student representatives.
+    - Board Attendance: Extract the roll call. For each person called, record their full name
+      as stated in the transcript (not just surname), status (Present or Absent), and role —
+      use exactly "Board" for board members and "Student Rep" for student representatives.
 
     Transcript:
     {transcript}
@@ -294,9 +383,43 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
             data['board_attendance'] = extracted_attendance
             data['attendance_source'] = 'Transcript (Unofficial)'
 
+        # Favor a written record (minutes, or an unratified meeting summary) over the transcript
+        # for votes/attendance when one is available — overriding independently, since a summary
+        # doc may record one but not the other.
+        source_label, source_doc = _find_priority_source_doc(data.get('docs'))
+        if source_doc:
+            doc_text = _read_doc_text(source_doc['url'])
+            if doc_text:
+                extracted = _extract_votes_attendance_from_doc(doc_text, glossary_text)
+                if extracted:
+                    if extracted.get('votes'):
+                        data['votes'] = extracted['votes']
+                        data['votes_source'] = source_label
+                    if extracted.get('board_attendance'):
+                        data['board_attendance'] = extracted['board_attendance']
+                        data['attendance_source'] = source_label
+
+        # Canonicalize attendance names (e.g. "Ms. DeAngelis" -> "Rosemarie DeAngelis") against
+        # whoever was actually active on this meeting's date. This only formats names already
+        # extracted from the transcript/official document — it never adds, removes, or
+        # determines who attended (see src/_data/board_members.json's date-scoped terms).
+        # Names that don't uniquely match are returned as-is here, and surfaced to main() as
+        # "unresolved" so board_members.json can be grown to cover them (see apply_discovered_members).
+        unresolved = []
+        if data.get('board_attendance'):
+            try:
+                meeting_date = date.fromisoformat(date_slug)
+                active = active_members(BOARD_MEMBERS, meeting_date)
+                unresolved = unresolved_attendance(data['board_attendance'], active)
+                for u in unresolved:
+                    u['date'] = meeting_date
+                data['board_attendance'] = canonicalize_attendance_names(data['board_attendance'], active)
+            except Exception as e:
+                print(f"    Warning: could not canonicalize attendance names for {date_slug}: {e}")
+
         new_fm = yaml.dump(data, sort_keys=False, default_flow_style=False)
         with open(njk_path, 'w') as f: f.write('---\n' + new_fm + '---\n' + body)
-        return {"slug": date_slug, "status": "Success"}
+        return {"slug": date_slug, "status": "Success", "unresolved_attendance": unresolved}
 
     except Exception as e:
         return {"slug": date_slug, "status": f"Error: {e}"}
@@ -348,6 +471,7 @@ def main():
         print("No new meetings to process.")
         return
     print(f"Targeting {len(to_process)} meetings...", flush=True)
+    all_unresolved = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(process_single_meeting, slug, path, bucket): slug for slug, path in to_process.items()}
         rate_limited = []
@@ -361,9 +485,21 @@ def main():
                 print(f"Finished {res['slug']}: {res['status']}", flush=True)
                 if res['status'] == 'RateLimit':
                     rate_limited.append(res['slug'])
-        if rate_limited:
-            print(f"\nRate-limited on all models for: {', '.join(rate_limited)}")
-            sys.exit(1)
+                all_unresolved.extend(res.get('unresolved_attendance') or [])
+
+    # Grow board_members.json toward full coverage: any attendance name that couldn't be
+    # matched to the active roster gets recorded (as a placeholder, or upgrading an existing
+    # placeholder to a fuller name) so future runs canonicalize it correctly. Done once here,
+    # single-threaded, rather than per-worker, to avoid concurrent writes to the shared file.
+    if all_unresolved:
+        board_members = load_board_members()
+        if apply_discovered_members(board_members, all_unresolved):
+            save_board_members(board_members)
+            print(f"Updated board_members.json with {len(all_unresolved)} unresolved attendance observation(s).", flush=True)
+
+    if rate_limited:
+        print(f"\nRate-limited on all models for: {', '.join(rate_limited)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

@@ -10,7 +10,13 @@ Technical reference for the three-stage ingestion and synthesis pipeline. All sc
 |---|--------|---------|---------|
 | 1 | `scripts/source_data.py` | Daily CI / manual | Discover meetings from authority sources; create/update `.njk` stubs |
 | 2 | `scripts/process_transcripts.py` | Daily CI / manual | Analyze `.vtt` transcripts with Gemini; populate per-meeting AI fields |
-| 3 | `scripts/post_process.py` | Daily CI / manual | Enforce glossary; sort topic taxonomy; synthesize cross-meeting topic summaries |
+| 3 | `scripts/post_process.py` | Daily CI / manual | Enforce glossary (`src/_data/glossary.json`); sort topic taxonomy; synthesize cross-meeting topic summaries |
+
+### Board attendance name canonicalization (`process_transcripts.py`)
+
+Extracted attendance names (e.g. "Ms. DeAngelis") are resolved to full names (e.g. "Rosemarie DeAngelis") by matching against `src/_data/board_members.json`'s roster active on that specific meeting's date (`scripts/board_members_utils.py::canonicalize_attendance_names()`). This only formats names already extracted from the transcript/official document — it never determines *who* attended.
+
+Names with no match are recorded back to `board_members.json` as placeholder entries (`"auto_discovered": true`) so the roster converges toward full coverage as more meetings are processed — a later observation of a fuller name (e.g. "Jennifer Kinney") upgrades the matching placeholder. Hand-curated (non-placeholder) entries are never auto-modified; a coverage gap there is for a human to fix. This update happens once per `process_transcripts.py` run, after all meetings finish processing, to avoid concurrent writes.
 
 ---
 
@@ -101,7 +107,7 @@ These are set when a meeting moves from `stub: true` → `stub: false`, and upda
 
 | File | Description |
 |------|-------------|
-| `src/_data/topics.json` | Sorted list of all active topics (newest activity first); excludes `TOPIC_BLACKLIST` terms — see [topic-taxonomy.md](topic-taxonomy.md) |
+| `src/_data/all_topics.json` | Sorted list of all active topics (newest activity first); excludes `TOPIC_BLACKLIST` terms — see [topic-taxonomy.md](topic-taxonomy.md) |
 | `src/_data/topic_summaries.json` | Per-topic narrative synthesized from all meeting evidence — prompt template in [prompts.md](prompts.md#2-topic-synthesis-post_processpy) |
 | `scripts/topic_hashes.json` | MD5 hash of the evidence fed to the LLM per topic; used to skip redundant API calls when evidence hasn't changed |
 
@@ -114,7 +120,7 @@ These are set when a meeting moves from `stub: true` → `stub: false`, and upda
 | File | Committed | Owner | Description |
 |------|-----------|-------|-------------|
 | `src/meetings/YYYY-MM-DD.njk` | Yes | All 3 scripts | One file per meeting; YAML front matter + empty body |
-| `src/_data/topics.json` | Yes | `post_process.py` | Sorted topic list consumed by Eleventy topic pages |
+| `src/_data/all_topics.json` | Yes | `post_process.py` | Sorted topic list consumed by Eleventy topic pages |
 | `src/_data/topic_summaries.json` | Yes | `post_process.py` | AI-synthesized topic narratives consumed by Eleventy |
 | `scripts/topic_hashes.json` | Yes | `post_process.py` | Evidence cache (pipeline state, not rendered) |
 | `master_material_map.json` | GCS bucket | `source_data.py` | Full reconciled source map with `_stub_action` / `_authority` audit fields per date |
@@ -136,10 +142,10 @@ External sources
 VTT sources
   Google Drive VTT docs    ─┐
   GCS bucket/transcripts/  ─┴──► scripts/process_transcripts.py ──► src/meetings/*.njk (stub: false)
-                                    (reads src/_data/topics.json for tag reuse)
+                                    (reads src/_data/all_topics.json for tag reuse)
 
 src/meetings/*.njk (all)
-  └──► scripts/post_process.py ──► src/_data/topics.json
+  └──► scripts/post_process.py ──► src/_data/all_topics.json
                                 ──► src/_data/topic_summaries.json
                                 ──► scripts/topic_hashes.json
 

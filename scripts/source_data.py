@@ -12,6 +12,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 
 from sourcing import drive, apptegy, spsd_site, vimeo, transcripts
+from board_members_utils import active_members
 
 load_dotenv()
 
@@ -38,19 +39,6 @@ def merge_documents(existing_docs, new_docs):
             pass
 
     return list(merged.values()), added_count
-
-def _active_members(board_members, meeting_date):
-    result = []
-    for m in board_members:
-        for term in m.get("terms", []):
-            start = date.fromisoformat(term["start"]) if term.get("start") else date.min
-            end = date.fromisoformat(term["end"]) if term.get("end") else date.max
-            if start <= meeting_date <= end:
-                role = "Student Rep" if m.get("seat") == "Student Representative" else "Board"
-                result.append({"name": m["name"], "role": role})
-                break
-    return result
-
 
 def reconcile_meetings(all_data, dry_run=False):
     """
@@ -232,7 +220,7 @@ def reconcile_meetings(all_data, dry_run=False):
             "has_vtt_source": bool(transcript_path) or any(d.get('type') == 'vtt' for d in data.get('drive', [])),
             "has_transcript": bool(transcript_path) or any(d.get('type') == 'vtt' for d in data.get('drive', [])),
             "stub": True,
-            "board_attendance": _active_members(board_members, dt.date()),
+            "board_attendance": active_members(board_members, dt.date()),
             "docs": combined_docs
         }
 
