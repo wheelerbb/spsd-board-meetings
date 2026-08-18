@@ -327,7 +327,11 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
     Resolution order: (1) date found in the file's own content, (2) date parsed from the
     filename (only if day-specific). Content is tried first because filenames for this district's
     monthly packets never carry a day (e.g. "August 2026 Board Meeting Packet.pdf") — only the
-    document's own text reliably says which meeting it belongs to.
+    document's own text reliably says which meeting it belongs to. Content resolution is scoped
+    to agenda/packet/minutes docs only — a "meeting date" isn't a meaningful property of a policy
+    draft, donation letter, or slide deck, and policy documents in particular carry misleading
+    historical dates (an "Adopted: 1975 / Revised: 2001" citation block reads as a false-positive
+    meeting date). Everything else falls straight through to filename parsing.
 
     Content resolution requires downloading and parsing the file, which doesn't scale to
     re-checking the entire historical Drive tree on every run — the shared Drive folder holds
@@ -336,8 +340,7 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
     resolution is skipped entirely for it (this also means a file that resolves to no date stays
     that way until it's actually edited, rather than being re-checked every run forever).
     `cutoff_date` (YYYY-MM-DD) additionally skips the download for any file whose `modifiedTime`
-    predates it outright — a file modified before the cutoff era can't plausibly document a
-    meeting on/after it. Filename parsing (regex only, no I/O) still runs regardless of cutoff.
+    predates it outright. Filename parsing (regex only, no I/O) still runs regardless of cutoff.
 
     When a file resolves via a fresh content read and a GCS bucket is configured, its
     already-extracted text is cached (`cache_text`) and the catalog's `text_blob` is updated so
@@ -368,7 +371,11 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
         resolved_via = None
         text = None
 
-        if service and not too_old:
+        # Content-based resolution only makes sense for a written meeting record — a policy
+        # draft or donation letter has no "meeting date" to extract, and policy documents in
+        # particular carry misleading historical dates (an "Adopted: 1975 / Revised: 2001"
+        # citation block reads as a false-positive meeting date to extract_date_from_content).
+        if service and not too_old and doc_type in ('agenda', 'packet', 'minutes'):
             text = read_file_text(service, file_id)
             if text:
                 date_slug = extract_date_from_content(text)
