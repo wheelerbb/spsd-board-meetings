@@ -67,9 +67,35 @@ Meeting stubs are created only when a date is confirmed by an authority source. 
 | Object | Primary | Secondary | Auxiliary |
 |--------|---------|-----------|-----------|
 | **Meetings** | Apptegy Events | SPSD site board-activities | Drive · Vimeo · VTTs |
-| **Documents** | SPSD site board-activities links | — | Google Drive (matched by filename date to existing meeting) |
+| **Documents** | Date extracted from the document's own content | Date parsed from the filename (day-specific only) | SPSD site board-activities links (last resort) |
 | **Videos** | `vimeo_master_list.json` | — | — |
 | **Transcripts** | Google Drive VTT docs | GCS bucket | — |
+
+### Document date resolution (`scripts/sourcing/drive.py::build_meeting_map`)
+
+Every file discovered in the Drive folder tree is attributed to a meeting date in this order:
+
+1. **Content** — the file is downloaded and its text extracted (`drive.read_file_text`); the
+   earliest date-like string found wins. This is deliberately position-based, not
+   pattern-priority: packet PDFs put the current meeting's date in the header, ahead of any dates
+   they merely reference (prior minutes being approved, the next meeting being announced).
+2. **Filename** — `drive.parse_meeting_date`, only when it resolves to a full day-specific date.
+   Monthly packet filenames (e.g. "August 2026 Board Meeting Packet.pdf") never satisfy this —
+   content is what actually dates them.
+3. **SPSD site** — checked last, in `source_data.py`, by cross-referencing the file's URL against
+   documents the site scraper already found and dated independently. Not primary: relying on the
+   website being timely and correctly formatted for every meeting-critical document was the
+   original cause of documents going missing (see git history around 2026-08-17 for a worked
+   example — a packet the website hadn't linked yet, dated correctly from its own PDF text).
+
+A file none of the three can date is left off the meeting entirely and recorded in
+`src/_data/unmapped_documents.json` (rendered as a small table on the homepage) instead of being
+silently dropped.
+
+Text extracted during content resolution is cached in GCS at
+`official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.txt` (`drive.get_or_extract_text`) —
+`post_process.py`'s official-term extraction and agenda-preview generation read this cache instead
+of re-downloading the same file.
 
 ### Field-level data priority
 
@@ -122,10 +148,12 @@ These are set when a meeting moves from `stub: true` → `stub: false`, and upda
 | `src/meetings/YYYY-MM-DD.njk` | Yes | All 3 scripts | One file per meeting; YAML front matter + empty body |
 | `src/_data/all_topics.json` | Yes | `post_process.py` | Sorted topic list consumed by Eleventy topic pages |
 | `src/_data/topic_summaries.json` | Yes | `post_process.py` | AI-synthesized topic narratives consumed by Eleventy |
+| `src/_data/unmapped_documents.json` | Yes | `source_data.py` | Drive files no source could date; rendered as a table on the homepage |
 | `scripts/topic_hashes.json` | Yes | `post_process.py` | Evidence cache (pipeline state, not rendered) |
-| `master_material_map.json` | GCS bucket | `source_data.py` | Full reconciled source map with `_stub_action` / `_authority` audit fields per date |
+| `master_material_map.json` | GCS bucket | `source_data.py` | Full reconciled source map with `_stub_action` / `_authority` audit fields per date, plus `_unmapped_docs` |
 | `apptegy_events_raw.json` | GCS bucket | `source_data.py` | Complete unfiltered Apptegy API response (all calendar events, full payload) |
 | `vimeo_master_list.json` | Yes | Manual | Vimeo video ID → meeting date mapping |
+| `official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.txt` | GCS bucket | `source_data.py` (via `drive.get_or_extract_text`) | Extracted text of an agenda/packet/minutes doc, cached once and reused by `post_process.py` |
 
 ---
 
@@ -137,7 +165,8 @@ External sources
   SPSD Website        ─┤──► scripts/source_data.py ──► src/meetings/*.njk (stubs)
   Google Drive        ─┤                           ──► master_material_map.json
   Vimeo list          ─┤                           ──► GCS bucket/transcripts/ (VTT sync)
-  GCS bucket VTTs    ─┘
+  GCS bucket VTTs    ─┘                             ──► GCS bucket/official_docs/*.txt (extracted doc text)
+                                                     ──► src/_data/unmapped_documents.json
 
 VTT sources
   Google Drive VTT docs    ─┐
@@ -157,12 +186,12 @@ src/meetings/*.njk + src/_data/*.json
 
 ## Sourcing Modules (`scripts/sourcing/`)
 
-For which sources are authoritative for each object type, see [Meeting creation authority](#meeting-creation-authority).
+For which sources are authoritative for each object type, see [Meeting creation authority](#meeting-creation-authority). For how `drive.py` dates a document, see [Document date resolution](#document-date-resolution-scriptssourcingdrivepybuild_meeting_map).
 
 | Module | Source | Returns |
 |--------|--------|---------|
 | `apptegy.py` | Apptegy Events v2 API | `{date_slug: {title, location, id}}` |
 | `spsd_site.py` | SPSD board-activities "meeting date" entries (scraped) | `{date_slug: {date, type, docs[]}}` |
-| `drive.py` | Google Drive folder (filename-based) | `{date_slug: [{type, label, url}]}` |
+| `drive.py` | Google Drive folder — sourcing, text extraction/GCS caching, and content/filename-based date mapping | `({date_slug: [{type, label, url}]}, unresolved[])` |
 | `vimeo.py` | `vimeo_master_list.json` (title-based) | `{date_slug: vimeo_url}` |
 | `transcripts.py` | Google Drive VTTs + GCS bucket | `{date_slug: path_or_uri}` |

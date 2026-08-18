@@ -1,6 +1,5 @@
 import os
 import sys
-import io
 import json
 import re
 import yaml
@@ -300,37 +299,6 @@ def _write_njk(path, data, body):
         f.write(f'---\n{fm}---\n{body}')
 
 
-def _read_doc_text_from_drive(url, max_chars=8000):
-    """Download readable text from a Drive file URL. Returns None on failure."""
-    fid_match = re.search(r'/file/d/([^/?]+)', url)
-    if not fid_match:
-        return None
-    file_id = fid_match.group(1)
-    try:
-        svc = drive_mod.get_drive_service()
-        meta = svc.files().get(fileId=file_id, fields='mimeType,size').execute()
-        mime = meta.get('mimeType', '')
-        if int(meta.get('size', 0)) > 10_000_000:
-            return None
-        from googleapiclient.http import MediaIoBaseDownload
-        fh = io.BytesIO()
-        req = svc.files().export_media(fileId=file_id, mimeType='text/plain') if 'google-apps.document' in mime else svc.files().get_media(fileId=file_id)
-        dl = MediaIoBaseDownload(fh, req)
-        done = False
-        while not done:
-            _, done = dl.next_chunk()
-        if 'pdf' in mime:
-            import pypdf
-            fh.seek(0)
-            text = '\n'.join(p.extract_text() or '' for p in pypdf.PdfReader(fh).pages[:5])
-        else:
-            text = fh.getvalue().decode('utf-8', errors='replace')
-        return text[:max_chars] if text.strip() else None
-    except Exception as e:
-        print(f"    Warning: could not read Drive doc: {e}")
-        return None
-
-
 def _extract_official_terms(meeting_data, bucket_uri):
     """Extract canonical proper nouns from agenda/packet/minutes docs; raw text and terms cached in GCS."""
     from google.cloud import storage
@@ -357,13 +325,13 @@ def _extract_official_terms(meeting_data, bucket_uri):
 
         try:
             meta = svc.files().get(fileId=file_id, fields='modifiedTime').execute()
-            mod_time = meta.get('modifiedTime', 'unknown').replace(':', '-')
+            modified_time = meta.get('modifiedTime', 'unknown')
         except Exception as e:
             print(f"    Warning: could not get Drive metadata for {file_id}: {e}")
             continue
 
-        folder = f"official_docs/{slug}/{doc_type}-{file_id}"
-        json_blob = gcs_bucket.blob(f"{folder}/{mod_time}.json")
+        mod_time = modified_time.replace(':', '-')
+        json_blob = gcs_bucket.blob(f"official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.json")
 
         if json_blob.exists(timeout=60):
             try:
@@ -375,12 +343,9 @@ def _extract_official_terms(meeting_data, bucket_uri):
             continue
 
         print(f"    Extracting terms for {slug}/{doc_type} (not in cache)...", flush=True)
-        text = _read_doc_text_from_drive(url)
+        text = drive_mod.get_or_extract_text(bucket_uri, svc, file_id, modified_time, slug, doc_type)
         if not text:
             continue
-
-        # Store raw text for audit/reprocessing
-        gcs_bucket.blob(f"{folder}/{mod_time}.txt").upload_from_string(text, content_type='text/plain', timeout=60)
 
         prompt = (
             "Extract all proper nouns from this school board meeting document. Include:\n"
@@ -482,7 +447,7 @@ def _load_cached_agenda_text(slug, bucket_uri, max_chars=2500):
         return None
 
 
-def generate_agenda_preview(meeting_data, meeting_dir):
+def generate_agenda_preview(meeting_data, meeting_dir, bucket_uri):
     """Generate and write a topic-structured agenda_preview for an upcoming stub."""
     docs = meeting_data.get('docs') or []
     agenda_doc = next((d for d in docs if d.get('type') in ('agenda', 'packet')), None)
@@ -490,7 +455,7 @@ def generate_agenda_preview(meeting_data, meeting_dir):
         return
     slug = meeting_data['slug']
     print(f"  Generating agenda preview for {slug}...")
-    text = _read_doc_text_from_drive(agenda_doc['url'])
+    text = _load_cached_agenda_text(slug, bucket_uri)
     if not text:
         print(f"    Skipping {slug}: could not read doc content.")
         return
@@ -871,7 +836,7 @@ def post_process():
         and any(d.get('type') in ('agenda', 'packet') for d in (m.get('docs') or []))
     ]
     for m in preview_tasks:
-        generate_agenda_preview(m, meeting_dir)
+        generate_agenda_preview(m, meeting_dir, bucket_uri)
 
     # 5. Generate missing blurbs
     print("Generating blurbs for unprocessed meetings...")

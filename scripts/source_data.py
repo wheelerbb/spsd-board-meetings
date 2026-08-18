@@ -373,20 +373,34 @@ def main():
                 if date_slug not in all_data: all_data[date_slug] = {}
                 all_data[date_slug]['site'] = data['site']
 
-    # 3. Fetch Drive Files (Auxiliary)
+    # 3. Fetch Drive Files (dated primarily by content, then filename — see drive.build_meeting_map)
+    unmapped_docs = old_master_map.get('_unmapped_docs', [])
+    drive_resolved_cache = old_master_map.get('_drive_resolved', {})
     if args.force or not _cache_fresh(cache_meta, 'drive'):
         service = drive.get_drive_service()
         if service:
             print("Step 3: Fetching files from Google Drive...")
             try:
                 files = drive.list_files_in_folder(service, FOLDER_ID)
-                drive_mapping = drive.build_meeting_map(files)
+                drive_mapping, unresolved, drive_resolved_cache = drive.build_meeting_map(
+                    files, bucket_uri=args.bucket, service=service, resolved_cache=drive_resolved_cache)
                 for date_slug, docs in drive_mapping.items():
                     if date_slug < CUTOFF_DATE: continue
                     if date_slug not in all_data: all_data[date_slug] = {}
                     all_data[date_slug]['drive'] = docs
                 cache_meta['drive'] = {'fetched_at': datetime.utcnow().isoformat()}
                 cache_updated = True
+
+                # Anything content/filename couldn't date might still be linked (and dated) on the
+                # SPSD site — that source is a fallback here, checked last, not primary.
+                known_site_urls = {
+                    drive.clean_url(d['url'])
+                    for info in all_data.values() if info.get('site')
+                    for d in info['site'].get('docs', [])
+                }
+                unmapped_docs = [d for d in unresolved if drive.clean_url(d['url']) not in known_site_urls]
+                if unmapped_docs:
+                    print(f"  {len(unmapped_docs)} Drive file(s) have no date from content, filename, or the SPSD site.")
             except Exception as e:
                 print(f"Error accessing Drive: {e}")
         else:
@@ -452,12 +466,19 @@ def main():
     if not args.dry_run:
         sorted_data = dict(sorted(all_data.items(), reverse=True))
         sorted_data['_cache_meta'] = cache_meta
+        sorted_data['_unmapped_docs'] = unmapped_docs
+        sorted_data['_drive_resolved'] = drive_resolved_cache
         with open('master_material_map.json', 'w') as f:
             json.dump(sorted_data, f, indent=2)
         if args.bucket and (changes > 0 or cache_updated):
             upload_to_bucket(args.bucket, 'master_material_map.json')
             if apptegy_fetched:
                 upload_to_bucket(args.bucket, 'apptegy_events_raw.json')
+
+        # 9. Publish unmapped Drive files for Eleventy (visible on the homepage instead of silently dropped)
+        os.makedirs('src/_data', exist_ok=True)
+        with open('src/_data/unmapped_documents.json', 'w') as f:
+            json.dump(unmapped_docs, f, indent=2)
 
     if changes > 0:
         print(f"Finished. Updated {changes} meetings.")

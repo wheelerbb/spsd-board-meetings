@@ -33,9 +33,23 @@ title: "SPSD BoE Proceedings Digest"
   <div class="content-block">
     <div class="section-head">Data Sources</div>
     <ul class="summary-bullets">
-      <li><strong>Official board materials</strong> (agendas, packets, minutes, etc) are sourced from the <a href="https://www.spsdme.org/page/school-board" target="_blank" rel="noopener">SPSD Board Page</a> and the district's <a href="https://drive.google.com/drive/folders/0B42s0chw8f_lQmpaNU93ejYyWkU" target="_blank" rel="noopener">Google Drive folder</a>.</li>
+      <li><strong>Official board materials</strong> (agendas, packets, minutes, etc) are sourced from the district's <a href="https://drive.google.com/drive/folders/0B42s0chw8f_lQmpaNU93ejYyWkU" target="_blank" rel="noopener">Google Drive folder</a> and the <a href="https://www.spsdme.org/page/school-board" target="_blank" rel="noopener">SPSD Board Page</a>. Each document's meeting date is read from the document's own content first, then its filename, then the SPSD site as a last resort.</li>
       <li><strong>Video recordings</strong> are published by SPC TV on <a href="https://vimeo.com/spctv" target="_blank" rel="noopener">Vimeo</a> and transcripts are posted to the district's Google Drive folder linked above.</li>
     </ul>
+    {% if unmapped_documents and unmapped_documents.length > 0 %}
+    <p>The following files were found in the district's Google Drive folder but couldn't be matched to a meeting date (no date in the document content, filename, or the SPSD site) — manual review needed:</p>
+    <table class="vote-table">
+      <thead><tr><th>File</th><th>Type</th></tr></thead>
+      <tbody>
+        {% for doc in unmapped_documents %}
+        <tr>
+          <td><a href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.label }}</a></td>
+          <td>{{ doc.type }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
   </div>
 
 </main>
