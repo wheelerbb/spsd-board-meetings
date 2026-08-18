@@ -108,12 +108,34 @@ in project memory for the fuller rationale.
 
 ### Resolving `meeting_slug` (`scripts/sourcing/drive.py::build_meeting_map`)
 
-Every catalog entry's `meeting_slug` is attributed in this order:
+Two independent concerns here, easy to conflate but kept strictly separate in the code:
 
-1. **Content** — the file is downloaded and its text extracted (`drive.read_file_text`); the
-   earliest date-like string found wins. This is deliberately position-based, not
-   pattern-priority: packet PDFs put the current meeting's date in the header, ahead of any dates
-   they merely reference (prior minutes being approved, the next meeting being announced).
+**Sourcing scope — should this file be processed at all?** The shared Drive folder holds well over
+a decade of material (one observed file dated to the 1960s), most of it never touched again after
+upload. A file is in scope only if `created_time` OR `modified_time` is on/after `CUTOFF_DATE`
+(2023-08-01) — OR, not AND, so an evergreen policy document created long before cutoff but revised
+after it stays in scope for its revision. A file untouched on *both* axes since before cutoff is
+skipped entirely: no catalog entry, no filename parsing, no log line. This is purely about volume
+and relevance — it has nothing to do with what date a file's *content* describes.
+`source_data.py` passes its `CUTOFF_DATE` into `drive.build_meeting_map(..., cutoff_date=CUTOFF_DATE)`
+— `drive.py` has no cutoff constant of its own, specifically to avoid two independently-maintained
+copies drifting apart (which is exactly how this went unenforced the first time: `drive.py` had its
+own unused copy of the same value).
+
+**Content-date eligibility — is a "meeting date" even a meaningful property of this file?** Once a
+file is in scope, `meeting_slug` is attributed in this order:
+
+1. **Content** — only for `doc_type in ('agenda', 'packet', 'minutes')`. The file is downloaded and
+   its text extracted (`drive.read_file_text`); the earliest date-like string found wins —
+   deliberately position-based, not pattern-priority: packet PDFs put the current meeting's date in
+   the header, ahead of any dates they merely reference (prior minutes being approved, the next
+   meeting being announced). Restricted to these three types because a policy draft or donation
+   letter has no meeting date to extract at all, and policy documents in particular carry
+   misleading historical dates — confirmed from a real run, where a recently-revised policy draft's
+   standard "Adopted: 1975 / Revised: 2001" citation block was read as a false-positive meeting
+   date. `misc` and `vtt` skip straight to filename parsing (vtt filenames already resolve reliably
+   via their `spboe_YYYYMMDD` convention, so this also saves an unnecessary download for every
+   transcript file).
 2. **Filename** — `drive.parse_meeting_date`, only when it resolves to a full day-specific date.
    Monthly packet filenames (e.g. "August 2026 Board Meeting Packet.pdf") never satisfy this —
    content is what actually dates them.
@@ -127,17 +149,7 @@ Every catalog entry's `meeting_slug` is attributed in this order:
 
 A file none of the three can date keeps `meeting_slug: null` and is recorded in
 `src/_data/unmapped_documents.json` (rendered as a small table on the homepage) instead of being
-silently dropped — unless it's also older than `CUTOFF_DATE` (see below), in which case it's
-excluded from that list too, since it was never in scope to begin with.
-
-The shared Drive folder holds over a decade of material — far more than the site's `CUTOFF_DATE`
-(2023-08-01) covers. Content resolution (the download + extraction step) is skipped outright for
-any file whose Drive `modifiedTime` predates `CUTOFF_DATE`, since a file modified before the
-cutoff era can't plausibly document a meeting on/after it; filename parsing (regex only, no
-download) still runs regardless. `source_data.py` passes its `CUTOFF_DATE` into
-`drive.build_meeting_map(..., cutoff_date=CUTOFF_DATE)` — `drive.py` has no cutoff constant of its
-own, specifically to avoid two independently-maintained copies drifting apart (which is exactly
-how this went unenforced the first time: `drive.py` had its own unused copy of the same value).
+silently dropped.
 
 A catalog entry whose `modified_time` already matches the file's current `modifiedTime` skips
 re-resolution entirely — this also means a file that resolves to no date stays that way until it's

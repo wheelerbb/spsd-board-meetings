@@ -423,12 +423,12 @@ def main():
             'url': entry.get('url'),
         })
 
-    # Files nothing could date, excluding ones too old to ever be in scope (a pre-cutoff file
-    # skipped entirely by build_meeting_map's cutoff check would otherwise show up here as noise).
+    # Files nothing could date. build_meeting_map already excludes anything out of cutoff scope
+    # from the catalog entirely, so every entry here is already something worth a human's look.
     unmapped_docs = [
         {'type': e.get('doc_type'), 'label': e.get('label'), 'url': e.get('url')}
         for e in catalog.values()
-        if e.get('meeting_slug') is None and not ((e.get('modified_time') or '')[:10] < CUTOFF_DATE)
+        if e.get('meeting_slug') is None
     ]
     if unmapped_docs:
         print(f"  {len(unmapped_docs)} Drive file(s) have no date from content, filename, or the SPSD site.")

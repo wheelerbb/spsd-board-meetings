@@ -324,23 +324,31 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
     date; the caller (source_data.py) attempts a website-based fallback afterward and updates
     those same catalog entries directly rather than tracking a separate unresolved list.
 
-    Resolution order: (1) date found in the file's own content, (2) date parsed from the
-    filename (only if day-specific). Content is tried first because filenames for this district's
-    monthly packets never carry a day (e.g. "August 2026 Board Meeting Packet.pdf") — only the
-    document's own text reliably says which meeting it belongs to. Content resolution is scoped
-    to agenda/packet/minutes docs only — a "meeting date" isn't a meaningful property of a policy
-    draft, donation letter, or slide deck, and policy documents in particular carry misleading
-    historical dates (an "Adopted: 1975 / Revised: 2001" citation block reads as a false-positive
-    meeting date). Everything else falls straight through to filename parsing.
+    Two independent concerns, easy to conflate but kept strictly separate:
 
-    Content resolution requires downloading and parsing the file, which doesn't scale to
-    re-checking the entire historical Drive tree on every run — the shared Drive folder holds
-    over a decade of material, most of it long predating any meeting this site covers. A catalog
-    entry whose `modified_time` matches the file's current `modifiedTime` is trusted as-is and
-    resolution is skipped entirely for it (this also means a file that resolves to no date stays
-    that way until it's actually edited, rather than being re-checked every run forever).
-    `cutoff_date` (YYYY-MM-DD) additionally skips the download for any file whose `modifiedTime`
-    predates it outright. Filename parsing (regex only, no I/O) still runs regardless of cutoff.
+    - **Sourcing scope** (`cutoff_date`): should this file be processed at all? A file is in scope
+      if `created_time` OR `modified_time` is on/after `cutoff_date` — OR, not AND, so an evergreen
+      policy doc created long before cutoff but revised after it stays in scope for its revision.
+      A file untouched on *both* axes since before cutoff is skipped entirely — no catalog entry,
+      no filename parsing, no log line — since the shared Drive folder holds well over a decade of
+      material, most of it (going back to the 1960s in one observed case) never touched again after
+      upload. This is purely about volume/relevance, not about what date the file's content is for.
+    - **Content-date eligibility** (`doc_type`): once a file is in scope, is a "meeting date" even
+      a meaningful property of its *content*? Only for agenda/packet/minutes — a policy draft or
+      donation letter has none, and policy documents in particular carry misleading historical
+      dates (an "Adopted: 1975 / Revised: 2001" citation block reads as a false-positive meeting
+      date to extract_date_from_content — confirmed from a real run: recently-revised policy drafts
+      were resolving to their citation years). Everything else falls straight to filename parsing.
+
+    Resolution order for an in-scope, content-eligible file: (1) date found in its own content —
+    tried first because filenames for this district's monthly packets never carry a day (e.g.
+    "August 2026 Board Meeting Packet.pdf"), only the document's own text reliably says which
+    meeting it belongs to; (2) date parsed from the filename (only if day-specific).
+
+    Content resolution requires downloading and parsing the file — a catalog entry whose
+    `modified_time` matches the file's current `modifiedTime` is trusted as-is and resolution is
+    skipped entirely for it (this also means a file that resolves to no date stays that way until
+    it's actually edited, rather than being re-checked every run forever).
 
     When a file resolves via a fresh content read and a GCS bucket is configured, its
     already-extracted text is cached (`cache_text`) and the catalog's `text_blob` is updated so
@@ -354,6 +362,13 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
         mime_type = f.get('mimeType')
         modified_time = f.get('modifiedTime')
         created_time = f.get('createdTime')
+
+        if cutoff_date:
+            created_recent = bool(created_time) and created_time[:10] >= cutoff_date
+            modified_recent = bool(modified_time) and modified_time[:10] >= cutoff_date
+            if not created_recent and not modified_recent:
+                continue  # untouched on both axes since before cutoff — out of scope entirely
+
         url = clean_url(f.get('webViewLink'))
         label = clean_label(filename)
         doc_type = categorize_document(filename)
@@ -365,17 +380,11 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
         if entry.get('modified_time') == modified_time and 'meeting_slug' in entry:
             continue  # already resolved for this exact version — nothing to redo
 
-        too_old = bool(cutoff_date and modified_time and modified_time[:10] < cutoff_date)
-
         date_slug = None
         resolved_via = None
         text = None
 
-        # Content-based resolution only makes sense for a written meeting record — a policy
-        # draft or donation letter has no "meeting date" to extract, and policy documents in
-        # particular carry misleading historical dates (an "Adopted: 1975 / Revised: 2001"
-        # citation block reads as a false-positive meeting date to extract_date_from_content).
-        if service and not too_old and doc_type in ('agenda', 'packet', 'minutes'):
+        if service and doc_type in ('agenda', 'packet', 'minutes'):
             text = read_file_text(service, file_id)
             if text:
                 date_slug = extract_date_from_content(text)
@@ -389,7 +398,7 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
 
         if date_slug:
             print(f"  Matched Drive file to {date_slug} via {resolved_via}: {filename}")
-        elif not too_old:
+        else:
             print(f"  Drive file has no resolvable date (deferring to site fallback): {filename}")
 
         entry['modified_time'] = modified_time
