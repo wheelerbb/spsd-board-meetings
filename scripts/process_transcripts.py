@@ -1,5 +1,4 @@
 import os
-import io
 import json
 import re
 import sys
@@ -158,32 +157,16 @@ def _find_priority_source_doc(docs):
     return None, None
 
 
-def _read_doc_text(url, max_pages=10, max_chars=15000):
-    """Download and extract text from a Drive PDF (or Google Doc) URL. Returns None on failure."""
+def _read_doc_text(url, doc_type, slug, bucket_uri, max_chars=15000):
+    """Read (cached, or extract + cache) text for a Drive doc URL belonging to a meeting. Returns None on failure."""
     fid_match = re.search(r'/file/d/([^/?]+)', url)
     if not fid_match:
         return None
     file_id = fid_match.group(1)
     try:
         svc = drive.get_drive_service()
-        meta = svc.files().get(fileId=file_id, fields='mimeType,size').execute()
-        mime = meta.get('mimeType', '')
-        if int(meta.get('size', 0) or 0) > 10_000_000:
-            return None
-        from googleapiclient.http import MediaIoBaseDownload
-        fh = io.BytesIO()
-        req = svc.files().export_media(fileId=file_id, mimeType='text/plain') if 'google-apps.document' in mime else svc.files().get_media(fileId=file_id)
-        dl = MediaIoBaseDownload(fh, req)
-        done = False
-        while not done:
-            _, done = dl.next_chunk()
-        if 'pdf' in mime:
-            import pypdf
-            fh.seek(0)
-            text = '\n'.join(p.extract_text() or '' for p in pypdf.PdfReader(fh).pages[:max_pages])
-        else:
-            text = fh.getvalue().decode('utf-8', errors='replace')
-        return text[:max_chars] if text.strip() else None
+        meta = svc.files().get(fileId=file_id, fields='modifiedTime').execute()
+        return drive.get_or_extract_text(bucket_uri, svc, file_id, meta.get('modifiedTime'), slug, doc_type, max_chars=max_chars)
     except Exception as e:
         print(f"    Warning: could not read doc text: {e}")
         return None
@@ -388,7 +371,8 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
         # doc may record one but not the other.
         source_label, source_doc = _find_priority_source_doc(data.get('docs'))
         if source_doc:
-            doc_text = _read_doc_text(source_doc['url'])
+            doc_type = 'minutes' if source_doc.get('type') == 'min' else source_doc.get('type', 'doc')
+            doc_text = _read_doc_text(source_doc['url'], doc_type, date_slug, bucket_uri)
             if doc_text:
                 extracted = _extract_votes_attendance_from_doc(doc_text, glossary_text)
                 if extracted:

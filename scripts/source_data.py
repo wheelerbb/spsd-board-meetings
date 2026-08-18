@@ -383,7 +383,8 @@ def main():
             try:
                 files = drive.list_files_in_folder(service, FOLDER_ID)
                 drive_mapping, unresolved, drive_resolved_cache = drive.build_meeting_map(
-                    files, bucket_uri=args.bucket, service=service, resolved_cache=drive_resolved_cache)
+                    files, bucket_uri=args.bucket, service=service, resolved_cache=drive_resolved_cache,
+                    cutoff_date=CUTOFF_DATE)
                 for date_slug, docs in drive_mapping.items():
                     if date_slug < CUTOFF_DATE: continue
                     if date_slug not in all_data: all_data[date_slug] = {}

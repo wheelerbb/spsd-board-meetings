@@ -6,7 +6,6 @@ from googleapiclient.discovery import build
 from .auth import get_credentials
 
 FOLDER_ID = "0B42s0chw8f_lQmpaNU93ejYyWkU"
-CUTOFF_DATE = "2023-08-01"
 
 def get_drive_service():
     credentials, _ = get_credentials()
@@ -24,7 +23,15 @@ def download_file(file_id):
         _, done = dl.next_chunk()
     return fh.getvalue().decode('utf-8')
 
-def read_file_text(service, file_id, max_chars=8000):
+# Cached text is always extracted at this generous size regardless of what any single caller
+# needs — several unrelated callers (date resolution, official-term extraction, agenda preview,
+# vote/attendance extraction) share one GCS cache entry per file, and a cache entry sized for the
+# least-demanding caller would silently truncate content for the others. Callers that want less
+# just slice the returned text via their own `max_chars`.
+CACHE_MAX_CHARS = 15000
+CACHE_MAX_PAGES = 10
+
+def read_file_text(service, file_id, max_chars=CACHE_MAX_CHARS, max_pages=CACHE_MAX_PAGES):
     """Download and extract readable text from a Drive file (PDF, Google Doc, or plain text).
     Returns None on failure, if the file is >10MB, or if extraction yields nothing."""
     import io
@@ -43,7 +50,7 @@ def read_file_text(service, file_id, max_chars=8000):
         if 'pdf' in mime:
             import pypdf
             fh.seek(0)
-            text = '\n'.join(p.extract_text() or '' for p in pypdf.PdfReader(fh).pages[:5])
+            text = '\n'.join(p.extract_text() or '' for p in pypdf.PdfReader(fh).pages[:max_pages])
         else:
             text = fh.getvalue().decode('utf-8', errors='replace')
         return text[:max_chars] if text.strip() else None
@@ -67,9 +74,11 @@ def cache_text(bucket_uri, file_id, modified_time, slug, doc_type, text):
     except Exception as e:
         print(f"    Warning: could not cache extracted text for {file_id}: {e}")
 
-def get_or_extract_text(bucket_uri, service, file_id, modified_time, slug, doc_type, max_chars=8000):
+def get_or_extract_text(bucket_uri, service, file_id, modified_time, slug, doc_type, max_chars=CACHE_MAX_CHARS):
     """Read cached extracted text for a Drive file from GCS, or extract + cache it if missing.
-    Falls back to an uncached extraction if no bucket is configured."""
+    `max_chars` only truncates what's *returned* to this caller — the cache itself is always
+    populated at CACHE_MAX_CHARS/CACHE_MAX_PAGES so other callers can share it. Falls back to an
+    uncached extraction (honoring max_chars directly) if no bucket is configured."""
     if not bucket_uri:
         return read_file_text(service, file_id, max_chars=max_chars)
     blob = _text_cache_blob(bucket_uri, file_id, modified_time, slug, doc_type)
@@ -78,10 +87,10 @@ def get_or_extract_text(bucket_uri, service, file_id, modified_time, slug, doc_t
             return blob.download_as_text(timeout=60)[:max_chars]
         except Exception:
             pass
-    text = read_file_text(service, file_id, max_chars=max_chars)
+    text = read_file_text(service, file_id)
     if text:
         cache_text(bucket_uri, file_id, modified_time, slug, doc_type, text)
-    return text
+    return text[:max_chars] if text else None
 
 def list_files_in_folder(service, folder_id):
     """Recursively list all files in the folder and its subfolders."""
@@ -219,7 +228,7 @@ def clean_label(label):
     label = re.sub(r'\s*\d{1,2}[\.\-/]\d{1,2}[\.\-/]\d{2,4}$', '', label)
     return label.strip()
 
-def build_meeting_map(files, bucket_uri=None, service=None, resolved_cache=None):
+def build_meeting_map(files, bucket_uri=None, service=None, resolved_cache=None, cutoff_date=None):
     """
     Maps Drive files to meeting dates and document types.
 
@@ -229,17 +238,20 @@ def build_meeting_map(files, bucket_uri=None, service=None, resolved_cache=None)
     document's own text reliably says which meeting it belongs to.
 
     Content resolution requires downloading and parsing the file, which doesn't scale to
-    re-checking the entire historical Drive tree on every run. `resolved_cache`
-    ({file_id: {modified_time, date_slug, doc_type}}, persisted by the caller across runs) lets a
-    file whose `modifiedTime` hasn't changed since it was last resolved skip re-download entirely
-    and reuse its prior result — only new or edited files pay the content-extraction cost.
+    re-checking the entire historical Drive tree on every run — the shared Drive folder holds
+    over a decade of material, most of it long predating any meeting this site covers.
+    `resolved_cache` ({file_id: {modified_time, date_slug, doc_type}}, persisted by the caller
+    across runs) lets a file whose `modifiedTime` hasn't changed since it was last resolved skip
+    re-download entirely. `cutoff_date` (YYYY-MM-DD) additionally skips the download for any file
+    whose `modifiedTime` predates it outright — a file modified before the cutoff era can't
+    plausibly document a meeting on/after it. Filename parsing (regex only, no I/O) still runs
+    regardless of cutoff; a file that stays undated after that is dropped silently if it's also
+    pre-cutoff (out of scope for the site, not worth surfacing as "unmapped"), or returned in
+    `unresolved` otherwise.
 
     When a file resolves via a fresh (uncached) content read and a GCS bucket is configured, its
     already-extracted text is cached at official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.txt
     so downstream steps (post_process.py) can reuse it instead of downloading again.
-
-    Files neither tier can date are returned separately (not dropped) so the caller can attempt a
-    website-based fallback match before giving up on them entirely.
 
     Returns (mapping: {date_slug: [{type, label, url}]}, unresolved: [{type, label, url, file_id, mime_type}],
     resolved_cache: updated cache to persist for next run).
@@ -257,6 +269,8 @@ def build_meeting_map(files, bucket_uri=None, service=None, resolved_cache=None)
         label = clean_label(filename)
         doc_type = categorize_document(filename)
 
+        too_old = bool(cutoff_date and modified_time and modified_time[:10] < cutoff_date)
+
         date_slug = None
         resolved_via = None
         text = None
@@ -266,7 +280,7 @@ def build_meeting_map(files, bucket_uri=None, service=None, resolved_cache=None)
             date_slug = cached.get('date_slug')
             doc_type = cached.get('doc_type', doc_type)
             resolved_via = 'cache'
-        elif service:
+        elif service and not too_old:
             text = read_file_text(service, file_id)
             if text:
                 date_slug = extract_date_from_content(text)
@@ -279,9 +293,11 @@ def build_meeting_map(files, bucket_uri=None, service=None, resolved_cache=None)
                 resolved_via = 'filename'
 
         if not date_slug:
+            resolved_cache.pop(file_id, None)
+            if too_old:
+                continue
             print(f"  Drive file has no resolvable date (deferring to site fallback): {filename}")
             unresolved.append({'type': doc_type, 'label': label, 'url': url, 'file_id': file_id, 'mime_type': mime_type})
-            resolved_cache.pop(file_id, None)
             continue
 
         if resolved_via != 'cache':

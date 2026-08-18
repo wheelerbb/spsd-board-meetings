@@ -92,10 +92,25 @@ A file none of the three can date is left off the meeting entirely and recorded 
 `src/_data/unmapped_documents.json` (rendered as a small table on the homepage) instead of being
 silently dropped.
 
+The shared Drive folder holds over a decade of material — far more than the site's `CUTOFF_DATE`
+(2023-08-01) covers. Content resolution (the download + extraction step) is skipped outright for
+any file whose Drive `modifiedTime` predates `CUTOFF_DATE`, since a file modified before the
+cutoff era can't plausibly document a meeting on/after it; filename parsing (regex only, no
+download) still runs regardless. A pre-cutoff file that stays undated after that is dropped
+silently rather than reported as unmapped. `source_data.py` passes its `CUTOFF_DATE` into
+`drive.build_meeting_map(..., cutoff_date=CUTOFF_DATE)` — `drive.py` has no cutoff constant of its
+own, specifically to avoid two independently-maintained copies drifting apart (which is exactly
+how this went unenforced the first time: `drive.py` had its own unused copy of the same value).
+
 Text extracted during content resolution is cached in GCS at
-`official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.txt` (`drive.get_or_extract_text`) —
-`post_process.py`'s official-term extraction and agenda-preview generation read this cache instead
-of re-downloading the same file.
+`official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.txt` (`drive.get_or_extract_text`) — every
+downstream consumer of an official document's text (`post_process.py`'s official-term extraction
+and agenda-preview generation; `process_transcripts.py`'s votes/attendance extraction from
+minutes) reads this shared cache instead of re-downloading the same file. The cache is always
+populated at a generous size (`drive.CACHE_MAX_CHARS` / `CACHE_MAX_PAGES`) regardless of what the
+first caller needed, so a later caller wanting more text than an earlier one doesn't get silently
+truncated — callers only control how much of the cached text is *returned* to them via their own
+`max_chars`.
 
 ### Field-level data priority
 
@@ -153,7 +168,7 @@ These are set when a meeting moves from `stub: true` → `stub: false`, and upda
 | `master_material_map.json` | GCS bucket | `source_data.py` | Full reconciled source map with `_stub_action` / `_authority` audit fields per date, plus `_unmapped_docs` |
 | `apptegy_events_raw.json` | GCS bucket | `source_data.py` | Complete unfiltered Apptegy API response (all calendar events, full payload) |
 | `vimeo_master_list.json` | Yes | Manual | Vimeo video ID → meeting date mapping |
-| `official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.txt` | GCS bucket | `source_data.py` (via `drive.get_or_extract_text`) | Extracted text of an agenda/packet/minutes doc, cached once and reused by `post_process.py` |
+| `official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.txt` | GCS bucket | `source_data.py` (via `drive.get_or_extract_text`) | Extracted text of an official doc, cached once and reused by `post_process.py` and `process_transcripts.py` |
 
 ---
 
