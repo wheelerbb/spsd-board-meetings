@@ -58,39 +58,127 @@ def read_file_text(service, file_id, max_chars=CACHE_MAX_CHARS, max_pages=CACHE_
         print(f"    Warning: could not read Drive file {file_id}: {e}")
         return None
 
-def _text_cache_blob(bucket_uri, file_id, modified_time, slug, doc_type):
+def _bucket(bucket_uri):
     from google.cloud import storage
     credentials, project_id = get_credentials()
     bucket_name = bucket_uri[5:]  # strip gs://
-    gcs_bucket = storage.Client(credentials=credentials, project=project_id).bucket(bucket_name)
-    mod_time = (modified_time or 'unknown').replace(':', '-')
-    return gcs_bucket.blob(f"official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.txt")
+    return storage.Client(credentials=credentials, project=project_id).bucket(bucket_name)
 
-def cache_text(bucket_uri, file_id, modified_time, slug, doc_type, text):
-    """Write already-extracted text to the shared GCS cache (official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.txt)."""
+def _is_gsuite_mime(mime_type):
+    return bool(mime_type) and mime_type.startswith('application/vnd.google-apps.')
+
+def _blob_name(file_id, entry, ext):
+    """official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.{ext} — flat, no
+    subfolders. `doc_type` comes from categorize_document()'s deterministic filename-keyword
+    match, not from date resolution, so it's safe to bake into the name; the resolved *meeting*
+    date deliberately never is (see extract_date_from_content's OCR-misread false positives).
+    `modified_stamp` is YYYYMMDD_HHMM for a normal upload (rare edits -> effectively full
+    history), or YYYYMMDD for a Google-native file (Docs/Sheets/Slides get edited far more often —
+    date-only precision caps accumulation at one blob per day)."""
+    created = (entry.get('created_time') or 'unknown')[:10].replace('-', '')
+    modified = entry.get('modified_time') or 'unknown'
+    if _is_gsuite_mime(entry.get('mime_type')):
+        mod_stamp = modified[:10].replace('-', '')
+    else:
+        mod_stamp = modified[:16].replace('-', '').replace(':', '').replace('T', '_')
+    doc_type = entry.get('doc_type') or 'doc'
+    return f"official_docs/{created}_{doc_type}_{file_id}_{mod_stamp}.{ext}"
+
+def read_cached_blob(bucket_uri, blob_name, max_chars=None):
+    """Read a specific cached blob by name. Returns None if missing, unset, or unreadable."""
+    if not bucket_uri or not blob_name:
+        return None
     try:
-        _text_cache_blob(bucket_uri, file_id, modified_time, slug, doc_type).upload_from_string(
-            text, content_type='text/plain', timeout=60)
-    except Exception as e:
-        print(f"    Warning: could not cache extracted text for {file_id}: {e}")
+        blob = _bucket(bucket_uri).blob(blob_name)
+        if not blob.exists(timeout=60):
+            return None
+        text = blob.download_as_text(timeout=60)
+        return text[:max_chars] if max_chars else text
+    except Exception:
+        return None
 
-def get_or_extract_text(bucket_uri, service, file_id, modified_time, slug, doc_type, max_chars=CACHE_MAX_CHARS):
-    """Read cached extracted text for a Drive file from GCS, or extract + cache it if missing.
-    `max_chars` only truncates what's *returned* to this caller — the cache itself is always
-    populated at CACHE_MAX_CHARS/CACHE_MAX_PAGES so other callers can share it. Falls back to an
-    uncached extraction (honoring max_chars directly) if no bucket is configured."""
+def write_blob(bucket_uri, blob_name, text, content_type='text/plain'):
+    """Write text to a specific GCS blob name — for derived/secondary artifacts (e.g. an isolated
+    agenda excerpt from a packet) whose name isn't computed via `_blob_name`. Returns True on
+    success."""
     if not bucket_uri:
-        return read_file_text(service, file_id, max_chars=max_chars)
-    blob = _text_cache_blob(bucket_uri, file_id, modified_time, slug, doc_type)
-    if blob.exists(timeout=60):
-        try:
-            return blob.download_as_text(timeout=60)[:max_chars]
-        except Exception:
-            pass
+        return False
+    try:
+        _bucket(bucket_uri).blob(blob_name).upload_from_string(text, content_type=content_type, timeout=60)
+        return True
+    except Exception as e:
+        print(f"    Warning: could not write cache blob {blob_name}: {e}")
+        return False
+
+def cache_text(bucket_uri, file_id, entry, text):
+    """Write already-extracted text to the shared GCS cache. Returns the blob name written, or
+    None if the write failed."""
+    name = _blob_name(file_id, entry, 'txt')
+    return name if write_blob(bucket_uri, name, text, content_type='text/plain') else None
+
+def cache_terms(bucket_uri, file_id, entry, terms_json_text):
+    """Write extracted proper-noun terms (JSON) to the shared GCS cache. Returns the blob name
+    written, or None if the write failed."""
+    name = _blob_name(file_id, entry, 'json')
+    return name if write_blob(bucket_uri, name, terms_json_text, content_type='application/json') else None
+
+def load_catalog(bucket_uri):
+    """Load the Drive file catalog (file_id -> metadata + cache pointers) from GCS.
+    Returns {} if no bucket is configured or nothing's been cached yet."""
+    if not bucket_uri:
+        return {}
+    import json
+    blob = _bucket(bucket_uri).blob('drive_catalog.json')
+    if not blob.exists(timeout=60):
+        return {}
+    try:
+        return json.loads(blob.download_as_text(timeout=60))
+    except Exception as e:
+        print(f"  Warning: could not load Drive catalog: {e}")
+        return {}
+
+def save_catalog(bucket_uri, catalog):
+    if not bucket_uri:
+        return
+    import json
+    try:
+        _bucket(bucket_uri).blob('drive_catalog.json').upload_from_string(
+            json.dumps(catalog, indent=2), content_type='application/json', timeout=60)
+    except Exception as e:
+        print(f"  Warning: could not save Drive catalog: {e}")
+
+def get_or_extract_text(bucket_uri, service, catalog, file_id, max_chars=CACHE_MAX_CHARS):
+    """Read cached extracted text for a Drive file via the catalog, or extract + cache it if
+    missing/stale. Requires `catalog[file_id]` to already carry doc_type/mime_type/created_time
+    (set at resolution time by build_meeting_map, or filled in by the caller for files it
+    discovered some other way). `max_chars` only truncates what's *returned* — the cache itself
+    is always populated at CACHE_MAX_CHARS/CACHE_MAX_PAGES so other callers sharing this entry
+    aren't starved.
+
+    Returns (text, updates): `updates` is None on a cache hit (nothing changed) or a dict of
+    fields (`modified_time`, `text_blob`) for the caller to merge into `catalog[file_id]` after a
+    fresh extraction — this function reads the catalog but never mutates it itself."""
+    entry = catalog.get(file_id) or {}
+    if not bucket_uri or not service:
+        text = read_file_text(service, file_id, max_chars=max_chars) if service else None
+        return text, None
+
+    try:
+        current_modified = service.files().get(fileId=file_id, fields='modifiedTime').execute().get('modifiedTime')
+    except Exception as e:
+        print(f"    Warning: could not check Drive metadata for {file_id}: {e}")
+        current_modified = entry.get('modified_time')
+
+    if entry.get('text_blob') and entry.get('modified_time') == current_modified:
+        cached = read_cached_blob(bucket_uri, entry['text_blob'], max_chars=max_chars)
+        if cached is not None:
+            return cached, None
+
     text = read_file_text(service, file_id)
-    if text:
-        cache_text(bucket_uri, file_id, modified_time, slug, doc_type, text)
-    return text[:max_chars] if text else None
+    if not text:
+        return None, None
+    blob_name = cache_text(bucket_uri, file_id, {**entry, 'modified_time': current_modified}, text)
+    return text[:max_chars], {'modified_time': current_modified, 'text_blob': blob_name}
 
 def list_files_in_folder(service, folder_id):
     """Recursively list all files in the folder and its subfolders."""
@@ -101,7 +189,7 @@ def list_files_in_folder(service, folder_id):
         response = service.files().list(
             q=query,
             spaces='drive',
-            fields='nextPageToken, files(id, name, mimeType, webViewLink, modifiedTime)',
+            fields='nextPageToken, files(id, name, mimeType, webViewLink, modifiedTime, createdTime)',
             pageToken=page_token
         ).execute()
 
@@ -228,9 +316,13 @@ def clean_label(label):
     label = re.sub(r'\s*\d{1,2}[\.\-/]\d{1,2}[\.\-/]\d{2,4}$', '', label)
     return label.strip()
 
-def build_meeting_map(files, bucket_uri=None, service=None, resolved_cache=None, cutoff_date=None):
+def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date=None):
     """
-    Maps Drive files to meeting dates and document types.
+    Resolves each Drive file to a meeting date and document type, updating `catalog` in place —
+    file_id -> {label, url, mime_type, doc_type, created_time, modified_time, meeting_slug,
+    resolved_via, text_blob}. `meeting_slug`/`resolved_via` are `None` for a file nothing could
+    date; the caller (source_data.py) attempts a website-based fallback afterward and updates
+    those same catalog entries directly rather than tracking a separate unresolved list.
 
     Resolution order: (1) date found in the file's own content, (2) date parsed from the
     filename (only if day-specific). Content is tried first because filenames for this district's
@@ -239,35 +331,36 @@ def build_meeting_map(files, bucket_uri=None, service=None, resolved_cache=None,
 
     Content resolution requires downloading and parsing the file, which doesn't scale to
     re-checking the entire historical Drive tree on every run — the shared Drive folder holds
-    over a decade of material, most of it long predating any meeting this site covers.
-    `resolved_cache` ({file_id: {modified_time, date_slug, doc_type}}, persisted by the caller
-    across runs) lets a file whose `modifiedTime` hasn't changed since it was last resolved skip
-    re-download entirely. `cutoff_date` (YYYY-MM-DD) additionally skips the download for any file
-    whose `modifiedTime` predates it outright — a file modified before the cutoff era can't
-    plausibly document a meeting on/after it. Filename parsing (regex only, no I/O) still runs
-    regardless of cutoff; a file that stays undated after that is dropped silently if it's also
-    pre-cutoff (out of scope for the site, not worth surfacing as "unmapped"), or returned in
-    `unresolved` otherwise.
+    over a decade of material, most of it long predating any meeting this site covers. A catalog
+    entry whose `modified_time` matches the file's current `modifiedTime` is trusted as-is and
+    resolution is skipped entirely for it (this also means a file that resolves to no date stays
+    that way until it's actually edited, rather than being re-checked every run forever).
+    `cutoff_date` (YYYY-MM-DD) additionally skips the download for any file whose `modifiedTime`
+    predates it outright — a file modified before the cutoff era can't plausibly document a
+    meeting on/after it. Filename parsing (regex only, no I/O) still runs regardless of cutoff.
 
-    When a file resolves via a fresh (uncached) content read and a GCS bucket is configured, its
-    already-extracted text is cached at official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.txt
-    so downstream steps (post_process.py) can reuse it instead of downloading again.
+    When a file resolves via a fresh content read and a GCS bucket is configured, its
+    already-extracted text is cached (`cache_text`) and the catalog's `text_blob` is updated so
+    downstream steps (post_process.py, process_transcripts.py) can reuse it.
 
-    Returns (mapping: {date_slug: [{type, label, url}]}, unresolved: [{type, label, url, file_id, mime_type}],
-    resolved_cache: updated cache to persist for next run).
+    Returns `catalog` (same dict, mutated in place, returned for convenience).
     """
-    mapping = {}
-    unresolved = []
-    resolved_cache = dict(resolved_cache or {})
-
     for f in files:
         filename = f.get('name')
         file_id = f.get('id')
         mime_type = f.get('mimeType')
         modified_time = f.get('modifiedTime')
+        created_time = f.get('createdTime')
         url = clean_url(f.get('webViewLink'))
         label = clean_label(filename)
         doc_type = categorize_document(filename)
+
+        entry = catalog.setdefault(file_id, {})
+        entry.update({'label': label, 'url': url, 'mime_type': mime_type,
+                      'created_time': created_time, 'doc_type': doc_type})
+
+        if entry.get('modified_time') == modified_time and 'meeting_slug' in entry:
+            continue  # already resolved for this exact version — nothing to redo
 
         too_old = bool(cutoff_date and modified_time and modified_time[:10] < cutoff_date)
 
@@ -275,46 +368,28 @@ def build_meeting_map(files, bucket_uri=None, service=None, resolved_cache=None,
         resolved_via = None
         text = None
 
-        cached = resolved_cache.get(file_id)
-        if cached and cached.get('modified_time') == modified_time:
-            date_slug = cached.get('date_slug')
-            doc_type = cached.get('doc_type', doc_type)
-            resolved_via = 'cache'
-        elif service and not too_old:
+        if service and not too_old:
             text = read_file_text(service, file_id)
             if text:
                 date_slug = extract_date_from_content(text)
                 if date_slug:
                     resolved_via = 'content'
 
-        if not date_slug and resolved_via != 'cache':
+        if not date_slug:
             date_slug = parse_meeting_date(filename)
             if date_slug:
                 resolved_via = 'filename'
 
-        if not date_slug:
-            resolved_cache.pop(file_id, None)
-            if too_old:
-                continue
-            print(f"  Drive file has no resolvable date (deferring to site fallback): {filename}")
-            unresolved.append({'type': doc_type, 'label': label, 'url': url, 'file_id': file_id, 'mime_type': mime_type})
-            continue
-
-        if resolved_via != 'cache':
+        if date_slug:
             print(f"  Matched Drive file to {date_slug} via {resolved_via}: {filename}")
-            resolved_cache[file_id] = {'modified_time': modified_time, 'date_slug': date_slug, 'doc_type': doc_type}
+        elif not too_old:
+            print(f"  Drive file has no resolvable date (deferring to site fallback): {filename}")
 
-        if bucket_uri and text and modified_time:
-            cache_text(bucket_uri, file_id, modified_time, date_slug, doc_type, text)
+        entry['modified_time'] = modified_time
+        entry['meeting_slug'] = date_slug
+        entry['resolved_via'] = resolved_via
 
-        if date_slug not in mapping:
-            mapping[date_slug] = []
+        if bucket_uri and text:
+            entry['text_blob'] = cache_text(bucket_uri, file_id, entry, text)
 
-        if not any(clean_url(d['url']) == url for d in mapping[date_slug]):
-            mapping[date_slug].append({
-                'type': doc_type,
-                'label': label,
-                'url': url
-            })
-
-    return mapping, unresolved, resolved_cache
+    return catalog

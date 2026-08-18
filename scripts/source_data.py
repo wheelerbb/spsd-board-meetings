@@ -374,45 +374,64 @@ def main():
                 all_data[date_slug]['site'] = data['site']
 
     # 3. Fetch Drive Files (dated primarily by content, then filename — see drive.build_meeting_map)
-    unmapped_docs = old_master_map.get('_unmapped_docs', [])
-    drive_resolved_cache = old_master_map.get('_drive_resolved', {})
+    # The Drive catalog (file_id -> metadata + resolution + cache pointers) is its own dedicated
+    # GCS resource, not folded into master_material_map.json — see
+    # docs/pipeline.md#the-drive-catalog-drive_catalogjson.
+    catalog = drive.load_catalog(args.bucket)
     if args.force or not _cache_fresh(cache_meta, 'drive'):
         service = drive.get_drive_service()
         if service:
             print("Step 3: Fetching files from Google Drive...")
             try:
                 files = drive.list_files_in_folder(service, FOLDER_ID)
-                drive_mapping, unresolved, drive_resolved_cache = drive.build_meeting_map(
-                    files, bucket_uri=args.bucket, service=service, resolved_cache=drive_resolved_cache,
-                    cutoff_date=CUTOFF_DATE)
-                for date_slug, docs in drive_mapping.items():
-                    if date_slug < CUTOFF_DATE: continue
-                    if date_slug not in all_data: all_data[date_slug] = {}
-                    all_data[date_slug]['drive'] = docs
+                drive.build_meeting_map(files, catalog, bucket_uri=args.bucket, service=service, cutoff_date=CUTOFF_DATE)
                 cache_meta['drive'] = {'fetched_at': datetime.utcnow().isoformat()}
                 cache_updated = True
 
                 # Anything content/filename couldn't date might still be linked (and dated) on the
-                # SPSD site — that source is a fallback here, checked last, not primary.
-                known_site_urls = {
-                    drive.clean_url(d['url'])
-                    for info in all_data.values() if info.get('site')
+                # SPSD site — that source is a fallback here, checked last, not primary. Persisted
+                # directly into the catalog entry so it isn't re-checked from scratch every run.
+                site_url_to_slug = {
+                    drive.clean_url(d['url']): slug
+                    for slug, info in all_data.items() if info.get('site')
                     for d in info['site'].get('docs', [])
                 }
-                unmapped_docs = [d for d in unresolved if drive.clean_url(d['url']) not in known_site_urls]
-                if unmapped_docs:
-                    print(f"  {len(unmapped_docs)} Drive file(s) have no date from content, filename, or the SPSD site.")
+                for entry in catalog.values():
+                    if entry.get('meeting_slug') is not None:
+                        continue
+                    site_slug = site_url_to_slug.get(drive.clean_url(entry.get('url')))
+                    if site_slug:
+                        entry['meeting_slug'] = site_slug
+                        entry['resolved_via'] = 'site'
             except Exception as e:
                 print(f"Error accessing Drive: {e}")
         else:
             print("Step 3: Skipping Google Drive (Service not initialized).")
     else:
         print("Step 3: Using cached Drive data.")
-        for date_slug, data in old_master_map.items():
-            if date_slug.startswith('_') or date_slug < CUTOFF_DATE: continue
-            if 'drive' in data:
-                if date_slug not in all_data: all_data[date_slug] = {}
-                all_data[date_slug]['drive'] = data['drive']
+
+    # Project the catalog into all_data — regardless of whether Step 3 fetched fresh or reused
+    # the existing catalog, this is what feeds each meeting's docs[] in reconcile_meetings().
+    for entry in catalog.values():
+        slug = entry.get('meeting_slug')
+        if not slug or slug < CUTOFF_DATE:
+            continue
+        if slug not in all_data: all_data[slug] = {}
+        all_data[slug].setdefault('drive', []).append({
+            'type': entry.get('doc_type', 'misc'),
+            'label': entry.get('label'),
+            'url': entry.get('url'),
+        })
+
+    # Files nothing could date, excluding ones too old to ever be in scope (a pre-cutoff file
+    # skipped entirely by build_meeting_map's cutoff check would otherwise show up here as noise).
+    unmapped_docs = [
+        {'type': e.get('doc_type'), 'label': e.get('label'), 'url': e.get('url')}
+        for e in catalog.values()
+        if e.get('meeting_slug') is None and not ((e.get('modified_time') or '')[:10] < CUTOFF_DATE)
+    ]
+    if unmapped_docs:
+        print(f"  {len(unmapped_docs)} Drive file(s) have no date from content, filename, or the SPSD site.")
 
     # 4. Fetch Vimeo Videos
     print("Step 4: Fetching Vimeo mapping...")
@@ -467,12 +486,11 @@ def main():
     if not args.dry_run:
         sorted_data = dict(sorted(all_data.items(), reverse=True))
         sorted_data['_cache_meta'] = cache_meta
-        sorted_data['_unmapped_docs'] = unmapped_docs
-        sorted_data['_drive_resolved'] = drive_resolved_cache
         with open('master_material_map.json', 'w') as f:
             json.dump(sorted_data, f, indent=2)
         if args.bucket and (changes > 0 or cache_updated):
             upload_to_bucket(args.bucket, 'master_material_map.json')
+            drive.save_catalog(args.bucket, catalog)
             if apptegy_fetched:
                 upload_to_bucket(args.bucket, 'apptegy_events_raw.json')
 

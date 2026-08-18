@@ -299,19 +299,16 @@ def _write_njk(path, data, body):
         f.write(f'---\n{fm}---\n{body}')
 
 
-def _extract_official_terms(meeting_data, bucket_uri):
-    """Extract canonical proper nouns from agenda/packet/minutes docs; raw text and terms cached in GCS."""
-    from google.cloud import storage
-
+def _extract_official_terms(meeting_data, bucket_uri, catalog):
+    """Extract canonical proper nouns from agenda/packet/minutes docs; raw text and terms cached
+    in GCS via the shared Drive catalog (file_id-keyed, not slug-keyed — see
+    docs/pipeline.md#the-drive-catalog-drive_catalogjson)."""
     docs = meeting_data.get('docs') or []
     qualifying = [d for d in docs if d.get('type') in ('agenda', 'packet', 'minutes', 'min')]
     if not qualifying:
         return []
 
     slug = meeting_data['slug']
-    bucket_name = bucket_uri[5:]  # strip gs://
-    gcs_client = storage.Client(credentials=credentials, project=project_id)
-    gcs_bucket = gcs_client.bucket(bucket_name)
     svc = drive_mod.get_drive_service()
 
     all_terms = []
@@ -324,26 +321,34 @@ def _extract_official_terms(meeting_data, bucket_uri):
         doc_type = 'minutes' if doc.get('type') == 'min' else doc.get('type', 'doc')
 
         try:
-            meta = svc.files().get(fileId=file_id, fields='modifiedTime').execute()
-            modified_time = meta.get('modifiedTime', 'unknown')
+            meta = svc.files().get(fileId=file_id, fields='modifiedTime,mimeType,createdTime').execute()
+            current_modified = meta.get('modifiedTime')
         except Exception as e:
             print(f"    Warning: could not get Drive metadata for {file_id}: {e}")
             continue
 
-        mod_time = modified_time.replace(':', '-')
-        json_blob = gcs_bucket.blob(f"official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.json")
+        # Drive's own folder scan should already have catalogued this file; fill in a minimal
+        # entry only for the rare case of a doc found solely via the SPSD site.
+        entry = catalog.setdefault(file_id, {})
+        entry.setdefault('doc_type', doc_type)
+        entry.setdefault('mime_type', meta.get('mimeType'))
+        entry.setdefault('created_time', meta.get('createdTime'))
 
-        if json_blob.exists(timeout=60):
-            try:
-                cached = json.loads(json_blob.download_as_text(timeout=60))
-                all_terms.extend(cached)
-                print(f"    Loaded {len(cached)} terms for {slug}/{doc_type} from cache.", flush=True)
-            except Exception:
-                pass
-            continue
+        if entry.get('terms_blob') and entry.get('modified_time') == current_modified:
+            cached = drive_mod.read_cached_blob(bucket_uri, entry['terms_blob'])
+            if cached is not None:
+                try:
+                    terms = json.loads(cached)
+                    all_terms.extend(terms)
+                    print(f"    Loaded {len(terms)} terms for {slug}/{doc_type} from cache.", flush=True)
+                    continue
+                except Exception:
+                    pass
 
         print(f"    Extracting terms for {slug}/{doc_type} (not in cache)...", flush=True)
-        text = drive_mod.get_or_extract_text(bucket_uri, svc, file_id, modified_time, slug, doc_type)
+        text, updates = drive_mod.get_or_extract_text(bucket_uri, svc, catalog, file_id)
+        if updates:
+            entry.update(updates)
         if not text:
             continue
 
@@ -368,7 +373,8 @@ def _extract_official_terms(meeting_data, bucket_uri):
             raw = re.sub(r'^```(?:json)?\s*', '', raw)
             raw = re.sub(r'\s*```$', '', raw)
             terms = json.loads(raw)
-            json_blob.upload_from_string(json.dumps(terms), content_type='application/json', timeout=60)
+            entry['terms_blob'] = drive_mod.cache_terms(bucket_uri, file_id, entry, json.dumps(terms))
+            entry['modified_time'] = current_modified
             print(f"    Extracted and cached {len(terms)} terms for {slug}/{doc_type}.", flush=True)
             all_terms.extend(terms)
         except Exception as e:
@@ -377,55 +383,47 @@ def _extract_official_terms(meeting_data, bucket_uri):
     return all_terms
 
 
-def _load_cached_agenda_text(slug, bucket_uri, max_chars=2500):
-    """Read cached agenda-doc text for a meeting from GCS (populated by _extract_official_terms).
-    Falls back to isolating the agenda/order-of-business items out of a cached packet, via a
-    Gemini call cached back to GCS so it only runs once per packet. Read-only otherwise —
-    no new Drive fetches. Returns None if nothing is cached at all for this slug."""
+def _load_cached_agenda_text(docs, bucket_uri, catalog, max_chars=2500):
+    """Read cached agenda-doc text for a meeting from GCS, looked up directly by each doc's
+    file_id in the shared Drive `catalog` (no bucket listing, no slug-prefixed folder — see
+    docs/pipeline.md#the-drive-catalog-drive_catalogjson). Falls back to isolating the agenda/order-of-
+    business items out of a cached packet, via a Gemini call cached back to GCS so it only runs
+    once per packet. Read-only otherwise — no new Drive fetches. Returns None if nothing is
+    cached for any of this meeting's docs."""
     if not bucket_uri:
         return None
-    from google.cloud import storage
-    bucket_name = bucket_uri[5:]  # strip gs://
-    gcs_bucket = storage.Client(credentials=credentials, project=project_id).bucket(bucket_name)
-    prefix = f"official_docs/{slug}/"
-    try:
-        blobs = list(gcs_bucket.list_blobs(prefix=prefix))
-    except Exception as e:
-        print(f"    Warning: could not list cached docs for {slug}: {e}")
+
+    def _file_id(url):
+        m = re.search(r'/file/d/([^/?]+)', url or '')
+        return m.group(1) if m else None
+
+    def _cached_entries(doc_type):
+        return [
+            catalog[fid] for fid in (_file_id(d.get('url')) for d in (docs or []) if d.get('type') == doc_type)
+            if fid and catalog.get(fid, {}).get('text_blob')
+        ]
+
+    agenda_entries = _cached_entries('agenda')
+    if agenda_entries:
+        texts = [t for t in (drive_mod.read_cached_blob(bucket_uri, e['text_blob']) for e in agenda_entries) if t]
+        if texts:
+            return '\n\n'.join(texts)[:max_chars]
+
+    packet_entries = _cached_entries('packet')
+    if not packet_entries:
         return None
 
-    def _doc_type(blob_name):
-        # official_docs/{slug}/{doc_type}-{file_id}/{mod_time}.txt
-        segment = blob_name[len(prefix):].split('/', 1)[0]
-        return segment.split('-', 1)[0]
+    packet_entry = packet_entries[0]
+    isolated_blob_name = packet_entry['text_blob'][:-4] + '.agenda-extract.txt'
+    isolated = drive_mod.read_cached_blob(bucket_uri, isolated_blob_name)
+    if isolated is not None:
+        return isolated[:max_chars]
 
-    # Exclude our own isolated-extract cache blobs from being mistaken for raw source text —
-    # they live alongside the original .txt under the same {doc_type}-{file_id}/ folder.
-    text_blobs = [b for b in blobs if b.name.endswith('.txt') and '.agenda-extract' not in b.name]
-    agenda_blobs = [b for b in text_blobs if _doc_type(b.name) == 'agenda']
-    if agenda_blobs:
-        text = '\n\n'.join(b.download_as_text(timeout=60) for b in agenda_blobs)
-        return text[:max_chars]
-
-    packet_blobs = [b for b in text_blobs if _doc_type(b.name) == 'packet']
-    if not packet_blobs:
+    packet_text = drive_mod.read_cached_blob(bucket_uri, packet_entry['text_blob'])
+    if not packet_text:
         return None
 
-    packet_blob = packet_blobs[0]
-    isolated_blob = gcs_bucket.blob(packet_blob.name[:-4] + '.agenda-extract.txt')
-    if isolated_blob.exists(timeout=60):
-        try:
-            return isolated_blob.download_as_text(timeout=60)[:max_chars]
-        except Exception:
-            pass
-
-    try:
-        packet_text = packet_blob.download_as_text(timeout=60)
-    except Exception as e:
-        print(f"    Warning: could not read cached packet for {slug}: {e}")
-        return None
-
-    print(f"    Isolating agenda items from packet for {slug} (not cached)...", flush=True)
+    print("    Isolating agenda items from packet (not cached)...", flush=True)
     try:
         response = client.models.generate_content(
             model=model_name,
@@ -439,15 +437,15 @@ def _load_cached_agenda_text(slug, bucket_uri, max_chars=2500):
             ),
             config={'temperature': 0.0},
         )
-        isolated = response.text.strip()
-        isolated_blob.upload_from_string(isolated, content_type='text/plain', timeout=60)
-        return isolated[:max_chars]
+        isolated_text = response.text.strip()
+        drive_mod.write_blob(bucket_uri, isolated_blob_name, isolated_text)
+        return isolated_text[:max_chars]
     except Exception as e:
-        print(f"    Warning: could not isolate agenda from packet for {slug}: {e}")
+        print(f"    Warning: could not isolate agenda from packet: {e}")
         return None
 
 
-def generate_agenda_preview(meeting_data, meeting_dir, bucket_uri):
+def generate_agenda_preview(meeting_data, meeting_dir, bucket_uri, catalog):
     """Generate and write a topic-structured agenda_preview for an upcoming stub."""
     docs = meeting_data.get('docs') or []
     agenda_doc = next((d for d in docs if d.get('type') in ('agenda', 'packet')), None)
@@ -455,7 +453,7 @@ def generate_agenda_preview(meeting_data, meeting_dir, bucket_uri):
         return
     slug = meeting_data['slug']
     print(f"  Generating agenda preview for {slug}...")
-    text = _load_cached_agenda_text(slug, bucket_uri)
+    text = _load_cached_agenda_text(docs, bucket_uri, catalog)
     if not text:
         print(f"    Skipping {slug}: could not read doc content.")
         return
@@ -580,7 +578,7 @@ def _batch_tagging_subprocess(prompt_text, result_queue):
         result_queue.put(('err', str(e)))
 
 
-def batch_tag_all_meetings(meetings_data, bucket_uri, meeting_dir, topics_lib_path):
+def batch_tag_all_meetings(meetings_data, bucket_uri, meeting_dir, topics_lib_path, catalog):
     """Tag the entire meeting corpus in a single Gemini call, using each meeting's transcript summary
     plus cached agenda text at once — lets the model assign self-consistent tags across a narrative
     that spans many meetings (e.g. a school closure) instead of reconstructing continuity one meeting
@@ -598,7 +596,7 @@ def batch_tag_all_meetings(meetings_data, bucket_uri, meeting_dir, topics_lib_pa
     for m in candidates:
         slug = m['slug']
         summary_text = '\n'.join(f'  {i}. {b["topic"]}: {b["text"]}' for i, b in enumerate(m['summary']))
-        agenda_text = _load_cached_agenda_text(slug, bucket_uri)
+        agenda_text = _load_cached_agenda_text(m.get('docs'), bucket_uri, catalog)
         block = f"### Meeting: {slug}\nSummary (numbered):\n{summary_text}"
         if agenda_text:
             block += f"\nOfficial agenda excerpt:\n{agenda_text}"
@@ -703,6 +701,7 @@ def dry_run_tag(slugs, bucket_uri, meeting_dir='src/meetings/',
         for t, s in (json.load(open(summary_lib_path)) if os.path.exists(summary_lib_path) else {}).items()
     }
     all_slugs = sorted(f[:-4] for f in os.listdir(meeting_dir) if f.endswith('.njk'))
+    catalog = drive_mod.load_catalog(bucket_uri)
 
     for slug in slugs:
         njk_path = os.path.join(meeting_dir, f"{slug}.njk")
@@ -720,7 +719,7 @@ def dry_run_tag(slugs, bucket_uri, meeting_dir='src/meetings/',
             prior_data, _ = _read_njk(os.path.join(meeting_dir, f"{prior_slug}.njk"))
             recent_topics = prior_data.get('topics')
 
-        agenda_text = _load_cached_agenda_text(slug, bucket_uri)
+        agenda_text = _load_cached_agenda_text(data.get('docs'), bucket_uri, catalog)
 
         print(f"  Dry-run tagging {slug} (prior meeting: {prior_slug or 'none'}, agenda context: {'yes' if agenda_text else 'no'})...")
         try:
@@ -744,6 +743,7 @@ def post_process():
         if idx + 1 < len(sys.argv):
             bucket_uri = sys.argv[idx + 1]
     bucket_uri = bucket_uri or os.getenv('GCS_BUCKET_URI') or None
+    catalog = drive_mod.load_catalog(bucket_uri)
 
     if '--dry-run-tag' in sys.argv:
         idx = sys.argv.index('--dry-run-tag')
@@ -778,7 +778,7 @@ def post_process():
         ]
         def _extract_terms_task(m):
             try:
-                _extract_official_terms(m, bucket_uri)
+                _extract_official_terms(m, bucket_uri, catalog)
             except Exception as e:
                 print(f"  Warning: term extraction failed for {m.get('slug')}: {e}", flush=True)
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
@@ -790,7 +790,7 @@ def post_process():
     if retag:
         print("Batch-tagging the full meeting corpus in a single call...", flush=True)
         try:
-            batch_tag_all_meetings(meetings_data, bucket_uri, meeting_dir, topics_lib_path)
+            batch_tag_all_meetings(meetings_data, bucket_uri, meeting_dir, topics_lib_path, catalog)
         except Exception as e:
             print(f"  Warning: batch tagging failed: {e}", flush=True)
     else:
@@ -809,7 +809,7 @@ def post_process():
                 continue
             slug = m['slug']
             recent_topics = tag_candidates[i - 1].get('topics') if i > 0 else None
-            agenda_text = _load_cached_agenda_text(slug, bucket_uri)
+            agenda_text = _load_cached_agenda_text(m.get('docs'), bucket_uri, catalog)
             print(f"  Tagging {slug}...", flush=True)
             try:
                 tags, evidence = generate_tags(slug, m['summary'], allowed_tags, topic_context, recent_topics, agenda_text)
@@ -836,7 +836,7 @@ def post_process():
         and any(d.get('type') in ('agenda', 'packet') for d in (m.get('docs') or []))
     ]
     for m in preview_tasks:
-        generate_agenda_preview(m, meeting_dir, bucket_uri)
+        generate_agenda_preview(m, meeting_dir, bucket_uri, catalog)
 
     # 5. Generate missing blurbs
     print("Generating blurbs for unprocessed meetings...")
@@ -919,6 +919,8 @@ def post_process():
         json.dump(summaries, f, indent=2)
     with open(hashes_lib_path, 'w') as f:
         json.dump(hashes, f, indent=2)
+
+    drive_mod.save_catalog(bucket_uri, catalog)
     print("Post-processing complete.")
 
 

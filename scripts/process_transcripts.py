@@ -115,25 +115,28 @@ def _call_gemini_subprocess(model_name, prompt_text, result_queue):
         result_queue.put(('err', str(e)))
 
 
-def _load_official_terms_from_gcs(slug, bucket_uri):
-    """Load cached proper nouns extracted from official docs for a given meeting slug."""
+def _load_official_terms_from_gcs(docs, bucket_uri, catalog):
+    """Load cached proper nouns extracted from a meeting's official docs, looked up directly by
+    each doc's file_id in the shared Drive catalog (no bucket listing — see
+    docs/pipeline.md#the-drive-catalog-drive_catalogjson)."""
     if not bucket_uri:
         return []
-    try:
-        from google.cloud import storage
-        bucket_name = bucket_uri[5:]  # strip gs://
-        blobs = [b for b in storage.Client(credentials=credentials, project=project_id).bucket(bucket_name).list_blobs(prefix=f"official_docs/{slug}/")
-                 if b.name.endswith('.json')]
-        all_terms = []
-        for blob in blobs:
-            try:
-                all_terms.extend(json.loads(blob.download_as_text()))
-            except Exception:
-                pass
-        return all_terms
-    except Exception as e:
-        print(f"    Warning: could not load official terms for {slug}: {e}")
-        return []
+    all_terms = []
+    for doc in (docs or []):
+        m = re.search(r'/file/d/([^/?]+)', doc.get('url', ''))
+        if not m:
+            continue
+        entry = catalog.get(m.group(1))
+        if not entry or not entry.get('terms_blob'):
+            continue
+        cached = drive.read_cached_blob(bucket_uri, entry['terms_blob'])
+        if cached is None:
+            continue
+        try:
+            all_terms.extend(json.loads(cached))
+        except Exception:
+            pass
+    return all_terms
 
 
 def _find_priority_source_doc(docs):
@@ -157,7 +160,7 @@ def _find_priority_source_doc(docs):
     return None, None
 
 
-def _read_doc_text(url, doc_type, slug, bucket_uri, max_chars=15000):
+def _read_doc_text(url, doc_type, bucket_uri, catalog, max_chars=15000):
     """Read (cached, or extract + cache) text for a Drive doc URL belonging to a meeting. Returns None on failure."""
     fid_match = re.search(r'/file/d/([^/?]+)', url)
     if not fid_match:
@@ -165,8 +168,16 @@ def _read_doc_text(url, doc_type, slug, bucket_uri, max_chars=15000):
     file_id = fid_match.group(1)
     try:
         svc = drive.get_drive_service()
-        meta = svc.files().get(fileId=file_id, fields='modifiedTime').execute()
-        return drive.get_or_extract_text(bucket_uri, svc, file_id, meta.get('modifiedTime'), slug, doc_type, max_chars=max_chars)
+        entry = catalog.setdefault(file_id, {})
+        if not all(k in entry for k in ('doc_type', 'mime_type', 'created_time')):
+            meta = svc.files().get(fileId=file_id, fields='mimeType,createdTime').execute()
+            entry.setdefault('doc_type', doc_type)
+            entry.setdefault('mime_type', meta.get('mimeType'))
+            entry.setdefault('created_time', meta.get('createdTime'))
+        text, updates = drive.get_or_extract_text(bucket_uri, svc, catalog, file_id, max_chars=max_chars)
+        if updates:
+            entry.update(updates)
+        return text
     except Exception as e:
         print(f"    Warning: could not read doc text: {e}")
         return None
@@ -253,15 +264,22 @@ def fetch_vtt_content(path):
 
 # --- PROCESSING ---
 
-def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
+def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None):
     njk_path = f"src/meetings/{date_slug}.njk"
     if not os.path.exists(njk_path): return None
+    catalog = catalog if catalog is not None else {}
+
+    # A light early read of just `docs` — official-term lookup needs it before the full
+    # front-matter read (and the transcript-analysis Gemini call) happens further down.
+    with open(njk_path, 'r') as f:
+        early_fm_match = re.match(r'^---\s*\n(.*?)\n---\s*(?:\n|$)', f.read(), re.DOTALL)
+    early_docs = (yaml.safe_load(early_fm_match.group(1)) or {}).get('docs') if early_fm_match else None
 
     print(f"Analyzing: {date_slug} (source: {vtt_path[:40]}...)...")
     transcript = fetch_vtt_content(vtt_path)
 
     glossary_text = GLOSSARY_HINTS
-    official_terms = _load_official_terms_from_gcs(date_slug, bucket_uri)
+    official_terms = _load_official_terms_from_gcs(early_docs, bucket_uri, catalog)
     if official_terms:
         term_hints = '\n'.join(
             f"- {n['term']} ({n.get('type', '')}" + (f", {n['context']}" if n.get('context') else "") + ") — use this exact spelling"
@@ -372,7 +390,7 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None):
         source_label, source_doc = _find_priority_source_doc(data.get('docs'))
         if source_doc:
             doc_type = 'minutes' if source_doc.get('type') == 'min' else source_doc.get('type', 'doc')
-            doc_text = _read_doc_text(source_doc['url'], doc_type, date_slug, bucket_uri)
+            doc_text = _read_doc_text(source_doc['url'], doc_type, bucket_uri, catalog)
             if doc_text:
                 extracted = _extract_votes_attendance_from_doc(doc_text, glossary_text)
                 if extracted:
@@ -455,9 +473,10 @@ def main():
         print("No new meetings to process.")
         return
     print(f"Targeting {len(to_process)} meetings...", flush=True)
+    catalog = drive.load_catalog(bucket)
     all_unresolved = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {executor.submit(process_single_meeting, slug, path, bucket): slug for slug, path in to_process.items()}
+        futures = {executor.submit(process_single_meeting, slug, path, bucket, catalog): slug for slug, path in to_process.items()}
         rate_limited = []
         for future in as_completed(futures):
             slug = futures[future]
@@ -480,6 +499,8 @@ def main():
         if apply_discovered_members(board_members, all_unresolved):
             save_board_members(board_members)
             print(f"Updated board_members.json with {len(all_unresolved)} unresolved attendance observation(s).", flush=True)
+
+    drive.save_catalog(bucket, catalog)
 
     if rate_limited:
         print(f"\nRate-limited on all models for: {', '.join(rate_limited)}")

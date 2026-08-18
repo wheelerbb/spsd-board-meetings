@@ -300,9 +300,12 @@ Document text:
 
 ### GCS cache paths
 
+Keyed by Drive `file_id` (via `drive_catalog.json`), not by meeting date — see
+[pipeline.md#the-drive-catalog-drive_catalogjson](pipeline.md#the-drive-catalog-drive_catalogjson).
+
 ```
-gs://{bucket}/official_docs/{slug}/{doc_type}-{file_id}/{modifiedTime}.txt   ← raw text
-gs://{bucket}/official_docs/{slug}/{doc_type}-{file_id}/{modifiedTime}.json  ← extracted terms
+gs://{bucket}/official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.txt   ← raw text
+gs://{bucket}/official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.json  ← extracted terms
 ```
 
 ---
