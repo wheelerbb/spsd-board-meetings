@@ -29,12 +29,12 @@ _vimeo_map = {}
 # --- CONFIGURATION ---
 credentials, project_id = get_credentials()
 client = genai.Client(
-    credentials=credentials, project=project_id, location='us-central1', vertexai=True,
+    credentials=credentials, project=project_id, location='global', vertexai=True,
     http_options=genai_types.HttpOptions(client_args={'timeout': 120.0}),  # 2-min read timeout
 )
 
 DEFAULT_MODEL = 'gemini-2.5-pro'
-FLASH_MODEL = 'gemini-2.5-flash'
+BACKUP_MODEL = 'gemini-3.5-flash'
 MAX_WORKERS = 2
 
 CUTOFF_DATE = "2023-08-01"
@@ -101,7 +101,7 @@ def _call_gemini_subprocess(model_name, prompt_text, result_queue):
     local_credentials, local_project_id = get_credentials()
     local_client = genai.Client(
         credentials=local_credentials, project=local_project_id,
-        location='us-central1', vertexai=True,
+        location='global', vertexai=True,
         http_options=genai_types.HttpOptions(client_args={'timeout': 120.0}),
     )
     try:
@@ -207,7 +207,7 @@ def _extract_votes_attendance_from_doc(text, glossary_text):
     """
     try:
         response = client.models.generate_content(
-            model=FLASH_MODEL, contents=prompt,
+            model=BACKUP_MODEL, contents=prompt,
             config={'response_mime_type': 'application/json', 'response_schema': VotesAndAttendance, 'temperature': 0.1},
         )
         return json.loads(response.text)
@@ -293,7 +293,7 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None):
 
     try:
         time.sleep(2)
-        models_to_try = [FLASH_MODEL, DEFAULT_MODEL]
+        models_to_try = [DEFAULT_MODEL, BACKUP_MODEL]
         response = None
         for model in models_to_try:
             print(f"  Sending request to Gemini ({model}) for {date_slug} at {_dt.now().strftime('%H:%M:%S')}...", flush=True)
