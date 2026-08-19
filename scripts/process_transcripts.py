@@ -221,44 +221,13 @@ def _extract_votes_attendance_from_doc(text, glossary_text):
 
 
 
-def get_drive_vtt_mapping():
-    """Scans meeting stubs for docs with type=vtt. Returns {date_slug: 'drive:<fileId>'}."""
-    mapping = {}
-    meeting_dir = 'src/meetings/'
-    for filename in sorted(os.listdir(meeting_dir)):
-        if not filename.endswith('.njk'):
-            continue
-        slug = filename.replace('.njk', '')
-        if slug < CUTOFF_DATE:
-            continue
-        njk_path = os.path.join(meeting_dir, filename)
-        with open(njk_path, 'r') as f:
-            content = f.read()
-        m = re.match(r'^---\s*\n(.*?)\n---\s*(?:\n|$)', content, re.DOTALL)
-        if not m:
-            continue
-        try:
-            data = yaml.safe_load(m.group(1)) or {}
-        except Exception:
-            continue
-        for doc in (data.get('docs') or []):
-            if doc.get('type') == 'vtt':
-                fid = re.search(r'/file/d/([^/?]+)', doc.get('url', ''))
-                if fid:
-                    mapping[slug] = f"drive:{fid.group(1)}"
-                break
-    return mapping
-
-
 def fetch_vtt_content(path):
-    """Returns VTT text from a local path, gs:// URI, or drive:<fileId> reference."""
+    """Returns VTT text from a local path or gs:// URI."""
     if path.startswith('gs://'):
         from google.cloud import storage
         without_scheme = path[5:]
         bucket_name, blob_name = without_scheme.split('/', 1)
         return storage.Client().bucket(bucket_name).blob(blob_name).download_as_text()
-    if path.startswith('drive:'):
-        return drive.download_file(path[6:])
     with open(path, 'r') as f:
         return f.read()
 
@@ -438,14 +407,14 @@ def main():
         args = args[:idx] + args[idx + 2:]
     bucket = bucket or os.getenv('GCS_BUCKET_URI', '') or None
 
-    # Build transcript mapping: bucket (lower priority) < Drive (higher priority)
+    # GCS is the sole transcript source — source_data.py mirrors every Drive VTT into the
+    # bucket before this script runs, so there's no freshness reason to ever read from Drive.
     mapping = {}
     if bucket:
         try:
-            mapping.update(get_bucket_vtt_mapping(bucket, CUTOFF_DATE))
+            mapping = get_bucket_vtt_mapping(bucket, CUTOFF_DATE)
         except Exception as e:
             print(f"Warning: could not read bucket VTTs: {e}")
-    mapping.update(get_drive_vtt_mapping())
 
     to_process = {}
 
