@@ -34,7 +34,11 @@ layout: layouts/base.njk
     {% if ts and ts.overview %}
     <div class="topic-section">
       <div class="topic-section-label">Overview</div>
-      <div class="summary-text">{{ ts.overview | paragraphs | linkMeetingDates(topic_meetings) | safe }}</div>
+      <ul class="summary-bullets">
+        {% for point in ts.overview %}
+        <li>{{ point | escape | linkMeetingDates(topic_meetings) | safe }}</li>
+        {% endfor %}
+      </ul>
     </div>
     {% endif %}
 
@@ -42,10 +46,14 @@ layout: layouts/base.njk
     <div class="topic-section">
       <div class="topic-section-label">Perspectives</div>
       <div class="perspectives-grid">
-        {% for group, text in ts.perspectives %}
+        {% for group, points in ts.perspectives %}
         <div class="perspective-card">
           <div class="perspective-card-label">{{ group }}</div>
-          <div>{{ text | paragraphs | linkMeetingDates(topic_meetings) | safe }}</div>
+          <ul class="summary-bullets">
+            {% for point in points %}
+            <li>{{ point | escape | linkMeetingDates(topic_meetings) | safe }}</li>
+            {% endfor %}
+          </ul>
         </div>
         {% endfor %}
       </div>
@@ -96,7 +104,14 @@ layout: layouts/base.njk
     {% for tm in topic_meetings %}
 
       {% set relevant_bullets = [] %}
-      {% if tm.data.summary %}
+      {% set evidence_indices = tm.data.topic_evidence[topic] if tm.data.topic_evidence else none %}
+      {% if evidence_indices and tm.data.summary %}
+        {% for idx in evidence_indices %}
+          {% if tm.data.summary[idx] %}
+            {% set _ = relevant_bullets.push(tm.data.summary[idx]) %}
+          {% endif %}
+        {% endfor %}
+      {% elif tm.data.summary %}
         {% for s in tm.data.summary %}
           {% if topic | lower in s.topic | lower or s.topic | lower in topic | lower %}
             {% set _ = relevant_bullets.push(s) %}

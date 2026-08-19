@@ -24,11 +24,15 @@ from sourcing import drive as drive_mod
 
 credentials, project_id = get_credentials()
 client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
-model_name = 'gemini-2.5-flash'
+from model_config import DEFAULT_MODEL, BACKUP_MODEL, call_with_fallback
 MAX_WORKERS = 4
+# Safety ceiling on how many meetings' evidence feed one topic's synthesis call — not a real
+# token-budget constraint at current corpus/model scale (evidence chunks are short bullet lists,
+# well within the model's context window), just a guard against unbounded future corpus growth.
+MAX_EVIDENCE_MEETINGS = 60
 TAGGING_TIMEOUT = 120  # seconds; enforced via subprocess SIGTERM
 
-def _tagging_subprocess(prompt_text, result_queue):
+def _tagging_subprocess(model_name, prompt_text, result_queue):
     """Run a tagging Gemini call in a separate process so SIGTERM can hard-kill it on timeout."""
     local_credentials, local_project_id = get_credentials()
     local_client = genai.Client(
@@ -159,6 +163,13 @@ _RULE_GENERIC_NOUN = (
     f'requirement, THEN find which bullets support it, never let ease of citation pull you toward a broader tag.'
 )
 
+_RULE_EVIDENCE_RELEVANCE = (
+    "**Evidence relevance.** When citing evidence_bullets for a tag, cite only bullets where THIS "
+    "topic is the actual subject of that bullet — not bullets that mention it only in passing while "
+    "primarily discussing something else. If a topic genuinely has no bullet substantially about it, "
+    "don't tag it at all."
+)
+
 
 def generate_tags(slug, summary_bullets, allowed_tags, topic_context=None, recent_topics=None, agenda_text=None):
     """Call Gemini to generate topic tags from a meeting's summary bullets.
@@ -200,6 +211,7 @@ If this meeting's content continues one of those threads, that's a strong signal
 2. {_RULE_TIME_BINDING}
 3. {_RULE_SUBJECT_NOT_PROCESS}
 4. **Create a new specific tag** when no existing tag fits. Name the specific issue, not a category — "SPESPA Contract 2025" not "Union Contracts"; "FY26 Staff Reductions" not "Property Taxes". {_RULE_GENERIC_NOUN}
+5. {_RULE_EVIDENCE_RELEVANCE}
 
 **Format rules:** Fiscal years must use FYYY format (FY27, FY26) — never FY2027 or FY2026. No parentheses or acronyms. No concatenated words. No symbols (&, /, etc.).
 
@@ -212,20 +224,26 @@ Respond with a JSON array of objects, one per tag: [{{"tag": "...", "evidence_bu
 every tag must cite at least one. Example:
 [{{"tag": "Elementary School Reconfiguration", "evidence_bullets": [0]}}, {{"tag": "FY27 Budget", "evidence_bullets": [1, 3]}}]"""
 
-    q = MpQueue()
-    p = Process(target=_tagging_subprocess, args=(prompt, q), daemon=True)
-    p.start()
-    p.join(timeout=TAGGING_TIMEOUT)
-    if p.is_alive():
-        p.terminate()
-        p.join()
-        raise TimeoutError(f"Tagging timed out after {TAGGING_TIMEOUT}s for {slug}")
-    try:
-        kind, val = q.get_nowait()
-    except _stdlib_queue.Empty:
-        raise Exception("Tagging subprocess exited with no result")
-    if kind == 'err':
-        raise Exception(val)
+    def _attempt(model):
+        q = MpQueue()
+        p = Process(target=_tagging_subprocess, args=(model, prompt, q), daemon=True)
+        p.start()
+        p.join(timeout=TAGGING_TIMEOUT)
+        if p.is_alive():
+            p.terminate()
+            p.join()
+            raise TimeoutError(f"Tagging timed out after {TAGGING_TIMEOUT}s for {slug}")
+        try:
+            kind, val = q.get_nowait()
+        except _stdlib_queue.Empty:
+            raise Exception("Tagging subprocess exited with no result")
+        if kind == 'err':
+            raise Exception(val)
+        return val
+
+    val = call_with_fallback(_attempt)
+    if val is None:
+        raise Exception(f"All models rate-limited for tagging {slug}")
     raw = json.loads(val)
 
     evidence = {}
@@ -366,9 +384,13 @@ def _extract_official_terms(meeting_data, bucket_uri, catalog):
             f"Document text:\n{text}"
         )
         try:
-            response = client.models.generate_content(
-                model=model_name, contents=prompt, config={'temperature': 0.0}
+            response = call_with_fallback(
+                lambda model: client.models.generate_content(
+                    model=model, contents=prompt, config={'temperature': 0.0}
+                )
             )
+            if response is None:
+                raise Exception("All models rate-limited")
             raw = response.text.strip()
             raw = re.sub(r'^```(?:json)?\s*', '', raw)
             raw = re.sub(r'\s*```$', '', raw)
@@ -425,18 +447,22 @@ def _load_cached_agenda_text(docs, bucket_uri, catalog, max_chars=2500):
 
     print("    Isolating agenda items from packet (not cached)...", flush=True)
     try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=(
-                "This is a school board meeting packet, which bundles the agenda with supporting "
-                "materials. Extract ONLY the agenda / order-of-business item list (the itemized "
-                "list of what the board will discuss or vote on) — not the attached supporting "
-                "documents, reports, or exhibits. Return the isolated agenda text only, no "
-                "commentary or markdown fences.\n\n"
-                f"{packet_text}"
-            ),
-            config={'temperature': 0.0},
+        response = call_with_fallback(
+            lambda model: client.models.generate_content(
+                model=model,
+                contents=(
+                    "This is a school board meeting packet, which bundles the agenda with supporting "
+                    "materials. Extract ONLY the agenda / order-of-business item list (the itemized "
+                    "list of what the board will discuss or vote on) — not the attached supporting "
+                    "documents, reports, or exhibits. Return the isolated agenda text only, no "
+                    "commentary or markdown fences.\n\n"
+                    f"{packet_text}"
+                ),
+                config={'temperature': 0.0},
+            )
         )
+        if response is None:
+            raise Exception("All models rate-limited")
         isolated_text = response.text.strip()
         drive_mod.write_blob(bucket_uri, isolated_blob_name, isolated_text)
         return isolated_text[:max_chars]
@@ -473,7 +499,11 @@ def generate_agenda_preview(meeting_data, meeting_dir, bucket_uri, catalog):
         f'Agenda text:\n{text}'
     )
     try:
-        response = client.models.generate_content(model=model_name, contents=prompt, config={'temperature': 0.1})
+        response = call_with_fallback(
+            lambda model: client.models.generate_content(model=model, contents=prompt, config={'temperature': 0.1})
+        )
+        if response is None:
+            raise Exception("All models rate-limited")
         raw = response.text.strip()
         raw = re.sub(r'^```(?:html)?\s*', '', raw)
         raw = re.sub(r'\s*```$', '', raw)
@@ -491,7 +521,11 @@ def generate_blurb(local, meeting_dir):
     prompt = "Write an extremely concise 1-2 sentence objective summary (a 'blurb') of this school board meeting based on these notes. Do not use quotes or introductory filler:\n"
     prompt += "\n".join([f"- {s.get('text', '')}" for s in local.get('summary', [])])
     try:
-        response = client.models.generate_content(model=model_name, contents=prompt, config={'temperature': 0.1})
+        response = call_with_fallback(
+            lambda model: client.models.generate_content(model=model, contents=prompt, config={'temperature': 0.1})
+        )
+        if response is None:
+            raise Exception("All models rate-limited")
         blurb = response.text.strip().replace('\n', ' ')
         njk_path = os.path.join(meeting_dir, local['slug'] + '.njk')
         data, body = _read_njk(njk_path)
@@ -512,12 +546,12 @@ def synthesize_topic(topic, evidence, display_date):
     Return ONLY a JSON object with these exact keys — no markdown fences, no commentary:
     {{
       "current_status": "1-2 plain sentences (no markdown) summarizing where things stand right now. Card-ready.",
-      "overview": "2-3 paragraphs with natural citations to meeting dates (e.g. 'On {display_date}, the board decided...'). The first paragraph MUST cover the most recent developments. If a prior decision was reversed or modified, reflect that clearly.",
+      "overview": ["Array of 3-6 bullet points, newest-first. Each bullet is a single plain sentence (no markdown) citing a meeting date naturally (e.g. 'On {display_date}, the board decided...'). The first bullet MUST cover the most recent developments. If a prior decision was reversed or modified, say so explicitly in its own bullet."],
       "perspectives": {{
-        "Board": "Summary of elected members' stance and questions. Omit key entirely if no data.",
-        "Administration": "Summary of Superintendent/Directors' recommendations. Omit key entirely if no data.",
-        "Staff": "Summary of staff and union rep viewpoints. Omit key entirely if no data.",
-        "Citizens": "Summary of public comment and parent viewpoints. Omit key entirely if no data."
+        "Board": ["Array of 1-4 short bullets on elected members' stance and questions. Omit key entirely if no data."],
+        "Administration": ["Array of 1-4 short bullets on Superintendent/Directors' recommendations. Omit key entirely if no data."],
+        "Staff": ["Array of 1-4 short bullets on staff and union rep viewpoints. Omit key entirely if no data."],
+        "Citizens": ["Array of 1-4 short bullets on public comment and parent viewpoints. Omit key entirely if no data."]
       }}
     }}
 
@@ -530,7 +564,11 @@ def synthesize_topic(topic, evidence, display_date):
     {evidence}
     """
     try:
-        response = client.models.generate_content(model=model_name, contents=prompt, config={'temperature': 0.1})
+        response = call_with_fallback(
+            lambda model: client.models.generate_content(model=model, contents=prompt, config={'temperature': 0.1})
+        )
+        if response is None:
+            raise Exception("All models rate-limited")
         raw = response.text.strip()
         raw = re.sub(r'^```(?:json)?\s*', '', raw)
         raw = re.sub(r'\s*```$', '', raw)
@@ -561,7 +599,7 @@ class BatchTagResponse(BaseModel):
 BATCH_TAGGING_TIMEOUT = 600  # seconds; enforced via subprocess SIGTERM
 
 
-def _batch_tagging_subprocess(prompt_text, result_queue):
+def _batch_tagging_subprocess(model_name, prompt_text, result_queue):
     """Runs the batch tagging Gemini call in a separate process so SIGTERM can hard-kill it on timeout."""
     local_credentials, local_project_id = get_credentials()
     local_client = genai.Client(
@@ -615,6 +653,7 @@ For EACH meeting below, identify 3-5 topic tags for the PRIMARY issues discussed
 2. {_RULE_TIME_BINDING} This rule is the one most often violated when tagging many meetings at once — before finalizing, scan your own output for every budget-adjacent tag (including ones without an FY prefix that should have one) and collapse any that share a fiscal year and theme into one.
 3. {_RULE_SUBJECT_NOT_PROCESS}
 4. **Name the specific issue, not a category** — "SPESPA Contract 2025" not "Union Contracts". {_RULE_GENERIC_NOUN}
+5. {_RULE_EVIDENCE_RELEVANCE}
 
 **Format rules:** Fiscal years must use FYYY format (FY27, FY26) — never FY2027 or FY2026. No parentheses or acronyms. No concatenated words. No symbols (&, /, etc.).
 
@@ -626,20 +665,26 @@ Respond with tags for every meeting listed above, keyed by its slug. For each ta
 cite at least one bullet from its own meeting. The citation is bookkeeping for a tag you've already
 chosen on its merits, not a factor in choosing it."""
 
-    q = MpQueue()
-    p = Process(target=_batch_tagging_subprocess, args=(prompt, q), daemon=True)
-    p.start()
-    p.join(timeout=BATCH_TAGGING_TIMEOUT)
-    if p.is_alive():
-        p.terminate()
-        p.join()
-        raise TimeoutError(f"Batch tagging timed out after {BATCH_TAGGING_TIMEOUT}s")
-    try:
-        kind, val = q.get_nowait()
-    except _stdlib_queue.Empty:
-        raise Exception("Batch tagging subprocess exited with no result")
-    if kind == 'err':
-        raise Exception(val)
+    def _attempt(model):
+        q = MpQueue()
+        p = Process(target=_batch_tagging_subprocess, args=(model, prompt, q), daemon=True)
+        p.start()
+        p.join(timeout=BATCH_TAGGING_TIMEOUT)
+        if p.is_alive():
+            p.terminate()
+            p.join()
+            raise TimeoutError(f"Batch tagging timed out after {BATCH_TAGGING_TIMEOUT}s")
+        try:
+            kind, val = q.get_nowait()
+        except _stdlib_queue.Empty:
+            raise Exception("Batch tagging subprocess exited with no result")
+        if kind == 'err':
+            raise Exception(val)
+        return val
+
+    val = call_with_fallback(_attempt)
+    if val is None:
+        raise Exception("All models rate-limited for batch tagging")
 
     parsed = json.loads(val)
     n_bullets_by_slug = {m['slug']: len(m['summary']) for m in candidates}
@@ -898,7 +943,7 @@ def post_process():
         if not evidence_list:
             continue
 
-        evidence_str = "---".join(evidence_list[:15])  # cap at 15 to stay within token limits
+        evidence_str = "---".join(evidence_list[:MAX_EVIDENCE_MEETINGS])
         current_hash = hashlib.md5(evidence_str.encode('utf-8')).hexdigest()
 
         if current_hash != hashes.get(topic) or topic not in summaries:

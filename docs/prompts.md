@@ -7,7 +7,7 @@ Reference for all Gemini prompt templates used in the pipeline. Code retains the
 ## 1. Transcript Extraction (`process_transcripts.py`)
 
 **Script:** `scripts/process_transcripts.py → process_single_meeting()`  
-**Model:** `gemini-2.5-flash` (falls back to `gemini-2.5-pro` on rate limit)  
+**Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`, shared with `post_process.py`.  
 **Temperature:** 0.1  
 **Output:** Structured JSON via `MeetingReport` Pydantic schema
 
@@ -68,7 +68,7 @@ board_attendance: list[AttendanceMember]  # {name, status, role}
 ## 2. Topic Tag Generation — Single Meeting (`post_process.py`)
 
 **Script:** `scripts/post_process.py → generate_tags()`
-**Model:** `gemini-2.5-flash`
+**Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.
 **Temperature:** default (no `temperature` override in this call's config)
 **Output:** JSON array of `{tag, evidence_bullets}` objects (parsed manually — not Pydantic), then post-processed by `_normalize_fy()` and `_strip_modifiers()`. Returns `(tags, evidence)` where `evidence` is `{tag: [summary_bullet_index, ...]}`.
 **Called from:** the incremental (non-`--retag`) branch of `post_process()`'s tagging step — one call per meeting that doesn't yet have `topics:`, in chronological order. Also used by `--dry-run-tag` for testing.
@@ -100,6 +100,7 @@ If this meeting's content continues one of those threads, that's a strong signal
    - **Evergreen** (standing, systemic domains with no natural end — special ed, transportation, facilities, equity, governance): never time-bound.
 3. **Subject, not process stage.** A tag names the SUBJECT being discussed, never what stage of board deliberation it's at. Words like "Development", "Presentation", "Discussion", "Update", "Overview", "Review", "Consideration", "Process", "Session", "Report", "Debate", "Announcement", "Revision(s)", "Projection" describe *where something is in the meeting cycle*, not *what the topic is* — never end a tag with one of these (e.g. "Cell Phone Policy Development" → "Cell Phone Policy"). Words naming a specific, substantive outcome — "Closure", "Adoption", "Referendum", "Resignation", "Appointment" — are fine to keep; they're not process-stage words.
 4. **Create a new specific tag** when no existing tag fits. Name the specific issue, not a category — "SPESPA Contract 2025" not "Union Contracts"; "FY26 Staff Reductions" not "Property Taxes". Generic category nouns (Policy Review, Community Engagement, School Operations, Board Governance, Student Recognition) are never valid tags.
+5. **Evidence relevance.** When citing evidence_bullets for a tag, cite only bullets where THIS topic is the actual subject of that bullet — not bullets that mention it only in passing while primarily discussing something else. If a topic genuinely has no bullet substantially about it, don't tag it at all.
 
 **Format rules:** Fiscal years must use FYYY format (FY27, FY26) — never FY2027 or FY2026. No parentheses or acronyms. No concatenated words. No symbols (&, /, etc.).
 
@@ -119,7 +120,7 @@ The Summary is rendered with 0-indexed bullet numbers, and the model reports whi
 
 ### Shared rule text (todos/005)
 
-Rules 2–4 above (`_RULE_TIME_BINDING`, `_RULE_SUBJECT_NOT_PROCESS`, `_RULE_GENERIC_NOUN` in `post_process.py`) are single Python constants interpolated into *both* this prompt and §3's batch prompt — not copy-pasted prose kept in sync by hand. If you're editing tag-quality rules, edit the constant once; it updates both tagging paths. This mirrors the shared `src/_data/topic_blacklist.json` artifact (also referenced from `_RULE_GENERIC_NOUN`'s rendered text) — the general principle for this pipeline is: topic-tagging logic that needs to behave the same way across the single-meeting and batch paths should be one shared artifact/constant, not two things a human has to remember to update together.
+Rules 2–5 above (`_RULE_TIME_BINDING`, `_RULE_SUBJECT_NOT_PROCESS`, `_RULE_GENERIC_NOUN`, `_RULE_EVIDENCE_RELEVANCE` in `post_process.py`) are single Python constants interpolated into *both* this prompt and §3's batch prompt — not copy-pasted prose kept in sync by hand. If you're editing tag-quality rules, edit the constant once; it updates both tagging paths. This mirrors the shared `src/_data/topic_blacklist.json` artifact (also referenced from `_RULE_GENERIC_NOUN`'s rendered text) — the general principle for this pipeline is: topic-tagging logic that needs to behave the same way across the single-meeting and batch paths should be one shared artifact/constant, not two things a human has to remember to update together.
 
 ### Post-processing (applies to every generated tag, both here and in §3)
 
@@ -133,7 +134,7 @@ Rules 2–4 above (`_RULE_TIME_BINDING`, `_RULE_SUBJECT_NOT_PROCESS`, `_RULE_GEN
 ## 3. Topic Tag Generation — Batch (`post_process.py`)
 
 **Script:** `scripts/post_process.py → batch_tag_all_meetings()`
-**Model:** `gemini-2.5-flash`
+**Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.
 **Temperature:** 0.0
 **Output:** Structured JSON via `BatchTagResponse` Pydantic schema (`{results: [{slug, tags: [{tag, evidence_bullets}]}]}`)
 **Timeout:** 600s (`BATCH_TAGGING_TIMEOUT`), enforced via subprocess `SIGTERM` — same pattern as §2, just longer given the much larger input/output
@@ -165,6 +166,7 @@ For EACH meeting below, identify 3-5 topic tags for the PRIMARY issues discussed
    - **Evergreen** (standing, systemic domains with no natural end — special ed, transportation, facilities, equity, governance): never time-bound.
 3. **Subject, not process stage.** A tag names the SUBJECT being discussed, never what stage of board deliberation it's at. Words like "Development", "Presentation", "Discussion", "Update", "Overview", "Review", "Consideration", "Process", "Session", "Report", "Debate", "Announcement", "Revision(s)", "Projection" describe *where something is in the meeting cycle*, not *what the topic is* — never end a tag with one of these (e.g. "Cell Phone Policy Development" → "Cell Phone Policy"). Words naming a specific, substantive outcome — "Closure", "Adoption", "Referendum", "Resignation", "Appointment" — are fine to keep; they're not process-stage words.
 4. **Name the specific issue, not a category** — "SPESPA Contract 2025" not "Union Contracts". Generic category nouns are never valid tags.
+5. **Evidence relevance.** When citing evidence_bullets for a tag, cite only bullets where THIS topic is the actual subject of that bullet — not bullets that mention it only in passing while primarily discussing something else. If a topic genuinely has no bullet substantially about it, don't tag it at all.
 
 **Format rules:** Fiscal years must use FYYY format (FY27, FY26) — never FY2027 or FY2026. No parentheses or acronyms. No concatenated words. No symbols (&, /, etc.).
 
@@ -189,7 +191,7 @@ A second, different failure mode showed up after adding evidence-bullet citation
 ## 4. Agenda Text Retrieval (`post_process.py`)
 
 **Script:** `scripts/post_process.py → _load_cached_agenda_text()`
-**Model:** `gemini-2.5-flash` (only when the packet-isolation fallback below triggers)
+**Model:** `DEFAULT_MODEL`/`BACKUP_MODEL` fallback pair via `scripts/model_config.py` (only when the packet-isolation fallback below triggers)
 **Temperature:** 0.0
 **Output:** Plain text (agenda excerpt), truncated to `max_chars` (default 2500)
 **Called from:** §2 and §3, to ground tagging in the district's own agenda item framing rather than only the Gemini-generated transcript summary.
@@ -216,7 +218,7 @@ Return the isolated agenda text only, no commentary or markdown fences.
 ## 5. Topic Synthesis (`post_process.py`)
 
 **Script:** `scripts/post_process.py → synthesize_topic()`  
-**Model:** `gemini-2.5-flash`  
+**Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`, shared with `process_transcripts.py`.  
 **Temperature:** 0.1  
 **Output:** JSON object (parsed manually — not Pydantic)
 
@@ -229,14 +231,15 @@ Synthesize the following chronological notes (NEWEST FIRST) regarding the topic:
 Return ONLY a JSON object with these exact keys — no markdown fences, no commentary:
 {
   "current_status": "1-2 plain sentences (no markdown) summarizing where things stand right now. Card-ready.",
-  "overview": "2-3 paragraphs with natural citations to meeting dates (e.g. 'On {display_date},
-    the board decided...'). The first paragraph MUST cover the most recent developments.
-    If a prior decision was reversed or modified, reflect that clearly.",
+  "overview": ["Array of 3-6 bullet points, newest-first. Each bullet is a single plain sentence
+    (no markdown) citing a meeting date naturally (e.g. 'On {display_date}, the board decided...').
+    The first bullet MUST cover the most recent developments. If a prior decision was reversed or
+    modified, say so explicitly in its own bullet."],
   "perspectives": {
-    "Board": "Summary of elected members' stance and questions. Omit key entirely if no data.",
-    "Administration": "Summary of Superintendent/Directors' recommendations. Omit key entirely if no data.",
-    "Staff": "Summary of staff and union rep viewpoints. Omit key entirely if no data.",
-    "Citizens": "Summary of public comment and parent viewpoints. Omit key entirely if no data."
+    "Board": ["Array of 1-4 short bullets on elected members' stance and questions. Omit key entirely if no data."],
+    "Administration": ["Array of 1-4 short bullets on Superintendent/Directors' recommendations. Omit key entirely if no data."],
+    "Staff": ["Array of 1-4 short bullets on staff and union rep viewpoints. Omit key entirely if no data."],
+    "Citizens": ["Array of 1-4 short bullets on public comment and parent viewpoints. Omit key entirely if no data."]
   }
 }
 
@@ -249,16 +252,18 @@ Evidence (Newest First):
 {evidence}
 ```
 
+`overview` and each `perspectives` value are JSON arrays of short bullet strings (not prose blocks) — rendered by `topic.njk` as `<ul class="summary-bullets">`, the same markup meeting pages use for their own summary bullets. `current_status` stays a single short string (1-2 sentences, "card-ready").
+
 ### Evidence format
 
-Up to 15 most recent meeting chunks, joined by `---`. Each chunk:
+Up to `MAX_EVIDENCE_MEETINGS` (60) most recent meeting chunks, joined by `---` — raised from an earlier hardcoded cap of 15, which was a meeting-count limit mislabeled as a token-budget constraint; at current corpus/model scale there's no real token pressure. Each chunk:
 ```
 Meeting: {display_date} ({meeting_url})
 - {summary_bullet_text}
 - {summary_bullet_text}
 ```
 
-Which bullets go into a given topic's chunk: a meeting's `topic_evidence` frontmatter field (`{tag: [bullet_index, ...]}`, populated by §2/§3's tagging calls) is used directly when present. `_evidence_match()` fuzzy text matching is only a fallback, for meetings tagged before `topic_evidence` existed (see todos/012).
+Which bullets go into a given topic's chunk: a meeting's `topic_evidence` frontmatter field (`{tag: [bullet_index, ...]}`, populated by §2/§3's tagging calls) is used directly when present. `_evidence_match()` fuzzy text matching is only a fallback, for meetings tagged before `topic_evidence` existed (see todos/012). §2/§3's tagging prompts also carry a fifth rule (`_RULE_EVIDENCE_RELEVANCE`) instructing the model to only cite bullets where the topic is the bullet's actual subject, not a passing mention — this keeps tangential content out of the evidence that reaches this synthesis step in the first place.
 
 ### Cache strategy
 
@@ -269,7 +274,7 @@ MD5 hash of the evidence string stored in `scripts/topic_hashes.json`. Synthesis
 ## 6. Official Document Term Extraction (`post_process.py`)
 
 **Script:** `scripts/post_process.py → _extract_official_terms()`  
-**Model:** `gemini-2.5-flash`  
+**Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.  
 **Temperature:** 0.0  
 **Output:** JSON array (parsed manually)
 
@@ -313,7 +318,7 @@ gs://{bucket}/official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}
 ## 7. Agenda Preview (`post_process.py`)
 
 **Script:** `scripts/post_process.py → generate_agenda_preview()`  
-**Model:** `gemini-2.5-flash`  
+**Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.  
 **Temperature:** 0.1  
 **Output:** HTML string (stored in `.njk` frontmatter as `agenda_preview`)
 
@@ -348,7 +353,7 @@ Agenda text:
 ## 8. Blurb Generation (`post_process.py`)
 
 **Script:** `scripts/post_process.py → generate_blurb()`  
-**Model:** `gemini-2.5-flash`  
+**Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.  
 **Temperature:** 0.1  
 **Output:** Plain text string (stored in `.njk` frontmatter as `blurb`)
 

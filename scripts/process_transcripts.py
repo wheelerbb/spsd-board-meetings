@@ -33,8 +33,8 @@ client = genai.Client(
     http_options=genai_types.HttpOptions(client_args={'timeout': 120.0}),  # 2-min read timeout
 )
 
-DEFAULT_MODEL = 'gemini-2.5-pro'
-BACKUP_MODEL = 'gemini-3.5-flash'
+from model_config import DEFAULT_MODEL, BACKUP_MODEL, call_with_fallback
+
 MAX_WORKERS = 2
 
 CUTOFF_DATE = "2023-08-01"
@@ -293,32 +293,26 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None):
 
     try:
         time.sleep(2)
-        models_to_try = [DEFAULT_MODEL, BACKUP_MODEL]
-        response = None
-        for model in models_to_try:
+
+        def _attempt(model):
             print(f"  Sending request to Gemini ({model}) for {date_slug} at {_dt.now().strftime('%H:%M:%S')}...", flush=True)
+            q = MpQueue()
+            p = Process(target=_call_gemini_subprocess, args=(model, prompt, q), daemon=True)
+            p.start()
+            p.join(timeout=GEMINI_TIMEOUT)
+            if p.is_alive():
+                p.terminate()
+                p.join()
+                raise TimeoutError(f"Gemini request timed out after {GEMINI_TIMEOUT}s")
             try:
-                q = MpQueue()
-                p = Process(target=_call_gemini_subprocess, args=(model, prompt, q), daemon=True)
-                p.start()
-                p.join(timeout=GEMINI_TIMEOUT)
-                if p.is_alive():
-                    p.terminate()
-                    p.join()
-                    raise TimeoutError(f"Gemini request timed out after {GEMINI_TIMEOUT}s")
-                try:
-                    kind, val = q.get_nowait()
-                except _stdlib_queue.Empty:
-                    raise Exception("Subprocess exited with no result")
-                if kind == 'err':
-                    raise Exception(val)
-                response = type('R', (), {'text': val})()  # lightweight wrapper
-                break
-            except Exception as model_err:
-                if "429" in str(model_err):
-                    print(f"  Rate-limited on {model}, trying next model...", flush=True)
-                    continue
-                raise
+                kind, val = q.get_nowait()
+            except _stdlib_queue.Empty:
+                raise Exception("Subprocess exited with no result")
+            if kind == 'err':
+                raise Exception(val)
+            return type('R', (), {'text': val})()  # lightweight wrapper
+
+        response = call_with_fallback(_attempt)
         if response is None:
             print(f"  All models rate-limited for {date_slug}. Run via production pipeline for higher limits.", flush=True)
             return {"slug": date_slug, "status": "RateLimit"}
