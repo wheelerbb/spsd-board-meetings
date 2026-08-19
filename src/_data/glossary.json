@@ -2,7 +2,7 @@
   { "correct": "Kaler", "aliases": ["Caler"], "note": "Kaler Elementary School" },
   { "correct": "Skillin", "aliases": ["Skillen"], "note": "Skillin Elementary School" },
   { "correct": "Skillins", "aliases": ["Skillens"] },
-  { "correct": "Atkinson Duina", "aliases": ["Atkinson-Dena", "Atkinson Dena"], "note": "full name: Angela Atkinson Duina" },
+  { "correct": "Atkinson Duina", "aliases": ["Atkinson-Dena", "Atkinson Dena"] },
   { "correct": "SPESPA", "aliases": [], "note": "Support Professionals" },
   { "correct": "SPTA", "aliases": [], "note": "Teachers" }
 ]
