@@ -7,6 +7,10 @@ layout: layouts/base.njk
     <h1>{{ heading | safe }}</h1>
     <div class="meeting-meta">
       <div class="meta-item">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>
+        {{ day_of_week }}, {{ display_date }}
+      </div>
+      <div class="meta-item">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
         {{ time }} · {{ location }}
       </div>
