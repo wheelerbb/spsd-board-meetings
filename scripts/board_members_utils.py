@@ -4,7 +4,20 @@ from datetime import date
 
 BOARD_MEMBERS_PATH = 'src/_data/board_members.json'
 
-_TITLE_RE = re.compile(r'^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?|Mx\.?)\s+', re.IGNORECASE)
+# Attendance names come from transcript roll calls, which state a role/office instead of (or
+# alongside) an honorific — "board member Feller", "Chair DeAngelos", "Student rep Philippian" —
+# not just "Mr./Ms. Surname". Left unstripped, those extra leading words made the raw name longer
+# than the matching roster entry's full name, which _match_active's suffix comparison requires
+# raw_tokens <= full-name tokens for — so it could never match and silently forked off a
+# duplicate "Board member Feller" record alongside the real "Daniel Feller" entry instead of
+# converging onto it.
+_TITLE_RE = re.compile(
+    r'^(?:Mr\.?|Mrs\.?|Ms\.?|Dr\.?|Mx\.?|'
+    r'Board\s+Vice\s+Chair|Board\s+Chair|Vice\s+Chair|Chair|'
+    r'Board\s+members?|'
+    r'Student\s+rep(?:resentatives?)?s?)\s+',
+    re.IGNORECASE,
+)
 
 
 def load_board_members(path=BOARD_MEMBERS_PATH):
@@ -156,7 +169,7 @@ def apply_discovered_members(board_members, observations):
                 mutated = True
         elif not same_surname:
             board_members.append({
-                'name': raw,
+                'name': _strip_title(raw),
                 'seat': 'Student Representative' if obs.get('role') == 'Student Rep' else None,
                 'terms': [{'start': date_str, 'end': date_str}],
                 'roles': [],

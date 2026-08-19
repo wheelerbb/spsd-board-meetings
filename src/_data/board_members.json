@@ -70,7 +70,7 @@
     "roles": []
   },
   {
-    "name": "Sarah Lian",
+    "name": "Sarah Lupien",
     "seat": "Student Representative",
     "terms": [
       { "start": "2026-01-01", "end": null }
@@ -135,42 +135,6 @@
     "seat": "Student Representative",
     "terms": [
       { "start": "2024-01-08", "end": "2024-01-22" }
-    ],
-    "roles": [],
-    "auto_discovered": true
-  },
-  {
-    "name": "Chair DeAngelos",
-    "seat": null,
-    "terms": [
-      { "start": "2026-08-17", "end": "2026-08-17" }
-    ],
-    "roles": [],
-    "auto_discovered": true
-  },
-  {
-    "name": "Board member Rich",
-    "seat": null,
-    "terms": [
-      { "start": "2026-08-17", "end": "2026-08-17" }
-    ],
-    "roles": [],
-    "auto_discovered": true
-  },
-  {
-    "name": "Student rep Philippian",
-    "seat": "Student Representative",
-    "terms": [
-      { "start": "2026-08-17", "end": "2026-08-17" }
-    ],
-    "roles": [],
-    "auto_discovered": true
-  },
-  {
-    "name": "Student rep Rio splash",
-    "seat": "Student Representative",
-    "terms": [
-      { "start": "2026-08-17", "end": "2026-08-17" }
     ],
     "roles": [],
     "auto_discovered": true
