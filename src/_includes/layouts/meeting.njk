@@ -7,10 +7,6 @@ layout: layouts/base.njk
     <h1>{{ heading | safe }}</h1>
     <div class="meeting-meta">
       <div class="meta-item">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>
-        {{ day_of_week }}, {{ display_date }}
-      </div>
-      <div class="meta-item">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
         {{ time }} · {{ location }}
       </div>
@@ -166,14 +162,14 @@ layout: layouts/base.njk
 
         {% if agendaDoc %}
         <a href="{{ agendaDoc.url }}" target="_blank" class="doc-link">
-          <div class="doc-icon {{ agendaDoc.type | docClass }}">{{ agendaDoc.type | docIcon }}</div>
+          <div class="doc-icon {{ agendaDoc | fileTypeClass }}">{{ agendaDoc | fileTypeLabel }}</div>
           <div><div class="doc-name">{{ agendaDoc.label }}</div>{% if agendaDoc.size %}<div class="doc-size">{{ agendaDoc.size }}</div>{% endif %}</div>
         </a>
         {% endif %}
 
         {% if packetDoc %}
         <a href="{{ packetDoc.url }}" target="_blank" class="doc-link">
-          <div class="doc-icon {{ packetDoc.type | docClass }}">{{ packetDoc.type | docIcon }}</div>
+          <div class="doc-icon {{ packetDoc | fileTypeClass }}">{{ packetDoc | fileTypeLabel }}</div>
           <div><div class="doc-name">{{ packetDoc.label }}</div>{% if packetDoc.size %}<div class="doc-size">{{ packetDoc.size }}</div>{% endif %}</div>
         </a>
         {% else %}
@@ -184,7 +180,7 @@ layout: layouts/base.njk
 
         {% if minDoc %}
         <a href="{{ minDoc.url }}" target="_blank" class="doc-link">
-          <div class="doc-icon {{ minDoc.type | docClass }}">{{ minDoc.type | docIcon }}</div>
+          <div class="doc-icon {{ minDoc | fileTypeClass }}">{{ minDoc | fileTypeLabel }}</div>
           <div><div class="doc-name">{{ minDoc.label }}</div>{% if minDoc.size %}<div class="doc-size">{{ minDoc.size }}</div>{% endif %}</div>
         </a>
         {% else %}
@@ -212,7 +208,7 @@ layout: layouts/base.njk
           {% if vttDoc and d.url == vttDoc.url %}{% set isStandard = true %}{% endif %}
           {% if not isStandard %}
           <a href="{{ d.url }}" target="_blank" class="doc-link">
-            <div class="doc-icon {{ d.type | docClass }}">{{ d.type | docIcon }}</div>
+            <div class="doc-icon {{ d | fileTypeClass }}">{{ d | fileTypeLabel }}</div>
             <div><div class="doc-name">{{ d.label }}</div>{% if d.size %}<div class="doc-size">{{ d.size }}</div>{% endif %}</div>
           </a>
           {% endif %}

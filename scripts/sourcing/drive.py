@@ -303,6 +303,25 @@ def categorize_document(filename):
     if name_lower.endswith('.vtt') or 'transcript' in name_lower or re.match(r'spboe_\d', name_lower): return 'vtt'
     return 'misc'
 
+# Native Google Docs/Sheets/Slides have no filename extension, so their file type can only come
+# from mime_type. Everything else (uploaded PDFs, Office files, etc.) keeps its extension on
+# Drive, so the filename is checked first below.
+_GOOGLE_NATIVE_FILE_TYPES = {
+    'application/vnd.google-apps.document': 'DOC',
+    'application/vnd.google-apps.spreadsheet': 'XLSX',
+    'application/vnd.google-apps.presentation': 'PPTX',
+}
+
+def file_type_label(filename, mime_type=None):
+    """The short file-format label shown as a document's icon (PDF, DOCX, PPTX, ...) — distinct
+    from categorize_document()'s doc_type, which is the document's *role* in the meeting, not its
+    format. Derived from the filename's extension since Drive preserves it on upload."""
+    if filename and '.' in filename:
+        ext = filename.rsplit('.', 1)[-1].upper()
+        if ext.isalnum() and len(ext) <= 5:
+            return ext
+    return _GOOGLE_NATIVE_FILE_TYPES.get(mime_type, 'FILE')
+
 def clean_url(url):
     """Removes tracking parameters from Google Drive URLs."""
     if not url: return url
@@ -319,7 +338,7 @@ def clean_label(label):
 def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date=None):
     """
     Resolves each Drive file to a meeting date and document type, updating `catalog` in place —
-    file_id -> {label, url, mime_type, doc_type, created_time, modified_time, meeting_slug,
+    file_id -> {label, url, mime_type, doc_type, file_type, created_time, modified_time, meeting_slug,
     resolved_via, text_blob}. `meeting_slug`/`resolved_via` are `None` for a file nothing could
     date; the caller (source_data.py) attempts a website-based fallback afterward and updates
     those same catalog entries directly rather than tracking a separate unresolved list.
@@ -372,10 +391,11 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
         url = clean_url(f.get('webViewLink'))
         label = clean_label(filename)
         doc_type = categorize_document(filename)
+        file_type = file_type_label(filename, mime_type)
 
         entry = catalog.setdefault(file_id, {})
         entry.update({'label': label, 'url': url, 'mime_type': mime_type,
-                      'created_time': created_time, 'doc_type': doc_type})
+                      'created_time': created_time, 'doc_type': doc_type, 'file_type': file_type})
 
         if entry.get('modified_time') == modified_time and 'meeting_slug' in entry:
             continue  # already resolved for this exact version — nothing to redo

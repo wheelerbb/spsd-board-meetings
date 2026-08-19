@@ -11,18 +11,24 @@ module.exports = function (eleventyConfig) {
     array.filter((item) => item[key] == value)
   );
 
-  // Map doc type to the short icon label shown in the sidebar (file type only)
-  eleventyConfig.addFilter("docIcon", (type) => {
-    const labels = { agenda: "PDF", packet: "PDF", min: "PDF", minutes: "PDF", vtt: "VTT" };
-    return labels[type] || type.toUpperCase();
-  });
+  // A doc's `type` (agenda/packet/minutes/vtt/misc) is its role in the meeting, not its file
+  // format — a "misc" doc can be a PDF, PPTX, or anything else. The sidebar icon should always
+  // show file format, so it reads from `file_type` (captured from the Drive file's extension/mime
+  // type by the sourcing pipeline). Docs sourced before that field existed fall back to a
+  // type-based guess so old meeting pages don't regress.
+  const fileTypeFallback = (doc) => {
+    if (doc.type === "vtt") return "vtt";
+    if (["agenda", "packet", "min", "minutes"].includes(doc.type)) return "pdf";
+    return "file";
+  };
 
-  // Normalize doc type to a CSS class representing the file format
-  eleventyConfig.addFilter("docClass", (type) => {
-    if (["agenda", "packet", "min", "minutes"].includes(type)) return "pdf";
-    if (type === "vtt") return "vtt";
-    return type.toLowerCase();
-  });
+  eleventyConfig.addFilter("fileTypeLabel", (doc) =>
+    (doc.file_type || fileTypeFallback(doc)).toUpperCase()
+  );
+
+  eleventyConfig.addFilter("fileTypeClass", (doc) =>
+    (doc.file_type || fileTypeFallback(doc)).toLowerCase()
+  );
 
   eleventyConfig.addFilter("meetingNav", require("./src/_lib/meetingNav"));
 

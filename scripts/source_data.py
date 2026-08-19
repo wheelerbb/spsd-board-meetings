@@ -40,7 +40,28 @@ def merge_documents(existing_docs, new_docs):
 
     return list(merged.values()), added_count
 
-def reconcile_meetings(all_data, dry_run=False):
+def _backfill_file_types(docs, catalog):
+    """Fills in `file_type` (PDF, DOCX, ...) on any doc missing it, by looking up its URL in the
+    Drive catalog — the sole owner of file-format metadata (see drive.file_type_label). Needed for
+    docs sourced from the SPSD site listing (which only has label/url/doc_type, never mime info)
+    and for docs written to disk before file_type existed. Mutates `docs` in place; returns True
+    if anything changed."""
+    if not catalog:
+        return False
+    url_to_file_type = {
+        drive.clean_url(e.get('url')): e['file_type']
+        for e in catalog.values() if e.get('url') and e.get('file_type')
+    }
+    changed = False
+    for d in docs:
+        if not d.get('file_type'):
+            file_type = url_to_file_type.get(drive.clean_url(d.get('url')))
+            if file_type:
+                d['file_type'] = file_type
+                changed = True
+    return changed
+
+def reconcile_meetings(all_data, dry_run=False, catalog=None):
     """
     Unified reconciliation and stub generation.
     all_data: dict mapping date_slug to {
@@ -50,6 +71,8 @@ def reconcile_meetings(all_data, dry_run=False):
         'video': url,
         'transcript': path
     }
+    `catalog` (optional) backfills `file_type` on docs sourced without it — see
+    _backfill_file_types.
     Mutates all_data in place to add '_stub_action' and '_authority' audit fields.
     """
     board_members_path = os.path.join(BASE_DIR, '..', 'src', '_data', 'board_members.json')
@@ -135,9 +158,10 @@ def reconcile_meetings(all_data, dry_run=False):
 
                 existing_docs = fm_data.get('docs', [])
                 merged_docs, added_docs_count = merge_documents(existing_docs, combined_docs)
+                file_types_backfilled = _backfill_file_types(merged_docs, catalog)
 
                 updated = False
-                if added_docs_count > 0:
+                if added_docs_count > 0 or file_types_backfilled:
                     fm_data['docs'] = merged_docs
                     updated = True
 
@@ -173,6 +197,8 @@ def reconcile_meetings(all_data, dry_run=False):
 
         if dry_run:
             continue
+
+        _backfill_file_types(combined_docs, catalog)
 
         dt = datetime.strptime(date_slug, "%Y-%m-%d")
         display_date = dt.strftime("%B %d, %Y").replace(" 0", " ")
@@ -421,6 +447,7 @@ def main():
             'type': entry.get('doc_type', 'misc'),
             'label': entry.get('label'),
             'url': entry.get('url'),
+            'file_type': entry.get('file_type'),
         })
 
     # Files nothing could date. build_meeting_map already excludes anything out of cutoff scope
@@ -466,7 +493,7 @@ def main():
 
     # 6. Reconcile & Update Meetings (also annotates all_data with _stub_action/_authority)
     print("Step 6: Reconciling and updating meetings...")
-    changes = reconcile_meetings(all_data, dry_run=args.dry_run)
+    changes = reconcile_meetings(all_data, dry_run=args.dry_run, catalog=catalog)
 
     # 7. Sync Drive VTTs to bucket; update canonical GCS URIs in all_data
     if args.bucket and not args.dry_run:
