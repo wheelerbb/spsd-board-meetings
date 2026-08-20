@@ -39,7 +39,7 @@ from model_config import DEFAULT_MODEL, BACKUP_MODEL, call_with_fallback
 MAX_WORKERS = 2
 
 CUTOFF_DATE = "2023-08-01"
-SCRIPT_VERSION = '2026-07-28'
+SCRIPT_VERSION = '2026-08-20'
 
 from glossary_utils import load_glossary, render_glossary_hints
 from board_members_utils import (

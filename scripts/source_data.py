@@ -21,25 +21,46 @@ load_dotenv()
 FOLDER_ID = "0B42s0chw8f_lQmpaNU93ejYyWkU"
 CUTOFF_DATE = "2023-08-01"
 
-def merge_documents(existing_docs, new_docs):
+# Sentinel for a URL that resolves to more than one date_slug in the same run's fresh source
+# data — treated as unclaimed by anyone for reassignment purposes, so a conflicting resolution
+# never causes a doc to be stripped from a meeting it might actually still belong to.
+AMBIGUOUS = object()
+
+def merge_documents(existing_docs, new_docs, url_owner=None, date_slug=None):
     """
-    Merges two lists of documents, deduplicating by URL.
-    new_docs take precedence if there's a collision in URL (labels might be updated).
+    Merges an existing meeting's docs with this run's freshly-resolved docs for the same date,
+    deduplicating by URL. Returns (merged_docs, added_count, removed_count).
+
+    - On a URL collision, new_docs always wins — it reflects this run's current best resolution,
+      which may have corrected a label/type since existing_docs was last written.
+    - `url_owner` (optional), if given, maps every URL claimed by *any* date this run to the
+      date_slug that claims it (or AMBIGUOUS if more than one date claims it). An existing doc
+      whose URL is confidently owned by a *different* date_slug is dropped — unambiguous evidence
+      it was reassigned. A doc whose URL isn't in url_owner at all (absent from every date's fresh
+      data this run, not just this one) is left untouched: absence here isn't evidence of
+      anything, only presence under a different date is. This can't catch reassignment to a date
+      outside url_owner's coverage (e.g. before CUTOFF_DATE), which is an accepted limitation.
     """
-    merged = {drive.clean_url(d.get('url')): d for d in existing_docs if d.get('url')}
+    removed_count = 0
+    merged = {}
+    for d in existing_docs:
+        url = drive.clean_url(d.get('url'))
+        if not url:
+            continue
+        owner = url_owner.get(url) if url_owner else None
+        if owner is not None and owner is not AMBIGUOUS and owner != date_slug:
+            removed_count += 1
+            continue
+        merged[url] = d
 
     added_count = 0
     for d in new_docs:
         url = drive.clean_url(d.get('url'))
         if url not in merged:
-            merged[url] = d
             added_count += 1
-        else:
-            # Optionally update label/type if new one is more specific?
-            # For now, let's stick with the first one found (or priority based)
-            pass
+        merged[url] = d  # new_docs always wins on collision
 
-    return list(merged.values()), added_count
+    return list(merged.values()), added_count, removed_count
 
 def _backfill_file_types(docs, catalog):
     """Fills in `file_type` (PDF, DOCX, ...) on any doc missing it, by looking up its URL in the
@@ -89,6 +110,36 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None):
     # Sort dates descending
     sorted_dates = sorted(all_data.keys(), reverse=True)
 
+    # Precompute this run's combined (site + drive) docs for every in-scope date, plus a
+    # cross-date URL ownership index, before reconciling any single meeting — this is what lets
+    # merge_documents() tell "reassigned to another meeting" (URL claimed by a different date)
+    # apart from "just not re-derived this run" (URL claimed by no date at all).
+    combined_docs_by_slug = {}
+    for slug, d in all_data.items():
+        if slug < CUTOFF_DATE:
+            continue
+        docs = list(d.get('site', {}).get('docs', [])) if d.get('site') else []
+        seen = {drive.clean_url(doc['url']) for doc in docs}
+        for doc in d.get('drive', []):
+            u = drive.clean_url(doc['url'])
+            if u not in seen:
+                docs.append(doc)
+                seen.add(u)
+        combined_docs_by_slug[slug] = docs
+
+    url_owner = {}
+    for slug, docs in combined_docs_by_slug.items():
+        for doc in docs:
+            u = drive.clean_url(doc.get('url'))
+            if not u:
+                continue
+            if u in url_owner and url_owner[u] not in (slug, AMBIGUOUS):
+                print(f"  Warning: URL {u} resolves to both {url_owner[u]!r} and {slug!r} "
+                      f"this run; not treating it as reassigned from either.")
+                url_owner[u] = AMBIGUOUS
+            elif u not in url_owner:
+                url_owner[u] = slug
+
     for date_slug in sorted_dates:
         if date_slug < CUTOFF_DATE:
             continue
@@ -125,17 +176,8 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None):
             data['_stub_action'] = 'skipped'
             continue
 
-        # Gather all docs for this date
-        # Priority: Site > Drive
-        combined_docs = []
-        if data.get('site'):
-            combined_docs.extend(data['site'].get('docs', []))
-
-        # Add drive docs if not already present by URL
-        site_urls = {drive.clean_url(d['url']) for d in combined_docs}
-        for d in data.get('drive', []):
-            if drive.clean_url(d['url']) not in site_urls:
-                combined_docs.append(d)
+        # Gather all docs for this date (Priority: Site > Drive) — precomputed above.
+        combined_docs = combined_docs_by_slug.get(date_slug, [])
 
         video_url = data.get('video')
         transcript_path = data.get('transcript')
@@ -158,11 +200,17 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None):
                     continue
 
                 existing_docs = fm_data.get('docs', [])
-                merged_docs, added_docs_count = merge_documents(existing_docs, combined_docs)
+                merged_docs, added_docs_count, removed_docs_count = merge_documents(
+                    existing_docs, combined_docs, url_owner, date_slug)
                 file_types_backfilled = _backfill_file_types(merged_docs, catalog)
 
+                # Compare against the merged result (not just added/removed counts) so a
+                # same-URL label/type correction — which changes neither count — still gets
+                # written back.
+                docs_changed = merged_docs != existing_docs
+
                 updated = False
-                if added_docs_count > 0 or file_types_backfilled:
+                if docs_changed or file_types_backfilled:
                     fm_data['docs'] = merged_docs
                     updated = True
 
@@ -179,7 +227,12 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None):
 
                 if updated:
                     data['_stub_action'] = 'updated'
-                    print(f"{'[DRY RUN] ' if dry_run else ''}Updating meeting: {date_slug}")
+                    msg = f"{'[DRY RUN] ' if dry_run else ''}Updating meeting: {date_slug}"
+                    if added_docs_count:
+                        msg += f" (+{added_docs_count} docs)"
+                    if removed_docs_count:
+                        msg += f" (-{removed_docs_count} docs reassigned)"
+                    print(msg)
                     if not dry_run:
                         fm_yaml = yaml.dump(fm_data, sort_keys=False, default_flow_style=False, allow_unicode=True)
                         with open(njk_path, 'w') as f:

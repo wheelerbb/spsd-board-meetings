@@ -201,6 +201,26 @@ When multiple sources provide conflicting values for the same field:
 4. Vimeo video metadata
 5. Raw `.vtt` transcript (lowest — subject to speech recognition errors)
 
+### Meeting materials reconciliation
+
+`source_data.py::reconcile_meetings` merges each run's freshly-resolved site+Drive docs into an
+existing meeting's `.njk` `docs:` list via `merge_documents`, deduplicating by URL:
+
+- **Same-date collision**: this run's data always wins over what's already written, since it may
+  carry a corrected label/type (e.g. Drive's content-date resolution or `categorize_document`
+  changing since the file was last written) — the file is never stuck with a stale label forever.
+- **Cross-date reassignment**: before reconciling any single meeting, the full run precomputes a
+  URL → date_slug ownership index across every in-scope date. If a doc already listed on a meeting
+  is confidently claimed by a *different* date_slug this run, it's dropped — this is what prevents
+  a Drive file whose content-date resolution briefly pointed at the wrong meeting (see
+  `build_meeting_map`) from leaving a permanent stray entry once the resolution self-corrects.
+- **Everything else is left alone**: a doc whose URL doesn't appear in *any* date's fresh data this
+  run isn't touched — absence isn't evidence of anything on its own. A URL claimed by two different
+  dates in the same run (an ambiguous/conflicting resolution) is also left alone for both dates
+  rather than guessing which is right.
+- This can't catch reassignment to a date before `CUTOFF_DATE`, since the ownership index only
+  covers in-scope dates.
+
 ---
 
 ## AI Outputs
