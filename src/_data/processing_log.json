@@ -1,1 +1,19 @@
-[]
+[
+  {
+    "run_id": "32381497519",
+    "timestamp": "2026-08-20T14:41:02.783402Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 88,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "32381497519",
+    "timestamp": "2026-08-20T14:40:28.014184Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  }
+]
