@@ -1,5 +1,52 @@
 [
   {
+    "run_id": "32390990945",
+    "timestamp": "2026-08-20T16:16:23.329111Z",
+    "trigger": "push",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-12-09",
+        "2024-11-12",
+        "2024-10-15",
+        "2024-09-09",
+        "2024-08-19",
+        "2024-07-08",
+        "2024-05-13",
+        "2024-04-08",
+        "2024-03-11",
+        "2024-01-08",
+        "2023-12-11",
+        "2023-11-13",
+        "2023-10-10",
+        "2023-09-11"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "32389048921",
     "timestamp": "2026-08-20T15:56:17.232824Z",
     "trigger": "push",
