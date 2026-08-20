@@ -83,7 +83,46 @@ def _backfill_file_types(docs, catalog):
                 changed = True
     return changed
 
-def reconcile_meetings(all_data, dry_run=False, catalog=None):
+def _dedupe_identical_content(docs, catalog, bucket_uri):
+    """Drops a doc when another doc of the *same type* on the same meeting has byte-identical
+    extracted text — the same underlying document uploaded to Drive twice under different
+    file_ids (confirmed archive-wide: 5 real duplicate pairs, e.g. a meeting's minutes uploaded
+    twice nine minutes apart). Restricted to matching doc_type because two genuinely different
+    document types (an agenda and a packet, say) can coincidentally extract to overlapping text
+    without being duplicates of each other. Only fetches cached text for a type that actually has
+    2+ docs, so a normal one-of-each meeting costs no extra GCS reads. Returns (docs, removed_count)."""
+    if not bucket_uri:
+        return docs, 0
+
+    by_type = {}
+    for i, d in enumerate(docs):
+        by_type.setdefault(d.get('type'), []).append(i)
+
+    to_drop = set()
+    for idxs in by_type.values():
+        if len(idxs) < 2:
+            continue
+        seen_texts = {}
+        for i in idxs:
+            m = re.search(r'/file/d/([^/?]+)', docs[i].get('url') or '')
+            if not m:
+                continue
+            entry = catalog.get(m.group(1)) if catalog else None
+            if not entry or not entry.get('text_blob'):
+                continue
+            text = drive.read_cached_blob(bucket_uri, entry['text_blob'])
+            if text is None:
+                continue
+            if text in seen_texts:
+                to_drop.add(i)
+            else:
+                seen_texts[text] = i
+
+    if not to_drop:
+        return docs, 0
+    return [d for i, d in enumerate(docs) if i not in to_drop], len(to_drop)
+
+def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
     """
     Unified reconciliation and stub generation.
     all_data: dict mapping date_slug to {
@@ -202,6 +241,8 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None):
                 existing_docs = fm_data.get('docs', [])
                 merged_docs, added_docs_count, removed_docs_count = merge_documents(
                     existing_docs, combined_docs, url_owner, date_slug)
+                merged_docs, deduped_count = _dedupe_identical_content(merged_docs, catalog, bucket_uri)
+                removed_docs_count += deduped_count
                 file_types_backfilled = _backfill_file_types(merged_docs, catalog)
 
                 # Compare against the merged result (not just added/removed counts) so a
@@ -231,7 +272,7 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None):
                     if added_docs_count:
                         msg += f" (+{added_docs_count} docs)"
                     if removed_docs_count:
-                        msg += f" (-{removed_docs_count} docs reassigned)"
+                        msg += f" (-{removed_docs_count} docs reassigned/deduped)"
                     print(msg)
                     if not dry_run:
                         fm_yaml = yaml.dump(fm_data, sort_keys=False, default_flow_style=False, allow_unicode=True)
@@ -252,6 +293,7 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None):
         if dry_run:
             continue
 
+        combined_docs, _ = _dedupe_identical_content(combined_docs, catalog, bucket_uri)
         _backfill_file_types(combined_docs, catalog)
 
         dt = datetime.strptime(date_slug, "%Y-%m-%d")
@@ -582,7 +624,7 @@ def main():
 
     # 6. Reconcile & Update Meetings (also annotates all_data with _stub_action/_authority)
     print("Step 6: Reconciling and updating meetings...")
-    changes = reconcile_meetings(all_data, dry_run=args.dry_run, catalog=catalog)
+    changes = reconcile_meetings(all_data, dry_run=args.dry_run, catalog=catalog, bucket_uri=args.bucket)
 
     # Signal to the calling workflow (via a step output) whether any source produced a
     # visible change this run — used to gate expensive downstream steps on scheduled runs.

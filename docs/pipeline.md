@@ -232,6 +232,13 @@ existing meeting's `.njk` `docs:` list via `merge_documents`, deduplicating by U
   rather than guessing which is right.
 - This can't catch reassignment to a date before `CUTOFF_DATE`, since the ownership index only
   covers in-scope dates.
+- **Exact-content duplicates**: `_dedupe_identical_content` drops a doc when another doc of the
+  *same type* on the same meeting has byte-identical extracted text — confirmed to happen (the
+  same file uploaded to Drive twice under different file_ids, sometimes minutes apart). Restricted
+  to matching `doc_type`, since two genuinely different document types (an agenda and a packet)
+  can coincidentally extract to overlapping text without being duplicates of each other. Only
+  fetches cached text for a type that actually has 2+ docs on a given meeting, so the common case
+  (one of each) costs no extra GCS reads.
 
 ---
 

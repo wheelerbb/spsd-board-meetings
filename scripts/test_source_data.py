@@ -1,6 +1,7 @@
 import unittest
+from unittest.mock import patch
 
-from source_data import merge_documents, AMBIGUOUS
+from source_data import merge_documents, AMBIGUOUS, _dedupe_identical_content
 
 
 def doc(url, label, type_='packet'):
@@ -52,6 +53,70 @@ class MergeDocumentsTests(unittest.TestCase):
         self.assertEqual(added, 1)
         self.assertEqual(removed, 0)
         self.assertEqual(len(merged), 2)
+
+
+def _fake_read_cached_blob(text_by_blob):
+    def _read(bucket_uri, blob_name, max_chars=None):
+        return text_by_blob.get(blob_name)
+    return _read
+
+
+class DedupeIdenticalContentTests(unittest.TestCase):
+    def test_same_type_identical_text_drops_duplicate(self):
+        docs = [
+            doc('https://drive.google.com/file/d/A/view', 'School Board Minutes', 'minutes'),
+            doc('https://drive.google.com/file/d/B/view', 'School Board Minutes', 'minutes'),
+        ]
+        catalog = {'A': {'text_blob': 'blobA'}, 'B': {'text_blob': 'blobB'}}
+        texts = {'blobA': 'same content', 'blobB': 'same content'}
+        with patch('source_data.drive.read_cached_blob', _fake_read_cached_blob(texts)):
+            result, removed = _dedupe_identical_content(docs, catalog, 'gs://bucket')
+        self.assertEqual(removed, 1)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]['url'], 'https://drive.google.com/file/d/A/view')
+
+    def test_same_type_different_text_keeps_both(self):
+        docs = [
+            doc('https://drive.google.com/file/d/A/view', 'January Minutes', 'minutes'),
+            doc('https://drive.google.com/file/d/B/view', 'February Minutes', 'minutes'),
+        ]
+        catalog = {'A': {'text_blob': 'blobA'}, 'B': {'text_blob': 'blobB'}}
+        texts = {'blobA': 'january content', 'blobB': 'february content'}
+        with patch('source_data.drive.read_cached_blob', _fake_read_cached_blob(texts)):
+            result, removed = _dedupe_identical_content(docs, catalog, 'gs://bucket')
+        self.assertEqual(removed, 0)
+        self.assertEqual(len(result), 2)
+
+    def test_different_type_identical_text_never_merged(self):
+        docs = [
+            doc('https://drive.google.com/file/d/A/view', 'Agenda', 'agenda'),
+            doc('https://drive.google.com/file/d/B/view', 'Packet', 'packet'),
+        ]
+        catalog = {'A': {'text_blob': 'blobA'}, 'B': {'text_blob': 'blobB'}}
+        texts = {'blobA': 'same content', 'blobB': 'same content'}
+        with patch('source_data.drive.read_cached_blob', _fake_read_cached_blob(texts)):
+            result, removed = _dedupe_identical_content(docs, catalog, 'gs://bucket')
+        self.assertEqual(removed, 0)
+        self.assertEqual(len(result), 2)
+
+    def test_no_bucket_uri_is_noop(self):
+        docs = [
+            doc('https://drive.google.com/file/d/A/view', 'Minutes', 'minutes'),
+            doc('https://drive.google.com/file/d/B/view', 'Minutes', 'minutes'),
+        ]
+        with patch('source_data.drive.read_cached_blob') as mock_read:
+            result, removed = _dedupe_identical_content(docs, {}, '')
+        mock_read.assert_not_called()
+        self.assertEqual(removed, 0)
+        self.assertEqual(result, docs)
+
+    def test_single_doc_of_type_skips_lookup_entirely(self):
+        docs = [doc('https://drive.google.com/file/d/A/view', 'Minutes', 'minutes')]
+        with patch('source_data.drive.read_cached_blob') as mock_read:
+            result, removed = _dedupe_identical_content(docs, {'A': {'text_blob': 'blobA'}}, 'gs://bucket')
+        mock_read.assert_not_called()
+        self.assertEqual(removed, 0)
+        self.assertEqual(result, docs)
 
 
 if __name__ == '__main__':
