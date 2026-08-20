@@ -138,16 +138,28 @@ own unused copy of the same value).
 file is in scope, `meeting_slug` is attributed in this order:
 
 1. **Content** — only for `doc_type in ('agenda', 'packet', 'minutes')`. The file is downloaded and
-   its text extracted (`drive.read_file_text`); the earliest date-like string found wins —
-   deliberately position-based, not pattern-priority: packet PDFs put the current meeting's date in
-   the header, ahead of any dates they merely reference (prior minutes being approved, the next
-   meeting being announced). Restricted to these three types because a policy draft or donation
-   letter has no meeting date to extract at all, and policy documents in particular carry
-   misleading historical dates — confirmed from a real run, where a recently-revised policy draft's
-   standard "Adopted: 1975 / Revised: 2001" citation block was read as a false-positive meeting
-   date. `misc` and `vtt` skip straight to filename parsing (vtt filenames already resolve reliably
-   via their `spboe_YYYYMMDD` convention, so this also saves an unnecessary download for every
-   transcript file).
+   its text extracted (`drive.read_file_text`); of every date-like string found *in the document's
+   header* (the first `_HEADER_SCAN_CHARS` — 600 — characters of extracted text; every real header
+   date in this archive falls within the first 250), the earliest wins — deliberately
+   position-based, not pattern-priority: packet PDFs put the current meeting's date in the header,
+   ahead of any dates they merely reference (prior minutes being approved, the next meeting being
+   announced). The header cutoff is a second, independent line of defense on top of "earliest
+   wins" alone: a real bug (confirmed against 21 documents across 16 meeting dates) had a
+   document's own header date squished by PDF text extraction (`"MAY13, 2024"`, no space between
+   month and day) so it failed to match at all, letting a later, normally-spaced *referenced* date
+   win instead — fixed by relaxing the month/day gap to `\s*` and adding the header-length cutoff
+   as a backstop. A minutes document's own standard preamble ("...at its Regular Meeting on
+   Monday, March 11, 2024. ... approved at the next Regular Meeting on April 8, 2024.") is checked
+   first via a dedicated pattern (`_MINUTES_OWN_DATE`) as the strongest available signal, since it
+   names the document's own date by what it verifiably *is* rather than by position alone — note
+   this pattern also has to tolerate the same dropped-space extraction artifact between ordinary
+   words ("Regular MeetingonMonday"), not just around the date itself. Restricted to these three
+   types because a policy draft or donation letter has no meeting date to extract at all, and
+   policy documents in particular carry misleading historical dates — confirmed from a real run,
+   where a recently-revised policy draft's standard "Adopted: 1975 / Revised: 2001" citation block
+   was read as a false-positive meeting date. `misc` and `vtt` skip straight to filename parsing
+   (vtt filenames already resolve reliably via their `spboe_YYYYMMDD` convention, so this also
+   saves an unnecessary download for every transcript file).
 2. **Filename** — `drive.parse_meeting_date`, only when it resolves to a full day-specific date.
    Monthly packet filenames (e.g. "August 2026 Board Meeting Packet.pdf") never satisfy this —
    content is what actually dates them.

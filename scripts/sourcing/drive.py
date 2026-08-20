@@ -247,26 +247,72 @@ def parse_meeting_date(filename):
 
     return None
 
+# A meeting document's own date lives in its header, near the very top — real-world board
+# agendas/packets/minutes in this archive never place it later than ~250 characters in (checked
+# against every cached document in the archive). Everything past this point is body text, where
+# a document routinely references OTHER meeting dates (prior minutes being approved, the next
+# meeting being announced) that must never be mistaken for the document's own date. Cutting the
+# search off here is a second, independent line of defense on top of "earliest match wins" below.
+_HEADER_SCAN_CHARS = 600
+
+# PDF text extraction frequently drops the space between adjacent words (e.g. "Regular
+# MeetingonMonday, March11, 2024" — verified directly against this archive's cached documents),
+# so every literal-word gap here is `\s*` (optional), not `\s+`. Only the month/day-to-year gap
+# stays `\s+`, since a genuinely missing space there would glue the year onto the day.
+def _date_pattern(months_re):
+    return rf'({months_re})\s*(\d{{1,2}})(?:st|nd|rd|th)?(?:,)?\s+(\d{{4}})'
+
+_MONTHS_RE = '|'.join(MONTHS)
+
+# Minutes' standard preamble states the document's own meeting date, immediately followed by the
+# date of a FUTURE meeting where the minutes will be formally approved (e.g. "...at its Regular
+# Meeting on Monday, March 11, 2024. ... approved at the next Regular Meeting on April 8, 2024.").
+# Matching this phrase explicitly picks the document's own date by what it verifiably *is*, not
+# by incidentally being first in the text — the strongest signal available, checked before the
+# generic fallback.
+_MINUTES_OWN_DATE = re.compile(rf'Regular\s*Meeting\s*on\s*\w+,?\s*{_date_pattern(_MONTHS_RE)}', re.I)
+_GENERIC_MONTH_DATE = re.compile(_date_pattern(_MONTHS_RE), re.I)
+
+
+def _month_date_to_iso(match):
+    try:
+        dt = datetime.strptime(f"{match.group(1).capitalize()} {match.group(2)} {match.group(3)}", "%B %d %Y")
+        return dt.strftime("%Y-%m-%d")
+    except Exception:
+        return None
+
+
 def extract_date_from_content(text):
     """
-    Finds the earliest date-like pattern in free text, e.g. a scanned agenda's header date.
-    Unlike parse_meeting_date, position (not pattern precedence) decides the winner: a meeting
-    document's own date appears near the top of the text, ahead of any dates it merely
-    references (prior minutes being approved, the next meeting being announced, etc).
+    Finds a meeting document's own date from its free text — e.g. a scanned agenda's header date.
+    Restricted to the document's header (see _HEADER_SCAN_CHARS) so it can never latch onto a
+    date the document merely references in body text (prior minutes being approved, the next
+    meeting being announced, etc). Within that header, a minutes document's own standard preamble
+    (see _MINUTES_OWN_DATE) is checked first as the strongest available signal; otherwise, of
+    every date-like pattern found, position (not pattern precedence) decides the winner — a
+    document's own date leads, ahead of anything else that made it into the header.
     """
     if not text:
         return None
+
+    header = text[:_HEADER_SCAN_CHARS]
+
+    m = _MINUTES_OWN_DATE.search(header)
+    if m:
+        iso = _month_date_to_iso(m)
+        if iso:
+            return iso
 
     patterns = [
         r'\b(\d{4})(\d{2})(\d{2})\b',
         r'(\d{1,2})\.(\d{1,2})\.(\d{2,4})',
         r'(\d{4})-(\d{2})-(\d{2})',
-        rf'({"|".join(MONTHS)})\s+(\d{{1,2}})(?:st|nd|rd|th)?(?:,)?\s+(\d{{4}})',
+        _GENERIC_MONTH_DATE.pattern,
     ]
 
     best = None
     for pattern in patterns:
-        match = re.search(pattern, text, re.I)
+        match = re.search(pattern, header, re.I)
         if match and (best is None or match.start() < best[0]):
             best = (match.start(), pattern, match)
 
@@ -287,11 +333,7 @@ def extract_date_from_content(text):
     if pattern == patterns[2]:
         return match.group(0)
     if pattern == patterns[3]:
-        try:
-            dt = datetime.strptime(f"{match.group(1).capitalize()} {match.group(2)} {match.group(3)}", "%B %d %Y")
-            return dt.strftime("%Y-%m-%d")
-        except Exception:
-            return None
+        return _month_date_to_iso(match)
     return None
 
 def categorize_document(filename):
