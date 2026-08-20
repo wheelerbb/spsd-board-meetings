@@ -15,6 +15,10 @@ on:
         description: 'Reprocess only this meeting (e.g. 2024-04-08) instead of the normal --batch run'
         type: string
         default: ''
+      reprocess_all:
+        description: 'Reprocess every meeting whose pipeline_version is stale, not just new stubs (process_transcripts.py --batch --force)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -69,15 +73,21 @@ jobs:
           if [ -n "${{ github.event.inputs.meeting_slug }}" ]; then
             python scripts/process_transcripts.py "${{ github.event.inputs.meeting_slug }}" --bucket "${{ vars.GCS_BUCKET_URI }}"
           else
-            python scripts/process_transcripts.py --batch --bucket "${{ vars.GCS_BUCKET_URI }}"
+            python scripts/process_transcripts.py --batch ${{ github.event.inputs.reprocess_all == 'true' && '--force' || '' }} --bucket "${{ vars.GCS_BUCKET_URI }}"
           fi
 
+      # `always()` from here on: process_transcripts.py writes each meeting's .njk file to disk as
+      # soon as that meeting finishes (see process_single_meeting), independent of the others, so
+      # if a later meeting in the same --batch run hits a rate limit and the step exits non-zero,
+      # every meeting that already succeeded is still sitting on disk. Without always(), GitHub
+      # Actions' default "skip everything after a failed step" behavior would discard all of that
+      # already-completed (and already API-billed) work instead of committing it.
       - name: Post-process
-        if: ${{ github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true' }}
+        if: always() && (github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true')
         run: python scripts/post_process.py --bucket "${{ vars.GCS_BUCKET_URI }}"
 
       - name: Commit Automated Changes
-        if: ${{ github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true' }}
+        if: always() && (github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true')
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
@@ -114,22 +124,22 @@ jobs:
           git push
 
       - name: Install NPM Dependencies
-        if: ${{ github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true' }}
+        if: always() && (github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true')
         run: npm ci
 
       - name: Build Eleventy Site
-        if: ${{ github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true' }}
+        if: always() && (github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true')
         run: npm run build
 
       - name: Upload Pages Artifact
-        if: ${{ github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true' }}
+        if: always() && (github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true')
         uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
   deploy:
     needs: process_and_build
-    if: ${{ github.event_name != 'schedule' || needs.process_and_build.outputs.changes == 'true' }}
+    if: always() && (github.event_name != 'schedule' || needs.process_and_build.outputs.changes == 'true')
     runs-on: ubuntu-latest
     permissions:
       pages: write
