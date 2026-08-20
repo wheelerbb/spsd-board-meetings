@@ -13,6 +13,7 @@ sys.path.append(BASE_DIR)
 
 from sourcing import drive, apptegy, spsd_site, vimeo, transcripts
 from board_members_utils import active_members
+import pipeline_log
 
 load_dotenv()
 
@@ -359,6 +360,7 @@ def main():
     # 1. Fetch Apptegy Events (Authority)
     print("Step 1: Fetching Apptegy Events...")
     apptegy_fetched = False
+    apptegy_changed = []
     if args.force or not _cache_fresh(cache_meta, 'apptegy'):
         events = apptegy.fetch_events()
         if not args.dry_run:
@@ -373,6 +375,10 @@ def main():
             if date_slug not in all_data: all_data[date_slug] = {}
             if 'events' not in all_data[date_slug]: all_data[date_slug]['events'] = []
             all_data[date_slug]['events'].append(info)
+        apptegy_changed = [
+            s for s in {s for s in event_mapping if s >= CUTOFF_DATE}
+            if all_data.get(s, {}).get('events') != old_master_map.get(s, {}).get('events')
+        ]
     else:
         print("  Using cached Apptegy data.")
         for date_slug, data in old_master_map.items():
@@ -383,14 +389,21 @@ def main():
 
     # 2. Fetch SPSD Site Data (Authority & Document Primary)
     print("Step 2: Fetching SPSD Site Data...")
+    site_fetched = False
+    site_changed = []
     if args.force or not _cache_fresh(cache_meta, 'site'):
         site_mapping = spsd_site.fetch_site_data()
         cache_meta['site'] = {'fetched_at': datetime.utcnow().isoformat()}
         cache_updated = True
+        site_fetched = True
         for date_slug, info in site_mapping.items():
             if date_slug < CUTOFF_DATE: continue
             if date_slug not in all_data: all_data[date_slug] = {}
             all_data[date_slug]['site'] = info
+        site_changed = [
+            s for s in site_mapping
+            if s >= CUTOFF_DATE and all_data.get(s, {}).get('site') != old_master_map.get(s, {}).get('site')
+        ]
     else:
         print("  Using cached site data.")
         for date_slug, data in old_master_map.items():
@@ -404,6 +417,8 @@ def main():
     # GCS resource, not folded into master_material_map.json — see
     # docs/pipeline.md#the-drive-catalog-drive_catalogjson.
     catalog = drive.load_catalog(args.bucket)
+    prev_modified = {fid: e.get('modified_time') for fid, e in catalog.items()}
+    drive_fetched = False
     if args.force or not _cache_fresh(cache_meta, 'drive'):
         service = drive.get_drive_service()
         if service:
@@ -413,6 +428,7 @@ def main():
                 drive.build_meeting_map(files, catalog, bucket_uri=args.bucket, service=service, cutoff_date=CUTOFF_DATE)
                 cache_meta['drive'] = {'fetched_at': datetime.utcnow().isoformat()}
                 cache_updated = True
+                drive_fetched = True
 
                 # Anything content/filename couldn't date might still be linked (and dated) on the
                 # SPSD site — that source is a fallback here, checked last, not primary. Persisted
@@ -435,6 +451,18 @@ def main():
             print("Step 3: Skipping Google Drive (Service not initialized).")
     else:
         print("Step 3: Using cached Drive data.")
+
+    drive_changed = [
+        {
+            "file_id": fid,
+            "label": catalog[fid].get('label'),
+            "doc_type": catalog[fid].get('doc_type'),
+            "meeting_slug": catalog[fid].get('meeting_slug'),
+            "change": "new" if fid not in prev_modified else "modified",
+        }
+        for fid in catalog
+        if catalog[fid].get('modified_time') != prev_modified.get(fid)
+    ]
 
     # Project the catalog into all_data — regardless of whether Step 3 fetched fresh or reused
     # the existing catalog, this is what feeds each meeting's docs[] in reconcile_meetings().
@@ -462,11 +490,14 @@ def main():
 
     # 4. Fetch Vimeo Videos
     print("Step 4: Fetching Vimeo mapping...")
+    vimeo_fetched = False
+    vimeo_new = []
     if args.force or not _cache_fresh(cache_meta, 'vimeo'):
         try:
-            vimeo.update_master_list()
+            vimeo_new = vimeo.update_master_list()
             cache_meta['vimeo'] = {'fetched_at': datetime.utcnow().isoformat()}
             cache_updated = True
+            vimeo_fetched = True
         except Exception as e:
             print(f"  Warning: Vimeo RSS fetch failed: {e}")
     else:
@@ -491,9 +522,42 @@ def main():
         if date_slug not in all_data: all_data[date_slug] = {}
         all_data[date_slug]['transcript'] = path
 
+    transcripts_changed = [
+        s for s, path in bucket_vtts.items()
+        if s >= CUTOFF_DATE and old_master_map.get(s, {}).get('transcript') != path
+    ]
+
     # 6. Reconcile & Update Meetings (also annotates all_data with _stub_action/_authority)
     print("Step 6: Reconciling and updating meetings...")
     changes = reconcile_meetings(all_data, dry_run=args.dry_run, catalog=catalog)
+
+    # Signal to the calling workflow (via a step output) whether any source produced a
+    # visible change this run — used to gate expensive downstream steps on scheduled runs.
+    # `changes` already folds in every source (Apptegy/site/Drive/video/transcript all feed
+    # into all_data before reconcile_meetings runs), so it's a complete "did anything
+    # happen" signal on its own.
+    gh_output = os.environ.get('GITHUB_OUTPUT')
+    if gh_output:
+        with open(gh_output, 'a') as f:
+            f.write(f"changes={'true' if changes > 0 else 'false'}\n")
+
+    pipeline_log.append_entry(args.bucket, 'sourcing_log', {
+        "run_id": pipeline_log.current_run_id(),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "trigger": os.environ.get('GITHUB_EVENT_NAME', 'manual'),
+        "sourcing": {
+            "apptegy": {"fetched": apptegy_fetched, "changed": apptegy_changed},
+            "site": {"fetched": site_fetched, "changed": site_changed},
+            "drive": {"fetched": drive_fetched, "changed": drive_changed},
+            "vimeo": {"fetched": vimeo_fetched, "changed": vimeo_new},
+            "transcripts": {"fetched": bool(args.bucket), "changed": transcripts_changed},
+        },
+        "meetings": {
+            "created": [s for s, d in all_data.items() if d.get('_stub_action') == 'created'],
+            "updated": [s for s, d in all_data.items() if d.get('_stub_action') == 'updated'],
+        },
+        "any_changes": changes > 0,
+    })
 
     # 7. Sync Drive VTTs to bucket; update canonical GCS URIs in all_data
     if args.bucket and not args.dry_run:

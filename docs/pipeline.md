@@ -48,6 +48,18 @@ gh workflow run deploy.yml -f force=true
 
 A normal dispatch (no flag, or `force=false`) respects the TTL cache as usual.
 
+### Scheduled-run gating
+
+`.github/workflows/deploy.yml`'s cron trigger (daily, 8am UTC) runs `source_data.py` every
+tick — cheap, no LLM calls — but only proceeds to `process_transcripts.py`, `post_process.py`,
+the commit, `npm run build`, and the Pages deploy if `source_data.py` found a change from *any*
+source (Apptegy, SPSD site, Drive, Vimeo, transcripts). Pushes to `main` and manual
+`workflow_dispatch` runs always run the full pipeline regardless of what changed. The gate is
+`source_data.py`'s `changes` count (from `reconcile_meetings()`), surfaced as a step/job output;
+see the `if:` conditions on each step in `deploy.yml`. Every run's findings — including a
+no-op scheduled tick — are recorded in `sourcing_log.json` / `processing_log.json` and visible
+at `/processing-log/`, sibling to the `/status/` Data Status Dashboard.
+
 ---
 
 ## Objects and Sources
@@ -237,6 +249,8 @@ These are set when a meeting moves from `stub: true` → `stub: false`, and upda
 | `apptegy_events_raw.json` | GCS bucket | `source_data.py` | Complete unfiltered Apptegy API response (all calendar events, full payload) |
 | `vimeo_master_list.json` | Yes | Manual | Vimeo video ID → meeting date mapping |
 | `official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.{txt,json}` | GCS bucket | `source_data.py` / `post_process.py` (via `drive.cache_text` / `drive.cache_terms`) | Extracted text / proper-noun terms for one Drive file, pointed at by its `drive_catalog.json` entry |
+| `sourcing_log.json` | GCS bucket, synced to `src/_data/` on gated runs | `source_data.py` | One entry per `source_data.py` invocation — per-source fetched/changed summary, meetings created/updated, `any_changes` (the scheduled-run gate signal) |
+| `processing_log.json` | GCS bucket, synced to `src/_data/` on gated runs | `process_transcripts.py`, `post_process.py` | One entry per script per gated pipeline pass (`stage: "transcripts"` / `"post_process"`), sharing a `run_id` for display grouping — rendered at `/processing-log/` |
 
 ---
 
@@ -251,16 +265,19 @@ External sources
   GCS bucket VTTs    ─┘                             ──► GCS bucket/transcripts/ (VTT sync)
                                                      ──► GCS bucket/official_docs/*.{txt,json} (extracted doc text/terms)
                                                      ──► src/_data/unmapped_documents.json
+                                                     ──► sourcing_log.json (GCS; gates scheduled runs)
 
 VTT sources
   Google Drive VTT docs    ─┐
   GCS bucket/transcripts/  ─┴──► scripts/process_transcripts.py ──► src/meetings/*.njk (stub: false)
                                     (reads src/_data/all_topics.json for tag reuse)
+                                    ──► processing_log.json (GCS; stage: transcripts)
 
 src/meetings/*.njk (all)
   └──► scripts/post_process.py ──► src/_data/all_topics.json
                                 ──► src/_data/topic_summaries.json
                                 ──► scripts/topic_hashes.json
+                                ──► processing_log.json (GCS; stage: post_process)
 
 src/meetings/*.njk + src/_data/*.json
   └──► npm run build (Eleventy) ──► _site/

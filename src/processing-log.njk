@@ -1,0 +1,123 @@
+---
+layout: layouts/base.njk
+title: "Processing Log — School Board Meeting Archive"
+---
+
+<style>
+  .status-main { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+  .status-table-container { background: #fff; border-radius: 8px; border: 1px solid var(--rule); overflow-x: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 2rem; }
+  .status-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; line-height: 1.3; }
+  .status-table th { background: var(--navy); color: #fff; padding: 0.75rem; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .status-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  .status-table tr:hover { background: #fdfaf5; }
+
+  .status-pill { display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; }
+  .status-pill.done { background: #edf7f1; color: #2d7a4f; }
+  .status-pill.stub { background: #fff8eb; color: #855b00; }
+  .status-pill.none { opacity: 0.3; font-weight: 400; color: var(--muted); }
+
+  .section-heading { font-size: 1.1rem; font-weight: 700; color: var(--navy); margin: 0 0 0.75rem; }
+  .run-id { font-family: monospace; font-size: 0.65rem; color: var(--muted); }
+  .empty-note { padding: 1.5rem; color: var(--muted); font-size: 0.85rem; }
+</style>
+
+<div class="hero" style="padding: 3rem 2rem;">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Internal Dashboard</div>
+    <h1>Processing Log</h1>
+  </div>
+</div>
+
+<div class="status-main">
+  <h2 class="section-heading">Sourcing Runs</h2>
+  <div class="status-table-container">
+    {% if sourcing_log and sourcing_log.length > 0 %}
+    <table class="status-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Trigger</th>
+          <th>Apptegy</th>
+          <th>Site</th>
+          <th>Drive</th>
+          <th>Vimeo</th>
+          <th>Transcripts</th>
+          <th>Meetings</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in sourcing_log %}
+        <tr>
+          <td style="white-space: nowrap;">{{ run.timestamp }}</td>
+          <td>{{ run.trigger }}</td>
+          {% for src in ['apptegy', 'site', 'drive', 'vimeo', 'transcripts'] %}
+            {% set s = run.sourcing[src] %}
+            <td>
+              {% if not s or not s.fetched %}
+                <span class="status-pill none">cached</span>
+              {% elif s.changed and s.changed.length > 0 %}
+                <span class="status-pill done">{{ s.changed.length }} changed</span>
+              {% else %}
+                <span class="status-pill none">no changes</span>
+              {% endif %}
+            </td>
+          {% endfor %}
+          <td>
+            {% if run.meetings.created.length > 0 %}<div>{{ run.meetings.created.length }} created</div>{% endif %}
+            {% if run.meetings.updated.length > 0 %}<div>{{ run.meetings.updated.length }} updated</div>{% endif %}
+            {% if run.meetings.created.length == 0 and run.meetings.updated.length == 0 %}
+              <span class="status-pill none">none</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-note">No sourcing runs logged yet.</div>
+    {% endif %}
+  </div>
+
+  <h2 class="section-heading">Pipeline Runs</h2>
+  <div class="status-table-container">
+    {% if processing_log and processing_log.length > 0 %}
+    <table class="status-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Run</th>
+          <th>Stage</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in processing_log %}
+        <tr>
+          <td style="white-space: nowrap;">{{ run.timestamp }}</td>
+          <td class="run-id">{{ run.run_id }}</td>
+          {% if run.stage == 'transcripts' %}
+          <td><span class="status-pill done">Transcripts</span></td>
+          <td>
+            {{ run.targeted.length }} targeted
+            {% if run.results and run.results.length > 0 %}, {{ run.results.length }} finished{% endif %}
+            {% if run.rate_limited and run.rate_limited.length > 0 %}
+              &middot; <span class="status-pill stub">{{ run.rate_limited.length }} rate-limited</span>
+            {% endif %}
+          </td>
+          {% else %}
+          <td><span class="status-pill done">Post-Process</span></td>
+          <td>
+            {{ run.topics_updated.length }} topics updated, {{ run.topics_skipped }} skipped
+            {% if run.blurbs_generated.length > 0 %} &middot; {{ run.blurbs_generated.length }} blurbs{% endif %}
+            {% if run.previews_generated.length > 0 %} &middot; {{ run.previews_generated.length }} previews{% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-note">No pipeline runs logged yet.</div>
+    {% endif %}
+  </div>
+</div>

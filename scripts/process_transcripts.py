@@ -23,6 +23,7 @@ from sourcing.transcripts import get_bucket_vtt_mapping
 from sourcing.vimeo import get_vimeo_mapping
 from sourcing import drive
 from sourcing.auth import get_credentials
+import pipeline_log
 
 _vimeo_map = {}
 
@@ -434,10 +435,19 @@ def main():
 
     if not to_process:
         print("No new meetings to process.")
+        pipeline_log.append_entry(bucket, 'processing_log', {
+            "run_id": pipeline_log.current_run_id(),
+            "timestamp": _dt.utcnow().isoformat() + "Z",
+            "stage": "transcripts",
+            "targeted": [],
+            "results": [],
+            "rate_limited": [],
+        })
         return
     print(f"Targeting {len(to_process)} meetings...", flush=True)
     catalog = drive.load_catalog(bucket)
     all_unresolved = []
+    all_results = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(process_single_meeting, slug, path, bucket, catalog): slug for slug, path in to_process.items()}
         rate_limited = []
@@ -449,6 +459,7 @@ def main():
                 res = {"slug": slug, "status": f"Error: {e}"}
             if res:
                 print(f"Finished {res['slug']}: {res['status']}", flush=True)
+                all_results.append(res)
                 if res['status'] == 'RateLimit':
                     rate_limited.append(res['slug'])
                 all_unresolved.extend(res.get('unresolved_attendance') or [])
@@ -464,6 +475,15 @@ def main():
             print(f"Updated board_members.json with {len(all_unresolved)} unresolved attendance observation(s).", flush=True)
 
     drive.save_catalog(bucket, catalog)
+
+    pipeline_log.append_entry(bucket, 'processing_log', {
+        "run_id": pipeline_log.current_run_id(),
+        "timestamp": _dt.utcnow().isoformat() + "Z",
+        "stage": "transcripts",
+        "targeted": list(to_process.keys()),
+        "results": [{"slug": r["slug"], "status": r["status"]} for r in all_results],
+        "rate_limited": rate_limited,
+    })
 
     if rate_limited:
         print(f"\nRate-limited on all models for: {', '.join(rate_limited)}")

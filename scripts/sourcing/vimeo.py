@@ -123,6 +123,8 @@ def update_master_list(file_path='vimeo_master_list.json', user_id=SPCTV_USER):
     else:
         print("  No new videos found.")
 
+    return [{"video_id": vid_id, "title": api_videos[vid_id]} for vid_id in new_ids]
+
 
 if __name__ == "__main__":
     from dotenv import load_dotenv

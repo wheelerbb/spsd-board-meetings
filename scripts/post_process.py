@@ -21,6 +21,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 from sourcing.auth import get_credentials
 from sourcing import drive as drive_mod
+import pipeline_log
 
 credentials, project_id = get_credentials()
 client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
@@ -966,6 +967,18 @@ def post_process():
         json.dump(hashes, f, indent=2)
 
     drive_mod.save_catalog(bucket_uri, catalog)
+
+    import datetime as _dt
+    pipeline_log.append_entry(bucket_uri, 'processing_log', {
+        "run_id": pipeline_log.current_run_id(),
+        "timestamp": _dt.datetime.utcnow().isoformat() + "Z",
+        "stage": "post_process",
+        "topics_updated": [t[0] for t in topic_tasks],
+        "topics_skipped": len(topics_lib) - len(topic_tasks),
+        "blurbs_generated": [m['slug'] for m in blurb_tasks],
+        "previews_generated": [m['slug'] for m in preview_tasks],
+    })
+
     print("Post-processing complete.")
 
 
