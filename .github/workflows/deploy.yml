@@ -76,18 +76,37 @@ jobs:
         if: ${{ github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true' }}
         run: python scripts/post_process.py --bucket "${{ vars.GCS_BUCKET_URI }}"
 
-      # Pulls sourcing_log.json / processing_log.json down from GCS for the /processing-log/
-      # page. Only done here (not from source_data.py directly) so a no-op cron tick never
-      # touches src/_data/ and never produces a commit — see scripts/pipeline_log.py.
-      - name: Sync processing log for build
-        if: ${{ github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true' }}
-        run: python -c "import sys; sys.path.insert(0, 'scripts'); import pipeline_log; pipeline_log.sync_local_copy('${{ vars.GCS_BUCKET_URI }}')"
-
       - name: Commit Automated Changes
         if: ${{ github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true' }}
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+          # Catch up to whatever another run may have pushed while this run was queued behind
+          # it (the `concurrency` block serializes execution but a dispatched/scheduled run's
+          # checkout is still pinned to the SHA main pointed to when it was triggered, which
+          # can be stale by the time it reaches this step). Stash first so this is safe even
+          # if the fast-forward would otherwise collide with our own uncommitted edits.
+          HAD_STASH=0
+          if [ -n "$(git status --porcelain)" ]; then
+            git stash push --include-untracked --message "pre-sync"
+            HAD_STASH=1
+          fi
+          git fetch origin main
+          git merge --ff-only origin/main
+          if [ "$HAD_STASH" = "1" ]; then
+            git stash pop
+          fi
+
+          # Re-pull sourcing_log.json / processing_log.json from GCS now that we're on latest
+          # main, so the committed snapshot is always freshly regenerated post-catch-up rather
+          # than diffed against another run's own commit of the same file — two independent
+          # prepends to the same JSON array (see pipeline_log.append_entry) conflict at the
+          # text level even when the content is fully compatible. Only done here (not from
+          # source_data.py directly) so a no-op cron tick never touches src/_data/ and never
+          # produces a commit — see scripts/pipeline_log.py.
+          python -c "import sys; sys.path.insert(0, 'scripts'); import pipeline_log; pipeline_log.sync_local_copy('${{ vars.GCS_BUCKET_URI }}')"
+
           git add src/meetings/ src/_data/ scripts/topic_hashes.json vimeo_master_list.json
           # Only commit if there are changes
           git diff --staged --quiet || git commit -m "chore: auto-update meeting stubs and summaries"
