@@ -1,5 +1,63 @@
 [
   {
+    "run_id": "32388016218",
+    "timestamp": "2026-08-20T15:48:47.945634Z",
+    "stage": "post_process",
+    "topics_updated": [
+      "Elementary School Reconfiguration",
+      "Pre-Kindergarten Expansion",
+      "Student Mental Health",
+      "FY25 Budget"
+    ],
+    "topics_skipped": 84,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "32388016218",
+    "timestamp": "2026-08-20T15:47:38.839544Z",
+    "stage": "transcripts",
+    "targeted": [
+      "2024-04-08"
+    ],
+    "results": [
+      {
+        "slug": "2024-04-08",
+        "status": "Success"
+      }
+    ],
+    "rate_limited": []
+  },
+  {
+    "run_id": "32386525533",
+    "timestamp": "2026-08-20T15:44:22.762384Z",
+    "stage": "post_process",
+    "topics_updated": [
+      "Elementary School Reconfiguration",
+      "Pre-Kindergarten Expansion",
+      "Student Mental Health",
+      "FY25 Budget"
+    ],
+    "topics_skipped": 84,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "32386525533",
+    "timestamp": "2026-08-20T15:43:15.562980Z",
+    "stage": "transcripts",
+    "targeted": [
+      "2024-04-08"
+    ],
+    "results": [
+      {
+        "slug": "2024-04-08",
+        "status": "Success"
+      }
+    ],
+    "rate_limited": []
+  },
+  {
     "run_id": "32386447957",
     "timestamp": "2026-08-20T15:40:01.014731Z",
     "stage": "post_process",
