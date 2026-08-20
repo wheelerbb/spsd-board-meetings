@@ -11,6 +11,10 @@ on:
         description: 'Bypass TTL cache and re-fetch all sources'
         type: boolean
         default: false
+      meeting_slug:
+        description: 'Reprocess only this meeting (e.g. 2024-04-08) instead of the normal --batch run'
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -61,7 +65,12 @@ jobs:
       # and manual runs always proceed regardless of what source_data.py found.
       - name: Process transcripts
         if: ${{ github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true' }}
-        run: python scripts/process_transcripts.py --batch --bucket "${{ vars.GCS_BUCKET_URI }}"
+        run: |
+          if [ -n "${{ github.event.inputs.meeting_slug }}" ]; then
+            python scripts/process_transcripts.py "${{ github.event.inputs.meeting_slug }}" --bucket "${{ vars.GCS_BUCKET_URI }}"
+          else
+            python scripts/process_transcripts.py --batch --bucket "${{ vars.GCS_BUCKET_URI }}"
+          fi
 
       - name: Post-process
         if: ${{ github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true' }}
