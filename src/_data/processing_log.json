@@ -1,5 +1,396 @@
 [
   {
+    "run_id": "32397700902",
+    "timestamp": "2026-08-20T18:32:55.697507Z",
+    "stage": "post_process",
+    "topics_updated": [
+      "Elementary School Reconfiguration",
+      "SPHS Athletic Complex",
+      "SPMS Athletic Field Remediation",
+      "Student Cell Phone Policy 2026",
+      "Student Enrollment and Class Size",
+      "Bullying",
+      "FY26 Budget",
+      "Education Foundation",
+      "Student Transportation Safety",
+      "Assistant Superintendent Compensation",
+      "Kaler Elementary School Closure",
+      "Superintendent Transition 2026",
+      "Director of Operations and Safety Resignation",
+      "Superintendent Appointment 2026",
+      "Kaler Elementary Student Placement",
+      "Student Transportation",
+      "Board Communication Practices",
+      "FY27 Budget",
+      "Superintendent Search 2026",
+      "FY25 Audit",
+      "FY26 Budget Deficit",
+      "Special Education Staffing",
+      "Board Transparency",
+      "Dyer Elementary School Closure",
+      "Kaler Elementary Environmental Concerns",
+      "Skillin Elementary School Closure",
+      "Community School Model",
+      "Pre-Kindergarten Special Education",
+      "SPHS Graduation Venue",
+      "Support for Immigrant Families",
+      "Extended Learning Opportunities Program",
+      "SPESPA Collective Bargaining",
+      "SPTA Contract 2025-2028",
+      "Teacher and Ed Tech Contracts 2025",
+      "Payroll System Issues",
+      "Concussion Management Policy",
+      "FY25 Budget Deficit",
+      "Administrators Collective Bargaining 2025-2028",
+      "Artificial Intelligence Policy",
+      "Superintendent Transition 2025",
+      "SPESPA Contract 2024-2027",
+      "Superintendent Resignation 2025",
+      "Interim Superintendent Search 2025",
+      "School Safety",
+      "Pre-Kindergarten Expansion",
+      "Federal Title Funding",
+      "Community Partnerships",
+      "Academic Performance",
+      "FY24 Audit",
+      "Staff Non-Renewals",
+      "Central Office Reorganization",
+      "Staff Resignations",
+      "Finance Director Appointment",
+      "SPTA Collective Bargaining",
+      "Diversity Equity and Inclusion",
+      "Student Mental Health",
+      "Social Emotional Learning Programs",
+      "Curriculum Leadership Reorganization",
+      "School Calendar 2025-2026",
+      "Student Attendance",
+      "School Climate",
+      "Student Demographics",
+      "Staff Retirements",
+      "Adult Education",
+      "K-4 Math Curriculum Adoption",
+      "Inclement Weather Policy",
+      "Student Enrollment Trends",
+      "In-School Health Clinics",
+      "District Goals",
+      "Superintendent Evaluation",
+      "District Strategic Plan",
+      "Freedom of Access Act",
+      "Mental and Behavioral Health Director Appointment",
+      "Facilities Bond Referendum 2024",
+      "SPHS Principal Appointment",
+      "DEI Director Appointment",
+      "FY25 Budget",
+      "Facilities Master Plan",
+      "School Calendar 2024-2025",
+      "Student Activity Accessibility",
+      "Multi-Tiered Systems of Support",
+      "Multilingual Programs",
+      "Homeless Student Services",
+      "DEI Coordinator Resignation",
+      "Transportation Challenges",
+      "Physical Restraint and Seclusion Policy"
+    ],
+    "topics_skipped": 2,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "32397700902",
+    "timestamp": "2026-08-20T18:25:48.601268Z",
+    "stage": "transcripts",
+    "targeted": [
+      "2025-10-06",
+      "2025-01-08",
+      "2025-04-30",
+      "2026-02-09",
+      "2024-03-25",
+      "2026-03-23",
+      "2026-04-29",
+      "2026-02-04",
+      "2025-03-31",
+      "2026-05-11",
+      "2025-12-10",
+      "2024-10-15",
+      "2025-05-12",
+      "2025-11-03",
+      "2026-06-04",
+      "2025-12-08",
+      "2025-05-27",
+      "2025-03-10",
+      "2026-04-13",
+      "2025-01-13",
+      "2024-07-08",
+      "2025-02-24",
+      "2026-08-17",
+      "2026-03-30",
+      "2024-11-12",
+      "2024-12-09",
+      "2024-08-19",
+      "2026-04-07",
+      "2026-04-02",
+      "2025-04-07",
+      "2025-03-24",
+      "2024-01-22",
+      "2024-09-09",
+      "2024-06-10",
+      "2025-09-08",
+      "2024-03-28",
+      "2026-01-12",
+      "2024-05-30",
+      "2025-08-18",
+      "2024-03-11",
+      "2025-12-17",
+      "2024-01-08",
+      "2026-03-09",
+      "2026-06-08",
+      "2025-06-09",
+      "2025-04-14",
+      "2025-01-27",
+      "2025-03-17",
+      "2026-05-27",
+      "2025-06-03",
+      "2026-07-20",
+      "2024-03-18",
+      "2024-05-13",
+      "2025-07-14",
+      "2025-06-18",
+      "2024-02-12",
+      "2026-03-02"
+    ],
+    "results": [
+      {
+        "slug": "2025-01-08",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-10-06",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-04-30",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-02-09",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-03-25",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-03-23",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-04-29",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-02-04",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-03-31",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-05-11",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-12-10",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-05-12",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-10-15",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-11-03",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-06-04",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-12-08",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-05-27",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-03-10",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-04-13",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-01-13",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-07-08",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-08-17",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-02-24",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-03-30",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-11-12",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-08-19",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-12-09",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-04-02",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-04-07",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-03-24",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-04-07",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-01-22",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-09-09",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-06-10",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-03-28",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-09-08",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-05-30",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-01-12",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-08-18",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-03-11",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-01-08",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-12-17",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-03-09",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-06-08",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-06-09",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-04-14",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-01-27",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-05-27",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-06-03",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-03-17",
+        "status": "Error: Gemini request timed out after 300s"
+      },
+      {
+        "slug": "2026-07-20",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-03-18",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-07-14",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-05-13",
+        "status": "Success"
+      },
+      {
+        "slug": "2025-06-18",
+        "status": "Success"
+      },
+      {
+        "slug": "2024-02-12",
+        "status": "Success"
+      },
+      {
+        "slug": "2026-03-02",
+        "status": "Success"
+      }
+    ],
+    "rate_limited": []
+  },
+  {
     "run_id": "32397688377",
     "timestamp": "2026-08-20T17:28:37.525113Z",
     "stage": "post_process",

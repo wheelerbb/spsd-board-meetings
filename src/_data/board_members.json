@@ -86,19 +86,19 @@
     "roles": []
   },
   {
-    "name": "Ms. Kinney",
+    "name": "Jennifer Kinney",
     "seat": null,
     "terms": [
-      { "start": "2024-01-08", "end": "2024-04-08" }
+      { "start": "2024-01-08", "end": "2024-11-12" }
     ],
     "roles": [],
     "auto_discovered": true
   },
   {
-    "name": "Ms. Ratliff",
+    "name": "Tandy Ratliff",
     "seat": null,
     "terms": [
-      { "start": "2024-01-08", "end": "2024-04-08" }
+      { "start": "2024-01-08", "end": "2025-11-03" }
     ],
     "roles": [],
     "auto_discovered": true
@@ -107,25 +107,25 @@
     "name": "Ms. Rauscher",
     "seat": null,
     "terms": [
-      { "start": "2024-01-08", "end": "2024-04-08" }
+      { "start": "2024-01-08", "end": "2025-11-03" }
     ],
     "roles": [],
     "auto_discovered": true
   },
   {
-    "name": "Ms. Ryan",
+    "name": "Counselor Ryan",
     "seat": null,
     "terms": [
-      { "start": "2024-01-08", "end": "2024-04-08" }
+      { "start": "2024-01-08", "end": "2025-04-14" }
     ],
     "roles": [],
     "auto_discovered": true
   },
   {
-    "name": "Ms. Schen",
+    "name": "Molly Schen",
     "seat": null,
     "terms": [
-      { "start": "2024-01-08", "end": "2024-04-08" }
+      { "start": "2024-01-08", "end": "2025-06-18" }
     ],
     "roles": [],
     "auto_discovered": true
@@ -134,7 +134,124 @@
     "name": "Mr. Domingos",
     "seat": "Student Representative",
     "terms": [
-      { "start": "2024-01-08", "end": "2024-04-08" }
+      { "start": "2024-01-08", "end": "2024-05-13" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Adrian Dowling",
+    "seat": null,
+    "terms": [
+      { "start": "2024-12-09", "end": "2026-04-02" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Shin",
+    "seat": null,
+    "terms": [
+      { "start": "2025-01-08", "end": "2025-01-08" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Shen",
+    "seat": null,
+    "terms": [
+      { "start": "2025-01-08", "end": "2025-01-08" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Eliot Wertheimer",
+    "seat": null,
+    "terms": [
+      { "start": "2024-06-10", "end": "2025-06-03" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Angela",
+    "seat": "Student Representative",
+    "terms": [
+      { "start": "2026-02-04", "end": "2026-02-04" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Daniel Fowler",
+    "seat": null,
+    "terms": [
+      { "start": "2026-02-04", "end": "2026-02-04" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "George Rich",
+    "seat": null,
+    "terms": [
+      { "start": "2026-02-04", "end": "2026-02-04" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Rosemary",
+    "seat": null,
+    "terms": [
+      { "start": "2026-02-04", "end": "2026-02-04" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Holeman",
+    "seat": null,
+    "terms": [
+      { "start": "2024-06-10", "end": "2024-11-12" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "AngelaKabisa",
+    "seat": "Student Representative",
+    "terms": [
+      { "start": "2024-08-19", "end": "2024-08-19" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Shea",
+    "seat": null,
+    "terms": [
+      { "start": "2025-04-07", "end": "2025-04-07" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Angela Kaba",
+    "seat": "Student Representative",
+    "terms": [
+      { "start": "2025-04-07", "end": "2025-04-07" }
+    ],
+    "roles": [],
+    "auto_discovered": true
+  },
+  {
+    "name": "Susan Rocher",
+    "seat": null,
+    "terms": [
+      { "start": "2025-04-07", "end": "2025-04-07" }
     ],
     "roles": [],
     "auto_discovered": true
