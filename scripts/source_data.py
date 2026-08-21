@@ -83,6 +83,21 @@ def _backfill_file_types(docs, catalog):
                 changed = True
     return changed
 
+def _combine_site_and_drive_docs(site_docs, drive_docs):
+    """Drive is authoritative for a doc's type/label (filename/content-derived — see
+    drive.py::categorize_document and docs/pipeline.md). Site is a secondary fallback, used only
+    for a doc Drive doesn't have at all — the SPSD site listing types a doc via a positional text
+    window around its link, not a reliable classifier."""
+    combined = list(drive_docs)
+    seen = {drive.clean_url(d['url']) for d in combined}
+    for d in site_docs:
+        u = drive.clean_url(d['url'])
+        if u not in seen:
+            combined.append(d)
+            seen.add(u)
+    return combined
+
+
 def _dedupe_identical_content(docs, catalog, bucket_uri):
     """Drops a doc when another doc of the *same type* on the same meeting has byte-identical
     extracted text — the same underlying document uploaded to Drive twice under different
@@ -157,14 +172,8 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
     for slug, d in all_data.items():
         if slug < CUTOFF_DATE:
             continue
-        docs = list(d.get('site', {}).get('docs', [])) if d.get('site') else []
-        seen = {drive.clean_url(doc['url']) for doc in docs}
-        for doc in d.get('drive', []):
-            u = drive.clean_url(doc['url'])
-            if u not in seen:
-                docs.append(doc)
-                seen.add(u)
-        combined_docs_by_slug[slug] = docs
+        site_docs = list(d.get('site', {}).get('docs', [])) if d.get('site') else []
+        combined_docs_by_slug[slug] = _combine_site_and_drive_docs(site_docs, d.get('drive', []))
 
     url_owner = {}
     for slug, docs in combined_docs_by_slug.items():
@@ -215,7 +224,7 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
             data['_stub_action'] = 'skipped'
             continue
 
-        # Gather all docs for this date (Priority: Site > Drive) — precomputed above.
+        # Gather all docs for this date (Priority: Drive > Site) — precomputed above.
         combined_docs = combined_docs_by_slug.get(date_slug, [])
 
         video_url = data.get('video')
@@ -260,7 +269,7 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
                     fm_data['has_video'] = True
                     updated = True
 
-                has_vtt = any(d.get('type') == 'vtt' for d in combined_docs)
+                has_vtt = any(d.get('type') == 'transcript' for d in combined_docs)
                 if (transcript_path or has_vtt) and not fm_data.get('has_transcript'):
                     fm_data['has_transcript'] = True
                     fm_data['has_vtt_source'] = True
@@ -339,8 +348,8 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
             "location": location,
             "has_video": bool(video_url),
             "video_url": video_url or "",
-            "has_vtt_source": bool(transcript_path) or any(d.get('type') == 'vtt' for d in data.get('drive', [])),
-            "has_transcript": bool(transcript_path) or any(d.get('type') == 'vtt' for d in data.get('drive', [])),
+            "has_vtt_source": bool(transcript_path) or any(d.get('type') == 'transcript' for d in data.get('drive', [])),
+            "has_transcript": bool(transcript_path) or any(d.get('type') == 'transcript' for d in data.get('drive', [])),
             "stub": True,
             "board_attendance": active_members(board_members, dt.date()),
             "docs": combined_docs
@@ -396,7 +405,7 @@ def sync_drive_vtts_to_bucket(bucket_uri, all_data, existing_bucket_slugs, cutof
         if date_slug < cutoff_date or date_slug in existing_bucket_slugs:
             continue
         for doc in (data.get('drive') or []):
-            if doc.get('type') != 'vtt':
+            if doc.get('type') != 'transcript':
                 continue
             fid = re.search(r'/file/d/([^/?]+)', doc.get('url', ''))
             if not fid:

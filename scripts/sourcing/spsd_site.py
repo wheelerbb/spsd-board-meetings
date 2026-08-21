@@ -104,7 +104,7 @@ def fetch_site_data():
                 if "agenda" in search_text: doc_type = "agenda"
                 elif "minutes" in search_text or "min" in search_text: doc_type = "minutes"
                 elif "packet" in search_text: doc_type = "packet"
-                elif label_lower.endswith('.vtt') or 'transcript' in label_lower or re.match(r'spboe_\d', label_lower): doc_type = "vtt"
+                elif label_lower.endswith('.vtt') or 'transcript' in label_lower or re.match(r'spboe_\d', label_lower): doc_type = "transcript"
                 
                 # Deduplicate by URL
                 if not any(d['url'] == url for d in results[found_date]['docs']):

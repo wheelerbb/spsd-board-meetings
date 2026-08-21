@@ -1,11 +1,31 @@
 import unittest
 from unittest.mock import patch
 
-from source_data import merge_documents, AMBIGUOUS, _dedupe_identical_content
+from source_data import merge_documents, AMBIGUOUS, _dedupe_identical_content, _combine_site_and_drive_docs
 
 
 def doc(url, label, type_='packet'):
     return {'type': type_, 'label': label, 'url': url}
+
+
+class CombineSiteAndDriveDocsTests(unittest.TestCase):
+    def test_drive_type_wins_on_collision(self):
+        site_docs = [doc('https://drive.google.com/file/d/ABC/view', 'August Meeting Packet', 'minutes')]
+        drive_docs = [doc('https://drive.google.com/file/d/ABC/view', 'August 2026 Board Meeting Packet - Revised', 'packet')]
+        combined = _combine_site_and_drive_docs(site_docs, drive_docs)
+        self.assertEqual(len(combined), 1)
+        self.assertEqual(combined[0]['type'], 'packet')
+        self.assertEqual(combined[0]['label'], 'August 2026 Board Meeting Packet - Revised')
+
+    def test_drive_only_url_included(self):
+        drive_docs = [doc('https://drive.google.com/file/d/XYZ/view', 'Agenda', 'agenda')]
+        combined = _combine_site_and_drive_docs([], drive_docs)
+        self.assertEqual(combined, drive_docs)
+
+    def test_site_only_url_included_as_fallback(self):
+        site_docs = [doc('https://drive.google.com/file/d/QRS/view', 'Newly Posted Doc', 'misc')]
+        combined = _combine_site_and_drive_docs(site_docs, [])
+        self.assertEqual(combined, site_docs)
 
 
 class MergeDocumentsTests(unittest.TestCase):

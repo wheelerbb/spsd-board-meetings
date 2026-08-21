@@ -149,8 +149,8 @@ def _find_priority_source_doc(docs):
     docs = docs or []
     for d in docs:
         # No meeting in the archive currently tags its own full-board minutes this way (only
-        # committee minutes use type=minutes/min today), but check first in case that changes.
-        if d.get('type') in ('minutes', 'min') and 'committee' not in (d.get('label') or '').lower():
+        # committee minutes use type=minutes today), but check first in case that changes.
+        if d.get('type') == 'minutes' and 'committee' not in (d.get('label') or '').lower():
             return 'Minutes', d
     summary_docs = [d for d in docs if d.get('type') == 'pdf' and 'summary' in (d.get('label') or '').lower()]
     if summary_docs:
@@ -353,7 +353,7 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None):
         # doc may record one but not the other.
         source_label, source_doc = _find_priority_source_doc(data.get('docs'))
         if source_doc:
-            doc_type = 'minutes' if source_doc.get('type') == 'min' else source_doc.get('type', 'doc')
+            doc_type = source_doc.get('type', 'doc')
             doc_text = _read_doc_text(source_doc['url'], doc_type, bucket_uri, catalog)
             if doc_text:
                 extracted = _extract_votes_attendance_from_doc(doc_text, glossary_text)

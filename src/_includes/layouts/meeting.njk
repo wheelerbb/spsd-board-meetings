@@ -159,8 +159,8 @@ layout: layouts/base.njk
           {% set labelLower = d.label | lower %}
           {% if ('agenda' in labelLower or d.type == 'agenda') and not agendaDoc %}{% set agendaDoc = d %}
           {% elif ('packet' in labelLower or d.type == 'packet') and not packetDoc %}{% set packetDoc = d %}
-          {% elif ('minutes' in labelLower or d.type == 'minutes' or d.type == 'min') and not minDoc %}{% set minDoc = d %}
-          {% elif (d.type == 'vtt' or 'spboe_' in labelLower) and not vttDoc %}{% set vttDoc = d %}
+          {% elif ('minutes' in labelLower or d.type == 'minutes') and not minDoc %}{% set minDoc = d %}
+          {% elif (d.type == 'transcript' or 'spboe_' in labelLower) and not vttDoc %}{% set vttDoc = d %}
           {% endif %}
         {% endfor %}
 

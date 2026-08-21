@@ -157,9 +157,9 @@ file is in scope, `meeting_slug` is attributed in this order:
    types because a policy draft or donation letter has no meeting date to extract at all, and
    policy documents in particular carry misleading historical dates — confirmed from a real run,
    where a recently-revised policy draft's standard "Adopted: 1975 / Revised: 2001" citation block
-   was read as a false-positive meeting date. `misc` and `vtt` skip straight to filename parsing
-   (vtt filenames already resolve reliably via their `spboe_YYYYMMDD` convention, so this also
-   saves an unnecessary download for every transcript file).
+   was read as a false-positive meeting date. `misc` and `transcript` skip straight to filename
+   parsing (transcript filenames already resolve reliably via their `spboe_YYYYMMDD` convention,
+   so this also saves an unnecessary download for every transcript file).
 2. **Filename** — `drive.parse_meeting_date`, only when it resolves to a full day-specific date.
    Monthly packet filenames (e.g. "August 2026 Board Meeting Packet.pdf") never satisfy this —
    content is what actually dates them.
@@ -187,7 +187,7 @@ Text extracted during content resolution is cached at a flat (no subfolders) blo
 official document's text (`post_process.py`'s official-term extraction and agenda-preview
 generation; `process_transcripts.py`'s votes/attendance extraction from minutes) reads it back via
 `entry['text_blob']` / `entry['terms_blob']` on the matching catalog entry (`drive.read_cached_blob`)
-instead of re-downloading or listing the bucket. `doc_type` (agenda/packet/minutes/vtt/misc) is
+instead of re-downloading or listing the bucket. `doc_type` (agenda/packet/minutes/transcript/misc) is
 safe to bake into the name — it's `categorize_document()`'s deterministic filename-keyword match,
 not a date-resolution output — but the resolved *meeting* date deliberately never appears in a
 blob name.
@@ -214,6 +214,17 @@ When multiple sources provide conflicting values for the same field:
 5. Raw `.vtt` transcript (lowest — subject to speech recognition errors)
 
 ### Meeting materials reconciliation
+
+**Doc-type source priority — Drive over site:** `source_data.py::_combine_site_and_drive_docs`
+combines a meeting's site-scraped and Drive-catalog docs by URL, with Drive's `doc_type` always
+winning on a collision. The SPSD site scraper (`spsd_site.py`) types a doc from a fixed-size text
+window around its link in the raw page HTML, not the actual table cell — a doc's type can bleed in
+from a neighboring column header (confirmed: a meeting packet linked next to an empty "Approved
+Minutes" column got typed `minutes` this way). Drive's `categorize_document()` types the same file
+from its actual filename, a much stronger signal, so it's treated as authoritative once available;
+site is used only to add a doc Drive hasn't indexed yet, and is superseded automatically once Drive
+catches up on a later run. This mirrors the precedent already established for meeting *date*
+resolution above (content/filename over site) — extended here to doc *type* for the same reason.
 
 `source_data.py::reconcile_meetings` merges each run's freshly-resolved site+Drive docs into an
 existing meeting's `.njk` `docs:` list via `merge_documents`, deduplicating by URL:

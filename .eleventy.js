@@ -11,14 +11,14 @@ module.exports = function (eleventyConfig) {
     array.filter((item) => item[key] == value)
   );
 
-  // A doc's `type` (agenda/packet/minutes/vtt/misc) is its role in the meeting, not its file
-  // format — a "misc" doc can be a PDF, PPTX, or anything else. The sidebar icon should always
-  // show file format, so it reads from `file_type` (captured from the Drive file's extension/mime
-  // type by the sourcing pipeline). Docs sourced before that field existed fall back to a
-  // type-based guess so old meeting pages don't regress.
+  // A doc's `type` (agenda/packet/minutes/transcript/misc) is its role in the meeting, not its
+  // file format — a "misc" doc can be a PDF, PPTX, or anything else. The sidebar icon should
+  // always show file format, so it reads from `file_type` (captured from the Drive file's
+  // extension/mime type by the sourcing pipeline). Docs sourced before that field existed fall
+  // back to a type-based guess so old meeting pages don't regress.
   const fileTypeFallback = (doc) => {
-    if (doc.type === "vtt") return "vtt";
-    if (["agenda", "packet", "min", "minutes"].includes(doc.type)) return "pdf";
+    if (doc.type === "transcript") return "vtt";
+    if (["agenda", "packet", "minutes"].includes(doc.type)) return "pdf";
     return "file";
   };
 

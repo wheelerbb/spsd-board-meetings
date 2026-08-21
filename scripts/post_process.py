@@ -323,7 +323,7 @@ def _extract_official_terms(meeting_data, bucket_uri, catalog):
     in GCS via the shared Drive catalog (file_id-keyed, not slug-keyed — see
     docs/pipeline.md#the-drive-catalog-drive_catalogjson)."""
     docs = meeting_data.get('docs') or []
-    qualifying = [d for d in docs if d.get('type') in ('agenda', 'packet', 'minutes', 'min')]
+    qualifying = [d for d in docs if d.get('type') in ('agenda', 'packet', 'minutes')]
     if not qualifying:
         return []
 
@@ -337,7 +337,7 @@ def _extract_official_terms(meeting_data, bucket_uri, catalog):
         if not fid_match:
             continue
         file_id = fid_match.group(1)
-        doc_type = 'minutes' if doc.get('type') == 'min' else doc.get('type', 'doc')
+        doc_type = doc.get('type', 'doc')
 
         try:
             meta = svc.files().get(fileId=file_id, fields='modifiedTime,mimeType,createdTime').execute()
@@ -820,7 +820,7 @@ def post_process():
         print("Extracting canonical names from official meeting documents...", flush=True)
         term_targets = [
             m for m in meetings_data
-            if any(d.get('type') in ('agenda', 'packet', 'minutes', 'min') for d in (m.get('docs') or []))
+            if any(d.get('type') in ('agenda', 'packet', 'minutes') for d in (m.get('docs') or []))
         ]
         def _extract_terms_task(m):
             try:

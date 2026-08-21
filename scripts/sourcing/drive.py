@@ -342,7 +342,7 @@ def categorize_document(filename):
     if 'agenda' in name_lower: return 'agenda'
     if 'packet' in name_lower: return 'packet'
     if 'minutes' in name_lower: return 'minutes'
-    if name_lower.endswith('.vtt') or 'transcript' in name_lower or re.match(r'spboe_\d', name_lower): return 'vtt'
+    if name_lower.endswith('.vtt') or 'transcript' in name_lower or re.match(r'spboe_\d', name_lower): return 'transcript'
     return 'misc'
 
 # Native Google Docs/Sheets/Slides have no filename extension, so their file type can only come
