@@ -21,3 +21,7 @@ GitHub Pages via GitHub Actions (`.github/workflows/deploy.yml`). Pushes to `mai
 The site is served at `https://wheelerbb.github.io/spsd-board-meetings/`. All internal links go through Eleventy's `| url` filter and are automatically prefixed with `pathPrefix` (default: `/spsd-board-meetings/`).
 
 **Custom domain**: point your DNS at GitHub Pages, set the domain in repo Settings → Pages, then set `PATH_PREFIX=/` as a repository variable (Settings → Variables → Actions) so the prefix is dropped.
+
+## Starting a new work session
+
+The deploy workflow runs on every push to `main` *and* on a daily cron, and can push its own `chore: auto-update meeting stubs and summaries` commit back to `main` (see `.github/workflows/deploy.yml`). If local `main` was last synced before one of those trailing runs landed, a later `git push` gets rejected. Before starting new local work, sync first: `git fetch && git rebase origin/main`. Mid-session pushes-in-quick-succession are fine to just rebase through if a push is ever rejected — no need to sync preemptively between every commit, only at the start of a session.
