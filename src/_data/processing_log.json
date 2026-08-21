@@ -1,5 +1,24 @@
 [
   {
+    "run_id": "32464968722",
+    "timestamp": "2026-08-21T08:52:05.666789Z",
+    "stage": "post_process",
+    "topics_updated": [
+      "Physical Restraint and Seclusion Policy"
+    ],
+    "topics_skipped": 87,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "32464968722",
+    "timestamp": "2026-08-21T08:51:21.122074Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
     "run_id": "32403959012",
     "timestamp": "2026-08-20T18:40:11.701797Z",
     "stage": "post_process",
