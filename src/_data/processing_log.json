@@ -1,5 +1,22 @@
 [
   {
+    "run_id": "32708816305",
+    "timestamp": "2026-08-24T08:59:10.910060Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 88,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "32708816305",
+    "timestamp": "2026-08-24T08:58:26.618950Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
     "run_id": "32628787100",
     "timestamp": "2026-08-23T08:40:46.306972Z",
     "stage": "post_process",
