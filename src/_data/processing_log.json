@@ -1,5 +1,40 @@
 [
   {
+    "run_id": "32828770352",
+    "timestamp": "2026-08-25T08:53:25.114991Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 88,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "32828770352",
+    "timestamp": "2026-08-25T08:52:51.224991Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
+    "run_id": "2026-08-24T17:32:36.039511",
+    "timestamp": "2026-08-24T17:32:36.039546Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 88,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "2026-08-24T17:28:44.273038",
+    "timestamp": "2026-08-24T17:28:44.273056Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 88,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
     "run_id": "32708816305",
     "timestamp": "2026-08-24T08:59:10.910060Z",
     "stage": "post_process",
