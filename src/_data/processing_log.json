@@ -1,5 +1,38 @@
 [
   {
+    "run_id": "33664219761",
+    "timestamp": "2026-09-02T17:57:46.446556Z",
+    "stage": "post_process",
+    "skipped": true,
+    "topics_updated": [],
+    "topics_skipped": 0,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "33664219761",
+    "timestamp": "2026-09-02T17:57:43.686818Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
+    "run_id": "2026-09-02T17:52:28.313170",
+    "timestamp": "2026-09-02T17:52:28.313195Z",
+    "stage": "transcripts",
+    "targeted": [
+      "2026-06-08"
+    ],
+    "results": [
+      {
+        "slug": "2026-06-08",
+        "status": "Success"
+      }
+    ],
+    "rate_limited": []
+  },
+  {
     "run_id": "33631420277",
     "timestamp": "2026-09-02T12:45:20.016669Z",
     "stage": "post_process",
