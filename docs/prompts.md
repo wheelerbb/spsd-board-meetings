@@ -69,7 +69,7 @@ board_attendance: list[AttendanceMember]  # {name, status, role}
 
 **Script:** `scripts/post_process.py → generate_tags()`
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.
-**Output:** Structured JSON via `list[TaggedTopic]` Pydantic schema (`{tag, evidence_bullets}` per entry), then post-processed by `_normalize_fy()` and `_strip_modifiers()`. Returns `(tags, evidence)` where `evidence` is `{tag: [summary_bullet_index, ...]}`.
+**Output:** Structured JSON via `list[TaggedTopic]` Pydantic schema (`{tag, evidence_bullets, vote_indices}` per entry), then post-processed by `_normalize_fy()` and `_strip_modifiers()`. Returns `(tags, evidence, vote_evidence)` where `evidence` is `{tag: [summary_bullet_index, ...]}` and `vote_evidence` is `{tag: [vote_index, ...]}` (see [Vote linkage](#vote-linkage) below).
 **Called from:** the incremental (non-`--retag`) branch of `post_process()`'s tagging step — one call per meeting that doesn't yet have `topics:`, in chronological order. Also used by `--dry-run-tag` for testing.
 
 ### Injected context
@@ -77,6 +77,7 @@ board_attendance: list[AttendanceMember]  # {name, status, role}
 - **Existing tags + `current_status`** (`topic_context`) — every tag in `all_topics.json`, paired with its synthesized `current_status` blurb from `topic_summaries.json` when one exists, so the model can judge topical fit by what a tag actually covers, not just its name.
 - **Most recent prior meeting's tags** (`recent_topics`) — signals a likely-continuing thread.
 - **Agenda excerpt** (`agenda_text`) — from `_load_cached_agenda_text()` (§4), district-authored item framing independent of the Gemini-generated summary.
+- **This meeting's votes** (`votes`) — omitted entirely (section and instructions both) when the meeting has none, rather than asking the model to associate against nothing. See [Vote linkage](#vote-linkage) below.
 
 ### Prompt template
 
@@ -106,16 +107,36 @@ If this meeting's content continues one of those threads, that's a strong signal
 Meeting: {slug}
 Summary (numbered):
 {summary_text}
-
-Respond with a JSON array of objects, one per tag: [{"tag": "...", "evidence_bullets": [0, 2]}, ...]
+{votes_section}
+Respond with a JSON array of objects, one per tag: [{"tag": "...", "evidence_bullets": [0, 2], "vote_indices": [1]}, ...]
 "evidence_bullets" are the 0-indexed numbers from the Summary list above that support this tag —
-every tag must cite at least one. Example:
-[{"tag": "Elementary School Reconfiguration", "evidence_bullets": [0]}, {"tag": "FY27 Budget", "evidence_bullets": [1, 3]}]
+every tag must cite at least one. "vote_indices" are the 0-indexed numbers from the Votes list
+above that this tag's topic is substantively about — use [] if none apply, or if this meeting has
+no Votes listed above. Example:
+[{"tag": "Elementary School Reconfiguration", "evidence_bullets": [0], "vote_indices": []}, {"tag": "FY27 Budget", "evidence_bullets": [1, 3], "vote_indices": [2]}]
+```
+
+`{votes_section}` (only rendered when the meeting has votes) is:
+
+```
+Votes (numbered):
+{votes_text}
+For each tag, also identify which of the votes above (if any) that tag's topic is substantively
+about — a vote may belong to more than one tag, or to none.
 ```
 
 ### Evidence linkage (todos/012)
 
 The Summary is rendered with 0-indexed bullet numbers, and the model reports which bullet(s) support each tag directly in its response — this replaces `_evidence_match()`'s fuzzy text matching for any meeting tagged after this was added. `synthesize_topic()`'s evidence-gathering step (§5) prefers a meeting's `topic_evidence` frontmatter field when present, falling back to fuzzy matching only for meetings tagged before this existed. See `docs/topic-taxonomy.md` for the frontmatter shape.
+
+### Vote linkage
+
+Vote association used to be a separate call, `generate_vote_evidence()` (§10), run immediately
+after tagging — merged into this call (and into §3's batch prompt) because both tasks already
+need the same tag-selection context, so answering both at once saves a full LLM round-trip per
+meeting. `generate_vote_evidence()` is kept only to backfill meetings that were tagged before this
+merge existed (has `topics` but no `vote_evidence` key at all — checked by key presence, not
+truthiness, since an empty `{}` is a legitimate "processed, no matches" result). See todos/017.
 
 ### Shared rule text (todos/005)
 
@@ -134,7 +155,7 @@ Rules 2–5 above (`_RULE_TIME_BINDING`, `_RULE_SUBJECT_NOT_PROCESS`, `_RULE_GEN
 
 **Script:** `scripts/post_process.py → batch_tag_all_meetings()`
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.
-**Output:** Structured JSON via `BatchTagResponse` Pydantic schema (`{results: [{slug, tags: [{tag, evidence_bullets}]}]}`)
+**Output:** Structured JSON via `BatchTagResponse` Pydantic schema (`{results: [{slug, tags: [{tag, evidence_bullets, vote_indices}]}]}`)
 **Timeout:** `BATCH_TIMEOUT` (600s) — see [LLM Calls](pipeline.md#llm-calls) intro for why this call gets a longer-than-default timeout.
 **Called from:** the `--retag` branch of `post_process()`'s tagging step — one call covering every non-stub meeting with a summary, instead of looping §2's single-meeting call once per meeting. Reserved for periodic full recalibration, not the daily incremental path (full-corpus retagging on every cron run risks topic churn on a public site).
 
@@ -144,7 +165,7 @@ Tagging one meeting at a time — even with the recent-meeting hint in §2 — i
 
 ### Injected context
 
-Same shape as §2 per meeting (transcript summary + agenda excerpt from `_load_cached_agenda_text()`, §4), but for **every** meeting at once, chronologically ordered — no `allowed_tags`/`topic_context`/`recent_topics`, since the model is deciding the entire tag set directly from the full evidence rather than reusing an externally-tracked list.
+Same shape as §2 per meeting (transcript summary + agenda excerpt from `_load_cached_agenda_text()`, §4, and votes when the meeting has any — see §2's [Vote linkage](#vote-linkage)), but for **every** meeting at once, chronologically ordered — no `allowed_tags`/`topic_context`/`recent_topics`, since the model is deciding the entire tag set directly from the full evidence rather than reusing an externally-tracked list.
 
 ### Prompt template
 
@@ -164,7 +185,7 @@ For EACH meeting below, identify 3-5 topic tags for the PRIMARY issues discussed
    - **Evergreen** (standing, systemic domains with no natural end — special ed, transportation, facilities, equity, governance): never time-bound.
 3. **Subject, not process stage.** A tag names the SUBJECT being discussed, never what stage of board deliberation it's at. Words like "Development", "Presentation", "Discussion", "Update", "Overview", "Review", "Consideration", "Process", "Session", "Report", "Debate", "Announcement", "Revision(s)", "Projection" describe *where something is in the meeting cycle*, not *what the topic is* — never end a tag with one of these (e.g. "Cell Phone Policy Development" → "Cell Phone Policy"). Words naming a specific, substantive outcome — "Closure", "Adoption", "Referendum", "Resignation", "Appointment" — are fine to keep; they're not process-stage words.
 4. **Name the specific issue, not a category** — "SPESPA Contract 2025" not "Union Contracts". Generic category nouns are never valid tags.
-5. **Evidence relevance.** When citing evidence_bullets for a tag, cite only bullets where THIS topic is the actual subject of that bullet — not bullets that mention it only in passing while primarily discussing something else. If a topic genuinely has no bullet substantially about it, don't tag it at all.
+5. **Evidence relevance.** When citing evidence_bullets (or vote_indices, for meetings with votes listed) for a tag, cite only bullets/votes where THIS topic is the actual subject — not ones that mention it only in passing while primarily discussing something else. If a topic genuinely has no bullet substantially about it, don't tag it at all.
 
 **Format rules:** Fiscal years must use FYYY format (FY27, FY26) — never FY2027 or FY2026. No parentheses or acronyms. No concatenated words. No symbols (&, /, etc.).
 
@@ -173,10 +194,12 @@ Meetings (chronological):
 
 Respond with tags for every meeting listed above, keyed by its slug. For each tag, cite which
 0-indexed bullet number(s) from THAT meeting's own numbered Summary support it — every tag must
-cite at least one bullet from its own meeting.
+cite at least one bullet from its own meeting. Also identify which of that meeting's own numbered
+Votes (if any) each tag is substantively about — use [] for vote_indices when a meeting has no
+Votes listed, or when none of its votes relate to that tag.
 ```
 
-Each meeting's Summary is rendered with its own 0-indexed bullet numbers (restarting at 0 per meeting) — same evidence-linkage mechanism as §2, see that section's "Evidence linkage" note.
+Each meeting's Summary (and Votes, when present) is rendered with its own 0-indexed numbering (restarting at 0 per meeting) — same evidence-linkage and vote-linkage mechanism as §2, see that section's "Evidence linkage" and "Vote linkage" notes.
 
 ### Known failure mode
 
@@ -398,16 +421,16 @@ Document text:
 
 ---
 
-## 10. Vote-Topic Evidence (`post_process.py`)
+## 10. Vote-Topic Evidence — legacy backfill only (`post_process.py`)
 
 **Script:** `scripts/post_process.py → generate_vote_evidence()`
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.
 **Output:** Structured JSON via `list[VoteTopicEvidence]` Pydantic schema (`{topic, vote_indices}` per entry). Returns `{topic: [vote_index, ...]}`, a topic omitted entirely when none of the meeting's votes are substantively about it.
-**Called from:** `post_process()`'s vote-evidence step — one call per meeting that has both `votes:` and `topics:` but no `vote_evidence:` yet, run right after topic tagging (§2/§3) so the topic list already exists to associate votes against.
+**Called from:** `post_process()`'s vote-evidence backfill step — one call per meeting that has both `votes:` and `topics:` but no `vote_evidence` key at all. As of the merge described in §2's [Vote linkage](#vote-linkage), this only ever matches meetings tagged before that merge existed; every meeting tagged since gets `vote_evidence` written directly by §2/§3 (even when empty, `{}`), so it's never re-selected here. See todos/017.
 
 ### Purpose
 
-A topic page's "Key Resolutions & Votes" table needs to know which of a meeting's votes belong to which topic tag. Earlier this was a render-time keyword filter requiring every word of the topic name to appear literally in the vote's motion text — which silently dropped real matches whose wording didn't repeat the tag verbatim (e.g. a motion reading "...Option A: Primary and Intermediate Model **configuration**..." under the tag "Elementary School **Reconfiguration**"). This call decides the association once, at tagging time, the same way §2/§3's `evidence_bullets` links narrative bullets to topics — `vote_evidence` is the vote-level counterpart to a meeting's `topic_evidence` field.
+A topic page's "Key Resolutions & Votes" table needs to know which of a meeting's votes belong to which topic tag. Earlier this was a render-time keyword filter requiring every word of the topic name to appear literally in the vote's motion text — which silently dropped real matches whose wording didn't repeat the tag verbatim (e.g. a motion reading "...Option A: Primary and Intermediate Model **configuration**..." under the tag "Elementary School **Reconfiguration**"). Then, briefly, this call decided the association at tagging time as its own separate step, the same way §2/§3's `evidence_bullets` links narrative bullets to topics — `vote_evidence` is the vote-level counterpart to a meeting's `topic_evidence` field. It has since been folded directly into §2/§3's own tagging calls (one fewer LLM round-trip per meeting); this function and its prompt survive only to backfill the meetings tagged during that brief window.
 
 ### Prompt template
 
@@ -430,6 +453,6 @@ Omit a topic entirely if none of the votes are substantively about it. Example:
 [{"topic": "Elementary School Reconfiguration", "vote_indices": [1]}, {"topic": "FY27 Budget", "vote_indices": [2]}]
 ```
 
-### Backfill vs. incremental
+### Backfill scope
 
-Since a meeting only qualifies once it already has `topics:`, this call naturally backfills every existing meeting with votes the first time it runs after being added, and then runs automatically for each future meeting right after its own tagging step — no separate `--retag`-style full-corpus mode needed the way §3 exists for tag generation.
+Selection is by key presence, not truthiness (`'vote_evidence' not in m`, not `not m.get('vote_evidence')`) — an empty `{}` is a legitimate "processed, no matches" result written by §2/§3, and must not be mistaken for "not yet processed" and re-sent to the LLM. An earlier truthiness-based check here did exactly that: 16 meetings with `vote_evidence: {}` were being re-sent on every single `post_process()` run before this was fixed. Once every meeting predating the §2/§3 merge has been backfilled, this call and its `vote_evidence_targets` filter in `post_process()` have no remaining purpose and can be deleted — see todos/017.

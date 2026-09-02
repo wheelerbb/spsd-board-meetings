@@ -158,25 +158,40 @@ _RULE_GENERIC_NOUN = (
 )
 
 _RULE_EVIDENCE_RELEVANCE = (
-    "**Evidence relevance.** When citing evidence_bullets for a tag, cite only bullets where THIS "
-    "topic is the actual subject of that bullet — not bullets that mention it only in passing while "
-    "primarily discussing something else. If a topic genuinely has no bullet substantially about it, "
-    "don't tag it at all."
+    "**Evidence relevance.** When citing evidence_bullets (or vote_indices, for meetings with "
+    "votes listed) for a tag, cite only bullets/votes where THIS topic is the actual subject — "
+    "not ones that mention it only in passing while primarily discussing something else. If a "
+    "topic genuinely has no bullet substantially about it, don't tag it at all."
 )
 
 
-def generate_tags(slug, summary_bullets, allowed_tags, topic_context=None, recent_topics=None, agenda_text=None):
-    """Call Gemini to generate topic tags from a meeting's summary bullets.
+def generate_tags(slug, summary_bullets, allowed_tags, topic_context=None, recent_topics=None,
+                   agenda_text=None, votes=None):
+    """Call Gemini to generate topic tags from a meeting's summary bullets — and, in the same
+    call, associate the meeting's votes (if any) with whichever tags they're substantively about.
+    Vote association used to be a separate call (see generate_vote_evidence, kept only for
+    backfilling meetings tagged before this merge existed) — folded in here because both tasks
+    already need the same tag-selection context, so answering both at once saves a full
+    round-trip per meeting.
 
     topic_context: optional {tag: current_status} — gives the model a description of what each
     existing tag actually covers, not just its bare name, so it can recognize a continuing thread.
     recent_topics: optional list of tags used at the board's most recent prior meeting.
     agenda_text: optional excerpt of the official agenda (or agenda items isolated from a packet)
     for this meeting — district-authored item framing, independent of the Gemini-generated summary.
+    votes: optional list of this meeting's votes (same shape as the `votes` frontmatter field).
+    Omit or pass an empty list for a meeting with no formal votes — the votes section and
+    vote-association instructions are left out of the prompt entirely rather than asking the
+    model to associate against nothing.
 
-    Returns (tags, evidence) — evidence is {tag: [summary_bullet_index, ...]}, populated by the
-    model itself alongside the tags so synthesis doesn't have to reverse-engineer which bullets
-    support which tag via fuzzy text matching (see _evidence_match / todos/012).
+    Returns (tags, evidence, vote_evidence). evidence is {tag: [summary_bullet_index, ...]},
+    populated by the model itself alongside the tags so synthesis doesn't have to reverse-engineer
+    which bullets support which tag via fuzzy text matching (see _evidence_match / todos/012).
+    vote_evidence is {tag: [vote_index, ...]} — same shape and semantics as
+    generate_vote_evidence()'s return value (a tag is omitted if none of the votes are
+    substantively about it; always a dict, possibly empty — never omitted just because there
+    were no matches, so callers can distinguish "processed, no matches" from "not yet processed"
+    by key presence, not truthiness).
     """
     topic_context = topic_context or {}
     summary_text = '\n'.join(f'{i}. {b["topic"]}: {b["text"]}' for i, b in enumerate(summary_bullets))
@@ -189,6 +204,14 @@ def generate_tags(slug, summary_bullets, allowed_tags, topic_context=None, recen
 
     recent_text = ', '.join(recent_topics) if recent_topics else '(none — this is the first tagged meeting)'
     agenda_section = f"\n**Official agenda excerpt for this meeting:**\n{agenda_text}\n" if agenda_text else ""
+
+    votes_text = '\n'.join(f'{i}. [{v["result"]}] {v["motion"]}' for i, v in enumerate(votes)) if votes else None
+    votes_section = f"""
+Votes (numbered):
+{votes_text}
+For each tag, also identify which of the votes above (if any) that tag's topic is substantively
+about — a vote may belong to more than one tag, or to none.
+""" if votes_text else ""
 
     prompt = f"""You are tagging a school board meeting. Given the meeting summary below, identify 3-5 topic tags for the PRIMARY issues discussed.
 
@@ -212,18 +235,22 @@ If this meeting's content continues one of those threads, that's a strong signal
 Meeting: {slug}
 Summary (numbered):
 {summary_text}
-
-Respond with a JSON array of objects, one per tag: [{{"tag": "...", "evidence_bullets": [0, 2]}}, ...]
+{votes_section}
+Respond with a JSON array of objects, one per tag: [{{"tag": "...", "evidence_bullets": [0, 2], "vote_indices": [1]}}, ...]
 "evidence_bullets" are the 0-indexed numbers from the Summary list above that support this tag —
-every tag must cite at least one. Example:
-[{{"tag": "Elementary School Reconfiguration", "evidence_bullets": [0]}}, {{"tag": "FY27 Budget", "evidence_bullets": [1, 3]}}]"""
+every tag must cite at least one. "vote_indices" are the 0-indexed numbers from the Votes list
+above that this tag's topic is substantively about — use [] if none apply, or if this meeting has
+no Votes listed above. Example:
+[{{"tag": "Elementary School Reconfiguration", "evidence_bullets": [0], "vote_indices": []}}, {{"tag": "FY27 Budget", "evidence_bullets": [1, 3], "vote_indices": [2]}}]"""
 
     response_text, _model = call_llm(_make_client, prompt, response_schema=list[TaggedTopic], label=slug)
     raw = json.loads(response_text)
 
     evidence = {}
+    vote_evidence = {}
     tags = []
     n_bullets = len(summary_bullets)
+    n_votes = len(votes) if votes else 0
     for entry in raw:
         tag = _drop_blacklisted(_warn_if_budget_synonym(_strip_modifiers(_normalize_fy(entry['tag'])), slug), slug)
         if tag is None:
@@ -233,7 +260,11 @@ every tag must cite at least one. Example:
             tags.append(tag)
             evidence[tag] = []
         evidence[tag] = sorted(set(evidence[tag]) | set(bullets))
-    return tags, evidence
+        if n_votes:
+            vote_indices = [i for i in entry.get('vote_indices', []) if isinstance(i, int) and 0 <= i < n_votes]
+            if vote_indices:
+                vote_evidence[tag] = sorted(set(vote_indices))
+    return tags, evidence, vote_evidence
 
 
 def generate_vote_evidence(slug, votes, topics):
@@ -580,6 +611,8 @@ def synthesize_topic(topic, evidence, display_date):
 class TaggedTopic(BaseModel):
     tag: str
     evidence_bullets: list[int]  # 0-indexed positions into that meeting's own numbered summary
+    vote_indices: list[int] = []  # 0-indexed positions into that meeting's own numbered votes;
+                                   # [] when the meeting has no votes listed in the prompt
 
 
 class MeetingTagSet(BaseModel):
@@ -600,7 +633,11 @@ def batch_tag_all_meetings(meetings_data, bucket_uri, meeting_dir, topics_lib_pa
     """Tag the entire meeting corpus in a single Gemini call, using each meeting's transcript summary
     plus cached agenda text at once — lets the model assign self-consistent tags across a narrative
     that spans many meetings (e.g. a school closure) instead of reconstructing continuity one meeting
-    at a time. Used for periodic full recalibration (--retag), not the daily incremental path."""
+    at a time. Used for periodic full recalibration (--retag), not the daily incremental path.
+
+    Also associates each meeting's votes with whichever tags they're substantively about, in the
+    same call — see generate_tags()'s docstring for why this is folded in rather than a separate
+    per-meeting call afterward."""
     candidates = sorted(
         [m for m in meetings_data if not m.get('stub') and m.get('summary')],
         key=lambda m: m['slug']
@@ -618,6 +655,10 @@ def batch_tag_all_meetings(meetings_data, bucket_uri, meeting_dir, topics_lib_pa
         block = f"### Meeting: {slug}\nSummary (numbered):\n{summary_text}"
         if agenda_text:
             block += f"\nOfficial agenda excerpt:\n{agenda_text}"
+        votes = m.get('votes')
+        if votes:
+            votes_text = '\n'.join(f'  {i}. [{v["result"]}] {v["motion"]}' for i, v in enumerate(votes))
+            block += f"\nVotes (numbered):\n{votes_text}"
         meeting_blocks.append(block)
     meetings_text = '\n\n'.join(meeting_blocks)
 
@@ -642,8 +683,10 @@ Meetings (chronological):
 
 Respond with tags for every meeting listed above, keyed by its slug. For each tag, cite which
 0-indexed bullet number(s) from THAT meeting's own numbered Summary support it — every tag must
-cite at least one bullet from its own meeting. The citation is bookkeeping for a tag you've already
-chosen on its merits, not a factor in choosing it."""
+cite at least one bullet from its own meeting. Also identify which of that meeting's own numbered
+Votes (if any) each tag is substantively about — use [] for vote_indices when a meeting has no
+Votes listed, or when none of its votes relate to that tag. Both citations are bookkeeping for a
+tag you've already chosen on its merits, not a factor in choosing it."""
 
     response_text, _model = call_llm(
         _make_client, prompt, response_schema=BatchTagResponse,
@@ -651,12 +694,14 @@ chosen on its merits, not a factor in choosing it."""
     )
     parsed = json.loads(response_text)
     n_bullets_by_slug = {m['slug']: len(m['summary']) for m in candidates}
+    n_votes_by_slug = {m['slug']: len(m.get('votes') or []) for m in candidates}
 
     results = {}
     for r in parsed['results']:
         slug = r['slug']
         n_bullets = n_bullets_by_slug.get(slug, 0)
-        tags, evidence = [], {}
+        n_votes = n_votes_by_slug.get(slug, 0)
+        tags, evidence, vote_evidence = [], {}, {}
         for entry in r['tags']:
             tag = _drop_blacklisted(_warn_if_budget_synonym(_strip_modifiers(_normalize_fy(entry['tag'])), slug), slug)
             if tag is None:
@@ -666,7 +711,11 @@ chosen on its merits, not a factor in choosing it."""
                 tags.append(tag)
                 evidence[tag] = []
             evidence[tag] = sorted(set(evidence[tag]) | set(bullets))
-        results[slug] = (tags, evidence)
+            if n_votes:
+                vote_indices = [i for i in entry.get('vote_indices', []) if isinstance(i, int) and 0 <= i < n_votes]
+                if vote_indices:
+                    vote_evidence[tag] = sorted(set(vote_indices))
+        results[slug] = (tags, evidence, vote_evidence)
 
     last_seen = {}  # tag -> most recent slug mentioning it
     tagged_count = 0
@@ -676,14 +725,16 @@ chosen on its merits, not a factor in choosing it."""
         if result is None:
             print(f"  Warning: no tags returned for {slug}")
             continue
-        tags, evidence = result
+        tags, evidence, vote_evidence = result
         njk_path = os.path.join(meeting_dir, f"{slug}.njk")
         data, body = _read_njk(njk_path)
         data['topics'] = tags
         data['topic_evidence'] = evidence
+        data['vote_evidence'] = vote_evidence
         _write_njk(njk_path, data, body)
         m['topics'] = tags
         m['topic_evidence'] = evidence
+        m['vote_evidence'] = vote_evidence
         for t in tags:
             last_seen[t] = slug
         tagged_count += 1
@@ -731,10 +782,13 @@ def dry_run_tag(slugs, bucket_uri, meeting_dir='src/meetings/',
 
         print(f"  Dry-run tagging {slug} (prior meeting: {prior_slug or 'none'}, agenda context: {'yes' if agenda_text else 'no'})...")
         try:
-            tags, evidence = generate_tags(slug, data['summary'], allowed_tags, topic_context, recent_topics, agenda_text)
+            tags, evidence, vote_evidence = generate_tags(
+                slug, data['summary'], allowed_tags, topic_context, recent_topics, agenda_text,
+                votes=data.get('votes'),
+            )
             print(f"    → {tags}")
             for t in tags:
-                print(f"      {t}: bullets {evidence.get(t, [])}")
+                print(f"      {t}: bullets {evidence.get(t, [])}, votes {vote_evidence.get(t, [])}")
         except Exception as e:
             print(f"  Warning: dry-run tagging failed for {slug}: {e}")
 
@@ -831,7 +885,10 @@ def post_process():
             for future in as_completed(futures):
                 future.result()
 
-    # 3. Generate topic tags from summary bullets
+    # 3. Generate topic tags from summary bullets — and, in the same call, associate each
+    # meeting's votes with whichever tags they're substantively about (see generate_tags'
+    # docstring: this used to be a separate call, generate_vote_evidence(), run right after
+    # tagging in step 3b below — merged in for one fewer LLM round-trip per meeting).
     if retag:
         print("Batch-tagging the full meeting corpus in a single call...", flush=True)
         try:
@@ -857,28 +914,35 @@ def post_process():
             agenda_text = _load_cached_agenda_text(m.get('docs'), bucket_uri, catalog)
             print(f"  Tagging {slug}...", flush=True)
             try:
-                tags, evidence = generate_tags(slug, m['summary'], allowed_tags, topic_context, recent_topics, agenda_text)
+                tags, evidence, vote_evidence = generate_tags(
+                    slug, m['summary'], allowed_tags, topic_context, recent_topics, agenda_text,
+                    votes=m.get('votes'),
+                )
                 njk_path = os.path.join(meeting_dir, f"{slug}.njk")
                 data, body = _read_njk(njk_path)
                 data['topics'] = tags
                 data['topic_evidence'] = evidence
+                data['vote_evidence'] = vote_evidence
                 _write_njk(njk_path, data, body)
                 m['topics'] = tags  # keep in-memory data in sync for synthesis step
                 m['topic_evidence'] = evidence
+                m['vote_evidence'] = vote_evidence
                 _update_topics_lib(tags, topics_lib_path)
                 allowed_tags = json.load(open(topics_lib_path))
                 print(f"    → {tags}")
             except Exception as e:
                 print(f"  Warning: tagging failed for {slug}: {e}", flush=True)
 
-    # 3b. Generate vote-topic evidence — associates each vote with the topic tag(s) it belongs
-    # to, since a vote's motion text often doesn't repeat its topic tag's wording verbatim (see
-    # generate_vote_evidence docstring). Runs for any meeting with votes+topics but no
-    # vote_evidence yet, so it both backfills the existing corpus once and covers every future
-    # meeting automatically as soon as topic tagging assigns it topics.
-    print("Generating vote-topic evidence...", flush=True)
+    # 3b. Backfill vote-topic evidence for meetings tagged before this was folded into tagging
+    # itself (step 3 above / --retag's batch_tag_all_meetings) — every meeting tagged from here
+    # on gets vote_evidence written directly by step 3, even when empty ({}), so this only ever
+    # matches legacy meetings that have topics but no vote_evidence key at all. Checked by key
+    # presence, not truthiness: an empty {} is a legitimate "processed, no matches" result and
+    # must not re-trigger this (an earlier truthiness-based check here caused exactly that —
+    # 16 meetings with vote_evidence: {} were being re-sent to the LLM on every single run).
+    print("Backfilling vote-topic evidence for legacy meetings...", flush=True)
     vote_evidence_targets = [
-        m for m in meetings_data if m.get('votes') and m.get('topics') and not m.get('vote_evidence')
+        m for m in meetings_data if m.get('votes') and m.get('topics') and 'vote_evidence' not in m
     ]
     for m in vote_evidence_targets:
         slug = m['slug']
