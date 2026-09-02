@@ -12,6 +12,31 @@ Technical reference for the three-stage ingestion and synthesis pipeline. All sc
 | 2 | `scripts/process_transcripts.py` | Daily CI / manual | Analyze `.vtt` transcripts with Gemini; populate per-meeting AI fields |
 | 3 | `scripts/post_process.py` | Daily CI / manual | Enforce glossary (`src/_data/glossary.json`); sort topic taxonomy; synthesize cross-meeting topic summaries |
 
+### LLM Calls
+
+Every distinct LLM call in the pipeline, in the order it runs. Every call goes through the shared
+`call_llm()` in `scripts/model_config.py`, which tries `DEFAULT_MODEL` → `BACKUP_MODEL`
+(`gemini-2.5-pro` falling back to `gemini-3.5-flash` on a 429). Full prompt text, injected
+context, and output schema for each are in [prompts.md](prompts.md) — "Ref" below is that section.
+
+| # | Call | Function | Model | Purpose | Ref |
+|---|------|----------|-------|---------|-----|
+| 1 | Transcript Extraction | `process_transcripts.py::process_single_meeting()` | pro → flash | blurb/votes/summary/timeline/attendance from the meeting's VTT transcript | [prompts.md §1](prompts.md#1-transcript-extraction-process_transcriptspy) |
+| 2 | Votes/Attendance Override | `process_transcripts.py::_extract_votes_attendance_from_doc()` | pro → flash | overrides #1's votes/attendance from an official minutes/summary doc, when one is available | [prompts.md §9](prompts.md#9-votesattendance-override-from-official-document-process_transcriptspy) |
+| 3 | Official Document Term Extraction | `post_process.py::_extract_official_terms()` | pro → flash | canonical proper-noun spellings from agenda/packet/minutes PDFs, fed back into #1's glossary hints | [prompts.md §6](prompts.md#6-official-document-term-extraction-post_processpy) |
+| 4 | Agenda Text Retrieval (packet-isolation fallback) | `post_process.py::_load_cached_agenda_text()` | pro → flash | isolates agenda items from a packet PDF when no standalone agenda doc exists, cached | [prompts.md §4](prompts.md#4-agenda-text-retrieval-post_processpy) |
+| 5 | Topic Tag Generation — Single Meeting | `post_process.py::generate_tags()` | pro → flash | assigns 3-5 topic tags to one meeting, incremental daily path | [prompts.md §2](prompts.md#2-topic-tag-generation--single-meeting-post_processpy) |
+| 6 | Topic Tag Generation — Batch | `post_process.py::batch_tag_all_meetings()` | pro → flash | re-tags the entire corpus in one call, `--retag` only | [prompts.md §3](prompts.md#3-topic-tag-generation--batch-post_processpy) |
+| 7 | Vote-Topic Evidence | `post_process.py::generate_vote_evidence()` | pro → flash | maps a meeting's votes to the topic tags they belong to | [prompts.md §10](prompts.md#10-vote-topic-evidence-post_processpy) |
+| 8 | Agenda Preview | `post_process.py::generate_agenda_preview()` | pro → flash | upcoming-meeting agenda `<ul>` preview for still-stub meetings | [prompts.md §7](prompts.md#7-agenda-preview-post_processpy) |
+| 9 | Blurb Generation | `post_process.py::generate_blurb()` | pro → flash | backfills a missing 1-2 sentence meeting blurb | [prompts.md §8](prompts.md#8-blurb-generation-post_processpy) |
+| 10 | Topic Synthesis | `post_process.py::synthesize_topic()` | pro → flash | writes a topic's `current_status`/`overview`/`perspectives` from all its evidence | [prompts.md §5](prompts.md#5-topic-synthesis-post_processpy) |
+
+Calls 3-10 all live in `post_process.py` and run in this order within one pass (see
+[Processing Dependencies](#processing-dependencies)); calls 1-2 run once per meeting inside
+`process_transcripts.py`, upstream of all of them. Which model actually served each call is
+recorded per-item in `processing_log.json` — see [Run Log Schema](#run-log-schema).
+
 ### Board attendance name canonicalization (`process_transcripts.py`)
 
 Extracted attendance names (e.g. "Ms. DeAngelis") are resolved to full names (e.g. "Rosemarie DeAngelis") by matching against `src/_data/board_members.json`'s roster active on that specific meeting's date (`scripts/board_members_utils.py::canonicalize_attendance_names()`). This only formats names already extracted from the transcript/official document — it never determines *who* attended.
@@ -278,7 +303,7 @@ These are set when a meeting moves from `stub: true` → `stub: false`, and upda
 | File | Description |
 |------|-------------|
 | `src/_data/all_topics.json` | Sorted list of all active topics (newest activity first); excludes `TOPIC_BLACKLIST` terms — see [topic-taxonomy.md](topic-taxonomy.md) |
-| `src/_data/topic_summaries.json` | Per-topic narrative synthesized from all meeting evidence — prompt template in [prompts.md](prompts.md#2-topic-synthesis-post_processpy) |
+| `src/_data/topic_summaries.json` | Per-topic narrative synthesized from all meeting evidence — prompt template in [prompts.md §5](prompts.md#5-topic-synthesis-post_processpy) |
 | `scripts/topic_hashes.json` | MD5 hash of the evidence fed to the LLM per topic; used to skip redundant API calls when evidence hasn't changed |
 
 `topic_hashes.json` is pipeline state, not Eleventy data — it lives in `scripts/` and is committed to git so the cache persists across CI runs.
@@ -299,8 +324,107 @@ These are set when a meeting moves from `stub: true` → `stub: false`, and upda
 | `apptegy_events_raw.json` | GCS bucket | `source_data.py` | Complete unfiltered Apptegy API response (all calendar events, full payload) |
 | `vimeo_master_list.json` | Yes | Manual | Vimeo video ID → meeting date mapping |
 | `official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.{txt,json}` | GCS bucket | `source_data.py` / `post_process.py` (via `drive.cache_text` / `drive.cache_terms`) | Extracted text / proper-noun terms for one Drive file, pointed at by its `drive_catalog.json` entry |
-| `sourcing_log.json` | GCS bucket, synced to `src/_data/` on gated runs | `source_data.py` | One entry per `source_data.py` invocation — per-source fetched/changed summary, meetings created/updated, `any_changes` (the scheduled-run gate signal) |
-| `processing_log.json` | GCS bucket, synced to `src/_data/` on gated runs | `process_transcripts.py`, `post_process.py` | One entry per script per gated pipeline pass (`stage: "transcripts"` / `"post_process"`), sharing a `run_id` for display grouping — rendered at `/processing-log/` |
+| `sourcing_log.json` | GCS bucket, synced to `src/_data/` on gated runs | `source_data.py` | One entry per `source_data.py` invocation — per-source fetched/changed summary, meetings created/updated, `any_changes` (the scheduled-run gate signal); see [Run Log Schema](#run-log-schema) |
+| `processing_log.json` | GCS bucket, synced to `src/_data/` on gated runs | `process_transcripts.py`, `post_process.py` | One entry per script per gated pipeline pass (`stage: "transcripts"` / `"post_process"`), sharing a `run_id` for display grouping — rendered at `/processing-log/`; see [Run Log Schema](#run-log-schema) |
+
+---
+
+## Run Log Schema
+
+Every pipeline script invocation appends one entry to a GCS-backed, 200-entry-capped log
+(`scripts/pipeline_log.py::append_entry()` / `load_log()`) — `sourcing_log.json` for
+`source_data.py`, `processing_log.json` for `process_transcripts.py` and `post_process.py`. Both
+are synced to `src/_data/` and rendered at `/processing-log/`. `run_id` is `GITHUB_RUN_ID` in CI
+(stable across every step of one workflow run) or a fresh per-invocation timestamp locally — this
+is also the correlation key `post_process.py` reads back to decide whether to skip its own work
+(see the bottom of this section).
+
+### `sourcing_log.json` entry (`source_data.py`)
+
+```json
+{
+  "run_id": "32828770352",
+  "timestamp": "2026-08-25T08:00:12.345Z",
+  "trigger": "schedule",
+  "sourcing": {
+    "apptegy": {"fetched": true, "changed": []},
+    "site": {"fetched": true, "changed": []},
+    "drive": {"fetched": true, "changed": ["2026-08-17"]},
+    "vimeo": {"fetched": true, "changed": []},
+    "transcripts": {"fetched": true, "changed": []}
+  },
+  "meetings": {
+    "created": [],
+    "updated": ["2026-08-17"]
+  },
+  "any_changes": true
+}
+```
+
+A source with `fetched: false` was skipped by the 12-hour TTL cache that run — see `--force`
+under [Running the Pipeline](#running-the-pipeline). `any_changes` is the scheduled-run gate
+signal, also written to `$GITHUB_OUTPUT` as `changes` — see
+[Scheduled-run gating](#scheduled-run-gating).
+
+### `processing_log.json` entry — `stage: "transcripts"` (`process_transcripts.py`)
+
+```json
+{
+  "run_id": "32828770352",
+  "timestamp": "2026-08-25T08:02:03.456Z",
+  "stage": "transcripts",
+  "targeted": ["2026-08-17"],
+  "results": [
+    {"slug": "2026-08-17", "status": "Success", "model": "gemini-2.5-pro", "unresolved_attendance": []}
+  ],
+  "rate_limited": []
+}
+```
+
+`results[].status` is `"Success"`, `"RateLimit"`, or `"Error: ..."`. `results[].model` is
+whichever model actually served call #1 (and, when it fired, call #2) — see
+`scripts/model_config.py::call_llm()` and the [LLM Calls](#llm-calls) table above. An
+empty `targeted`/`results` (nothing new to process) still writes an entry rather than skipping
+the log — this is what lets `post_process.py` distinguish "checked, nothing new" from "didn't
+run at all."
+
+### `processing_log.json` entry — `stage: "post_process"` (`post_process.py`)
+
+```json
+{
+  "run_id": "32828770352",
+  "timestamp": "2026-08-25T08:05:41.789Z",
+  "stage": "post_process",
+  "topics_updated": [{"topic": "Elementary School Reconfiguration", "model": "gemini-2.5-pro"}],
+  "topics_skipped": 87,
+  "blurbs_generated": [{"slug": "2026-08-17", "model": "gemini-2.5-pro"}],
+  "previews_generated": [{"slug": "2026-09-14", "model": "gemini-2.5-pro"}]
+}
+```
+
+`topics_updated` / `blurbs_generated` / `previews_generated` list only *successful* generations,
+each tagged with the model that produced it. `topics_skipped` is a plain count of topics whose
+evidence hash (`scripts/topic_hashes.json`) didn't change, not a list.
+
+**Skip-if-nothing-new variant:** `post_process()` reads back *this run's* `stage: "transcripts"`
+entry (matched by `run_id`) before doing any real work. If that entry exists and none of its
+`results` have `status: "Success"`, it skips straight to writing this minimal entry instead —
+never silently, and never when `--retag`/`--force` is passed, or when no matching entry can be
+found at all (e.g. running locally, where every invocation gets its own timestamp-based `run_id`
+and never matches — the check fails open rather than risking a false skip):
+
+```json
+{
+  "run_id": "32828770352",
+  "timestamp": "2026-08-25T08:05:41.789Z",
+  "stage": "post_process",
+  "skipped": true,
+  "topics_updated": [],
+  "topics_skipped": 0,
+  "blurbs_generated": [],
+  "previews_generated": []
+}
+```
 
 ---
 

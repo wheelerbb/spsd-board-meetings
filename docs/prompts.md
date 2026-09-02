@@ -69,7 +69,7 @@ board_attendance: list[AttendanceMember]  # {name, status, role}
 
 **Script:** `scripts/post_process.py → generate_tags()`
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.
-**Temperature:** default (no `temperature` override in this call's config)
+**Temperature:** 0.1 (set in the shared `_tagging_subprocess()` helper, also used by §10)
 **Output:** JSON array of `{tag, evidence_bullets}` objects (parsed manually — not Pydantic), then post-processed by `_normalize_fy()` and `_strip_modifiers()`. Returns `(tags, evidence)` where `evidence` is `{tag: [summary_bullet_index, ...]}`.
 **Called from:** the incremental (non-`--retag`) branch of `post_process()`'s tagging step — one call per meeting that doesn't yet have `topics:`, in chronological order. Also used by `--dry-run-tag` for testing.
 
@@ -371,3 +371,74 @@ meeting based on these notes. Do not use quotes or introductory filler:
 - {summary_bullet_2}
 ...
 ```
+
+---
+
+## 9. Votes/Attendance Override from Official Document (`process_transcripts.py`)
+
+**Script:** `scripts/process_transcripts.py → _extract_votes_attendance_from_doc()`
+**Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`, shared with every other call in the pipeline.
+**Temperature:** 0.1
+**Output:** Structured JSON via `VotesAndAttendance` Pydantic schema (`{votes: list[Vote], board_attendance: list[AttendanceMember]}`)
+**Called from:** `process_single_meeting()` (§1), only when a "priority source doc" — minutes, or an unratified meeting summary — is available for this meeting (`_find_priority_source_doc()`). Written records are more reliable than transcript speech-to-text for who-voted-what and who-attended, so when one is available its extracted `votes`/`board_attendance` independently override §1's transcript-derived values — `votes`/`board_attendance` are overridden separately (a summary doc may record one but not the other), tracked via the `votes_source`/`attendance_source` frontmatter fields.
+
+### Prompt template
+
+```
+Extract formal board votes and attendance from this official school board document.
+
+Glossary: {glossary_text}
+
+Guidelines:
+- Votes: Exact motion, result (use "Passed" or "Failed" — a unanimous vote is "Passed"),
+  count, and movers. For moved_2nd, use last names only (e.g. "DeAngelis, Richardson") —
+  not full names, titles, or "Moved by X, seconded by Y" phrasing. Return [] if this
+  document doesn't record any votes.
+- Board Attendance: Each board member or student representative this document states was
+  present or absent. Use each person's full name as stated in the document (not just
+  surname), with role "Board" or "Student Rep". Only include people whose presence/absence
+  this document actually states — do not infer or guess at a full roster.
+  Return [] if attendance isn't stated in this document.
+
+Document text:
+{text}
+```
+
+---
+
+## 10. Vote-Topic Evidence (`post_process.py`)
+
+**Script:** `scripts/post_process.py → generate_vote_evidence()`
+**Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.
+**Temperature:** 0.1 (shared `_tagging_subprocess()` helper, see §2)
+**Output:** JSON array of `{topic, vote_indices}` objects (parsed manually — not Pydantic). Returns `{topic: [vote_index, ...]}`, a topic omitted entirely when none of the meeting's votes are substantively about it.
+**Called from:** `post_process()`'s vote-evidence step — one call per meeting that has both `votes:` and `topics:` but no `vote_evidence:` yet, run right after topic tagging (§2/§3) so the topic list already exists to associate votes against.
+
+### Purpose
+
+A topic page's "Key Resolutions & Votes" table needs to know which of a meeting's votes belong to which topic tag. Earlier this was a render-time keyword filter requiring every word of the topic name to appear literally in the vote's motion text — which silently dropped real matches whose wording didn't repeat the tag verbatim (e.g. a motion reading "...Option A: Primary and Intermediate Model **configuration**..." under the tag "Elementary School **Reconfiguration**"). This call decides the association once, at tagging time, the same way §2/§3's `evidence_bullets` links narrative bullets to topics — `vote_evidence` is the vote-level counterpart to a meeting's `topic_evidence` field.
+
+### Prompt template
+
+```
+You are associating votes taken at a school board meeting with the topic tags already assigned to this meeting.
+
+For each topic tag below, identify which of the meeting's votes (if any) that specific vote is about. A vote may belong to more than one topic, or to none of them — only associate a vote with a topic if the vote is substantively about that topic, not just tangentially related.
+
+Meeting: {slug}
+
+Topics already assigned to this meeting:
+{topics_text}
+
+Votes (numbered):
+{votes_text}
+
+Respond with a JSON array of objects, one per topic that has at least one matching vote:
+[{"topic": "...", "vote_indices": [0, 2]}, ...]
+Omit a topic entirely if none of the votes are substantively about it. Example:
+[{"topic": "Elementary School Reconfiguration", "vote_indices": [1]}, {"topic": "FY27 Budget", "vote_indices": [2]}]
+```
+
+### Backfill vs. incremental
+
+Since a meeting only qualifies once it already has `topics:`, this call naturally backfills every existing meeting with votes the first time it runs after being added, and then runs automatically for each future meeting right after its own tagging step — no separate `--retag`-style full-corpus mode needed the way §3 exists for tag generation.

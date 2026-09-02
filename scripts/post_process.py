@@ -4,9 +4,7 @@ import json
 import re
 import yaml
 import hashlib
-import queue as _stdlib_queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from multiprocessing import Process, Queue as MpQueue
 from google import genai
 from google.genai import types as genai_types
 from pydantic import BaseModel
@@ -23,31 +21,25 @@ from sourcing.auth import get_credentials
 from sourcing import drive as drive_mod
 import pipeline_log
 
-credentials, project_id = get_credentials()
-client = genai.Client(credentials=credentials, project=project_id, location='us-central1', vertexai=True)
-from model_config import DEFAULT_MODEL, BACKUP_MODEL, call_with_fallback
+def _make_client():
+    """Client factory passed to call_llm() — memoized so repeated in-process calls reuse one
+    client, while a subprocess (fresh process memory, no cache) builds its own on first use."""
+    global _client
+    if _client is None:
+        creds, pid = get_credentials()
+        _client = genai.Client(credentials=creds, project=pid, location='us-central1', vertexai=True)
+    return _client
+
+_client = None
+client = _make_client()  # eager: surfaces credential problems at import, warms the cache above
+
+from model_config import DEFAULT_MODEL, BACKUP_MODEL, call_llm
 MAX_WORKERS = 4
 # Safety ceiling on how many meetings' evidence feed one topic's synthesis call — not a real
 # token-budget constraint at current corpus/model scale (evidence chunks are short bullet lists,
 # well within the model's context window), just a guard against unbounded future corpus growth.
 MAX_EVIDENCE_MEETINGS = 60
 TAGGING_TIMEOUT = 120  # seconds; enforced via subprocess SIGTERM
-
-def _tagging_subprocess(model_name, prompt_text, result_queue):
-    """Run a tagging Gemini call in a separate process so SIGTERM can hard-kill it on timeout."""
-    local_credentials, local_project_id = get_credentials()
-    local_client = genai.Client(
-        credentials=local_credentials, project=local_project_id, location='us-central1', vertexai=True,
-    )
-    try:
-        response = local_client.models.generate_content(
-            model=model_name,
-            contents=prompt_text,
-            config={'response_mime_type': 'application/json', 'temperature': 0.1},
-        )
-        result_queue.put(('ok', response.text))
-    except Exception as e:
-        result_queue.put(('err', str(e)))
 
 _MATCH_STOP = {'and', 'the', 'in', 'of', 'for', 'a', 'an', 'on', 'at', 'to', 'by', 'or', 'its', 'is', 'are', 'was', 'were', 'with', 'from'}
 
@@ -225,27 +217,11 @@ Respond with a JSON array of objects, one per tag: [{{"tag": "...", "evidence_bu
 every tag must cite at least one. Example:
 [{{"tag": "Elementary School Reconfiguration", "evidence_bullets": [0]}}, {{"tag": "FY27 Budget", "evidence_bullets": [1, 3]}}]"""
 
-    def _attempt(model):
-        q = MpQueue()
-        p = Process(target=_tagging_subprocess, args=(model, prompt, q), daemon=True)
-        p.start()
-        p.join(timeout=TAGGING_TIMEOUT)
-        if p.is_alive():
-            p.terminate()
-            p.join()
-            raise TimeoutError(f"Tagging timed out after {TAGGING_TIMEOUT}s for {slug}")
-        try:
-            kind, val = q.get_nowait()
-        except _stdlib_queue.Empty:
-            raise Exception("Tagging subprocess exited with no result")
-        if kind == 'err':
-            raise Exception(val)
-        return val
-
-    val = call_with_fallback(_attempt)
-    if val is None:
-        raise Exception(f"All models rate-limited for tagging {slug}")
-    raw = json.loads(val)
+    response_text, _model = call_llm(
+        _make_client, prompt, temperature=0.1, response_schema=list[TaggedTopic],
+        timeout=TAGGING_TIMEOUT, label=slug,
+    )
+    raw = json.loads(response_text)
 
     evidence = {}
     tags = []
@@ -260,6 +236,58 @@ every tag must cite at least one. Example:
             evidence[tag] = []
         evidence[tag] = sorted(set(evidence[tag]) | set(bullets))
     return tags, evidence
+
+
+def generate_vote_evidence(slug, votes, topics):
+    """Call Gemini to associate each of a meeting's votes with the (already-decided) topic
+    tag(s) it belongs to. Votes are tagged separately from summary bullets because a vote's
+    motion text often doesn't repeat the topic tag's wording (e.g. a motion reading "...Option
+    A: Primary and Intermediate Model configuration..." for a "Elementary School
+    Reconfiguration" tag) — a literal keyword match at render time misses these, so the
+    association is decided once here instead, the same way evidence_bullets is for narrative
+    bullets.
+
+    Returns {tag: [vote_index, ...]} — a tag is omitted if none of the meeting's votes relate
+    to it. Always returns a dict (possibly empty), never None, so callers can distinguish
+    "processed, no matches" from "not yet processed".
+    """
+    votes_text = '\n'.join(f'{i}. [{v["result"]}] {v["motion"]}' for i, v in enumerate(votes))
+    topics_text = '\n'.join(f'- {t}' for t in topics)
+
+    prompt = f"""You are associating votes taken at a school board meeting with the topic tags already assigned to this meeting.
+
+For each topic tag below, identify which of the meeting's votes (if any) that specific vote is about. A vote may belong to more than one topic, or to none of them — only associate a vote with a topic if the vote is substantively about that topic, not just tangentially related.
+
+Meeting: {slug}
+
+Topics already assigned to this meeting:
+{topics_text}
+
+Votes (numbered):
+{votes_text}
+
+Respond with a JSON array of objects, one per topic that has at least one matching vote:
+[{{"topic": "...", "vote_indices": [0, 2]}}, ...]
+Omit a topic entirely if none of the votes are substantively about it. Example:
+[{{"topic": "Elementary School Reconfiguration", "vote_indices": [1]}}, {{"topic": "FY27 Budget", "vote_indices": [2]}}]"""
+
+    response_text, _model = call_llm(
+        _make_client, prompt, temperature=0.1, response_schema=list[VoteTopicEvidence],
+        timeout=TAGGING_TIMEOUT, label=slug,
+    )
+    raw = json.loads(response_text)
+
+    n_votes = len(votes)
+    topics_set = set(topics)
+    evidence = {}
+    for entry in raw:
+        topic = entry.get('topic')
+        if topic not in topics_set:
+            continue
+        indices = [i for i in entry.get('vote_indices', []) if isinstance(i, int) and 0 <= i < n_votes]
+        if indices:
+            evidence[topic] = sorted(set(indices))
+    return evidence
 
 
 from glossary_utils import load_glossary, to_replacement_map
@@ -385,17 +413,10 @@ def _extract_official_terms(meeting_data, bucket_uri, catalog):
             f"Document text:\n{text}"
         )
         try:
-            response = call_with_fallback(
-                lambda model: client.models.generate_content(
-                    model=model, contents=prompt, config={'temperature': 0.0}
-                )
+            response_text, _model = call_llm(
+                _make_client, prompt, temperature=0.0, json_output=True, label=f"{slug}/{doc_type}",
             )
-            if response is None:
-                raise Exception("All models rate-limited")
-            raw = response.text.strip()
-            raw = re.sub(r'^```(?:json)?\s*', '', raw)
-            raw = re.sub(r'\s*```$', '', raw)
-            terms = json.loads(raw)
+            terms = json.loads(response_text)
             entry['terms_blob'] = drive_mod.cache_terms(bucket_uri, file_id, entry, json.dumps(terms))
             entry['modified_time'] = current_modified
             print(f"    Extracted and cached {len(terms)} terms for {slug}/{doc_type}.", flush=True)
@@ -448,23 +469,17 @@ def _load_cached_agenda_text(docs, bucket_uri, catalog, max_chars=2500):
 
     print("    Isolating agenda items from packet (not cached)...", flush=True)
     try:
-        response = call_with_fallback(
-            lambda model: client.models.generate_content(
-                model=model,
-                contents=(
-                    "This is a school board meeting packet, which bundles the agenda with supporting "
-                    "materials. Extract ONLY the agenda / order-of-business item list (the itemized "
-                    "list of what the board will discuss or vote on) — not the attached supporting "
-                    "documents, reports, or exhibits. Return the isolated agenda text only, no "
-                    "commentary or markdown fences.\n\n"
-                    f"{packet_text}"
-                ),
-                config={'temperature': 0.0},
-            )
+        response_text, _model = call_llm(
+            _make_client,
+            "This is a school board meeting packet, which bundles the agenda with supporting "
+            "materials. Extract ONLY the agenda / order-of-business item list (the itemized "
+            "list of what the board will discuss or vote on) — not the attached supporting "
+            "documents, reports, or exhibits. Return the isolated agenda text only, no "
+            "commentary or markdown fences.\n\n"
+            f"{packet_text}",
+            temperature=0.0,
         )
-        if response is None:
-            raise Exception("All models rate-limited")
-        isolated_text = response.text.strip()
+        isolated_text = response_text.strip()
         drive_mod.write_blob(bucket_uri, isolated_blob_name, isolated_text)
         return isolated_text[:max_chars]
     except Exception as e:
@@ -500,12 +515,8 @@ def generate_agenda_preview(meeting_data, meeting_dir, bucket_uri, catalog):
         f'Agenda text:\n{text}'
     )
     try:
-        response = call_with_fallback(
-            lambda model: client.models.generate_content(model=model, contents=prompt, config={'temperature': 0.1})
-        )
-        if response is None:
-            raise Exception("All models rate-limited")
-        raw = response.text.strip()
+        response_text, model = call_llm(_make_client, prompt, temperature=0.1, label=slug)
+        raw = response_text.strip()
         raw = re.sub(r'^```(?:html)?\s*', '', raw)
         raw = re.sub(r'\s*```$', '', raw)
         njk_path = os.path.join(meeting_dir, slug + '.njk')
@@ -513,8 +524,10 @@ def generate_agenda_preview(meeting_data, meeting_dir, bucket_uri, catalog):
         data['agenda_preview'] = raw
         _write_njk(njk_path, data, body)
         print(f"    Written agenda preview for {slug}.")
+        return slug, model
     except Exception as e:
         print(f"    Error generating agenda preview for {slug}: {e}")
+        return None
 
 
 def generate_blurb(local, meeting_dir):
@@ -522,20 +535,16 @@ def generate_blurb(local, meeting_dir):
     prompt = "Write an extremely concise 1-2 sentence objective summary (a 'blurb') of this school board meeting based on these notes. Do not use quotes or introductory filler:\n"
     prompt += "\n".join([f"- {s.get('text', '')}" for s in local.get('summary', [])])
     try:
-        response = call_with_fallback(
-            lambda model: client.models.generate_content(model=model, contents=prompt, config={'temperature': 0.1})
-        )
-        if response is None:
-            raise Exception("All models rate-limited")
-        blurb = response.text.strip().replace('\n', ' ')
+        response_text, model = call_llm(_make_client, prompt, temperature=0.1, label=local['slug'])
+        blurb = response_text.strip().replace('\n', ' ')
         njk_path = os.path.join(meeting_dir, local['slug'] + '.njk')
         data, body = _read_njk(njk_path)
         data['blurb'] = blurb
         _write_njk(njk_path, data, body)
-        return local['slug'], blurb
+        return local['slug'], blurb, model
     except Exception as e:
         print(f"  Error generating blurb for {local['slug']}: {e}")
-        return local['slug'], None
+        return local['slug'], None, None
 
 
 def synthesize_topic(topic, evidence, display_date):
@@ -565,22 +574,15 @@ def synthesize_topic(topic, evidence, display_date):
     {evidence}
     """
     try:
-        response = call_with_fallback(
-            lambda model: client.models.generate_content(model=model, contents=prompt, config={'temperature': 0.1})
-        )
-        if response is None:
-            raise Exception("All models rate-limited")
-        raw = response.text.strip()
-        raw = re.sub(r'^```(?:json)?\s*', '', raw)
-        raw = re.sub(r'\s*```$', '', raw)
-        result = json.loads(raw)
-        return topic, result
+        response_text, model = call_llm(_make_client, prompt, temperature=0.1, json_output=True, label=topic)
+        result = json.loads(response_text)
+        return topic, result, model
     except json.JSONDecodeError as e:
-        print(f"  JSON parse error for {topic}: {e}\n  Raw: {raw[:200]}")
-        return topic, None
+        print(f"  JSON parse error for {topic}: {e}\n  Raw: {response_text[:200]}")
+        return topic, None, None
     except Exception as e:
         print(f"  Error synthesizing {topic}: {e}")
-        return topic, None
+        return topic, None, None
 
 
 class TaggedTopic(BaseModel):
@@ -597,24 +599,12 @@ class BatchTagResponse(BaseModel):
     results: list[MeetingTagSet]
 
 
+class VoteTopicEvidence(BaseModel):
+    topic: str
+    vote_indices: list[int]
+
+
 BATCH_TAGGING_TIMEOUT = 600  # seconds; enforced via subprocess SIGTERM
-
-
-def _batch_tagging_subprocess(model_name, prompt_text, result_queue):
-    """Runs the batch tagging Gemini call in a separate process so SIGTERM can hard-kill it on timeout."""
-    local_credentials, local_project_id = get_credentials()
-    local_client = genai.Client(
-        credentials=local_credentials, project=local_project_id, location='us-central1', vertexai=True,
-    )
-    try:
-        response = local_client.models.generate_content(
-            model=model_name,
-            contents=prompt_text,
-            config={'response_mime_type': 'application/json', 'response_schema': BatchTagResponse, 'temperature': 0.0},
-        )
-        result_queue.put(('ok', response.text))
-    except Exception as e:
-        result_queue.put(('err', str(e)))
 
 
 def batch_tag_all_meetings(meetings_data, bucket_uri, meeting_dir, topics_lib_path, catalog):
@@ -666,28 +656,11 @@ Respond with tags for every meeting listed above, keyed by its slug. For each ta
 cite at least one bullet from its own meeting. The citation is bookkeeping for a tag you've already
 chosen on its merits, not a factor in choosing it."""
 
-    def _attempt(model):
-        q = MpQueue()
-        p = Process(target=_batch_tagging_subprocess, args=(model, prompt, q), daemon=True)
-        p.start()
-        p.join(timeout=BATCH_TAGGING_TIMEOUT)
-        if p.is_alive():
-            p.terminate()
-            p.join()
-            raise TimeoutError(f"Batch tagging timed out after {BATCH_TAGGING_TIMEOUT}s")
-        try:
-            kind, val = q.get_nowait()
-        except _stdlib_queue.Empty:
-            raise Exception("Batch tagging subprocess exited with no result")
-        if kind == 'err':
-            raise Exception(val)
-        return val
-
-    val = call_with_fallback(_attempt)
-    if val is None:
-        raise Exception("All models rate-limited for batch tagging")
-
-    parsed = json.loads(val)
+    response_text, _model = call_llm(
+        _make_client, prompt, temperature=0.0, response_schema=BatchTagResponse,
+        timeout=BATCH_TAGGING_TIMEOUT, label="batch tagging",
+    )
+    parsed = json.loads(response_text)
     n_bullets_by_slug = {m['slug']: len(m['summary']) for m in candidates}
 
     results = {}
@@ -801,6 +774,30 @@ def post_process():
         return
 
     retag = '--retag' in sys.argv
+    force = '--force' in sys.argv  # manual override, e.g. re-running to pick up a code fix against unchanged data
+
+    if not retag and not force and bucket_uri:
+        run_id = pipeline_log.current_run_id()
+        this_run_transcripts = [
+            e for e in pipeline_log.load_log(bucket_uri, 'processing_log')
+            if e.get('stage') == 'transcripts' and e.get('run_id') == run_id
+        ]
+        if this_run_transcripts and not any(
+            r.get('status') == 'Success' for r in this_run_transcripts[0].get('results', [])
+        ):
+            print("No new meeting content this run — skipping post-processing.", flush=True)
+            import datetime as _dt
+            pipeline_log.append_entry(bucket_uri, 'processing_log', {
+                "run_id": run_id,
+                "timestamp": _dt.datetime.utcnow().isoformat() + "Z",
+                "stage": "post_process",
+                "skipped": True,
+                "topics_updated": [],
+                "topics_skipped": 0,
+                "blurbs_generated": [],
+                "previews_generated": [],
+            })
+            return
 
     if retag:
         with open(topics_lib_path, 'w') as f:
@@ -814,6 +811,19 @@ def post_process():
     # 1. Enforce Glossary & Extract Data
     print("Enforcing Glossary and scanning meetings...", flush=True)
     meetings_data = _enforce_glossary_pass(meeting_dir)
+
+    if retag:
+        # Topics are about to be fully recomputed below; clear any existing vote_evidence too so
+        # it doesn't survive keyed by topic names that no longer exist after retagging.
+        stale_ve = [m for m in meetings_data if m.get('vote_evidence')]
+        for m in stale_ve:
+            njk_path = os.path.join(meeting_dir, f"{m['slug']}.njk")
+            data, body = _read_njk(njk_path)
+            data.pop('vote_evidence', None)
+            _write_njk(njk_path, data, body)
+            m.pop('vote_evidence', None)
+        if stale_ve:
+            print(f"Retag mode: cleared vote_evidence for {len(stale_ve)} meeting(s)", flush=True)
 
     # 2. Extract canonical names from official docs (agenda/packet/minutes) → cache in GCS
     if bucket_uri:
@@ -872,6 +882,29 @@ def post_process():
             except Exception as e:
                 print(f"  Warning: tagging failed for {slug}: {e}", flush=True)
 
+    # 3b. Generate vote-topic evidence — associates each vote with the topic tag(s) it belongs
+    # to, since a vote's motion text often doesn't repeat its topic tag's wording verbatim (see
+    # generate_vote_evidence docstring). Runs for any meeting with votes+topics but no
+    # vote_evidence yet, so it both backfills the existing corpus once and covers every future
+    # meeting automatically as soon as topic tagging assigns it topics.
+    print("Generating vote-topic evidence...", flush=True)
+    vote_evidence_targets = [
+        m for m in meetings_data if m.get('votes') and m.get('topics') and not m.get('vote_evidence')
+    ]
+    for m in vote_evidence_targets:
+        slug = m['slug']
+        print(f"  Associating votes with topics for {slug}...", flush=True)
+        try:
+            ve = generate_vote_evidence(slug, m['votes'], m['topics'])
+            njk_path = os.path.join(meeting_dir, f"{slug}.njk")
+            data, body = _read_njk(njk_path)
+            data['vote_evidence'] = ve
+            _write_njk(njk_path, data, body)
+            m['vote_evidence'] = ve
+            print(f"    → {ve}")
+        except Exception as e:
+            print(f"  Warning: vote evidence generation failed for {slug}: {e}", flush=True)
+
     # 4. Generate Agenda Previews for upcoming stubs with a packet/agenda doc
     print("Generating agenda previews for upcoming meetings...")
     import datetime as _dt
@@ -881,18 +914,22 @@ def post_process():
         if m.get('stub') and m['slug'] >= today_slug and not m.get('agenda_preview')
         and any(d.get('type') in ('agenda', 'packet') for d in (m.get('docs') or []))
     ]
+    preview_results = []
     for m in preview_tasks:
-        generate_agenda_preview(m, meeting_dir, bucket_uri, catalog)
+        result = generate_agenda_preview(m, meeting_dir, bucket_uri, catalog)
+        if result:
+            preview_results.append(result)
 
     # 5. Generate missing blurbs
     print("Generating blurbs for unprocessed meetings...")
     blurb_tasks = [m for m in meetings_data
                    if not m.get('stub') and not m.get('blurb') and m.get('summary')]
+    blurb_results = []
     if blurb_tasks:
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = {executor.submit(generate_blurb, local, meeting_dir): local for local in blurb_tasks}
             for future in as_completed(futures):
-                future.result()
+                blurb_results.append(future.result())
 
     # 6. Generate synthesized topic summaries (concurrent + hash caching)
     print("Generating high-level topic summaries...")
@@ -952,14 +989,16 @@ def post_process():
         else:
             print(f"  Skipping {topic} (no new evidence).")
 
+    updated_topics = []
     if topic_tasks:
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = {executor.submit(synthesize_topic, t[0], t[1], t[2]): t for t in topic_tasks}
             for future in as_completed(futures):
-                topic, result_text = future.result()
+                topic, result_text, model = future.result()
                 if result_text:
                     summaries[topic] = result_text
                     hashes[topic] = futures[future][3]
+                    updated_topics.append({"topic": topic, "model": model})
 
     with open(summary_lib_path, 'w') as f:
         json.dump(summaries, f, indent=2)
@@ -973,10 +1012,10 @@ def post_process():
         "run_id": pipeline_log.current_run_id(),
         "timestamp": _dt.datetime.utcnow().isoformat() + "Z",
         "stage": "post_process",
-        "topics_updated": [t[0] for t in topic_tasks],
+        "topics_updated": updated_topics,
         "topics_skipped": len(topics_lib) - len(topic_tasks),
-        "blurbs_generated": [m['slug'] for m in blurb_tasks],
-        "previews_generated": [m['slug'] for m in preview_tasks],
+        "blurbs_generated": [{"slug": s, "model": m} for s, b, m in blurb_results if b],
+        "previews_generated": [{"slug": s, "model": m} for s, m in preview_results],
     })
 
     print("Post-processing complete.")

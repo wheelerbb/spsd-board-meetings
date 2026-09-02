@@ -4,10 +4,8 @@ import re
 import sys
 import time
 import yaml
-import queue as _stdlib_queue
 from datetime import datetime as _dt
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from multiprocessing import Process, Queue as MpQueue
 from google import genai
 from google.genai import types as genai_types
 from pydantic import BaseModel, Field
@@ -28,13 +26,22 @@ import pipeline_log
 _vimeo_map = {}
 
 # --- CONFIGURATION ---
-credentials, project_id = get_credentials()
-client = genai.Client(
-    credentials=credentials, project=project_id, location='global', vertexai=True,
-    http_options=genai_types.HttpOptions(client_args={'timeout': 120.0}),  # 2-min read timeout
-)
+def _make_client():
+    """Client factory passed to call_llm() — memoized so repeated in-process calls reuse one
+    client, while a subprocess (fresh process memory, no cache) builds its own on first use."""
+    global _client
+    if _client is None:
+        creds, pid = get_credentials()
+        _client = genai.Client(
+            credentials=creds, project=pid, location='global', vertexai=True,
+            http_options=genai_types.HttpOptions(client_args={'timeout': 120.0}),  # 2-min read timeout
+        )
+    return _client
 
-from model_config import DEFAULT_MODEL, BACKUP_MODEL, call_with_fallback
+_client = None
+client = _make_client()  # eager: surfaces credential problems at import, warms the cache above
+
+from model_config import DEFAULT_MODEL, call_llm, AllModelsRateLimited
 
 MAX_WORKERS = 2
 
@@ -96,24 +103,6 @@ class VotesAndAttendance(BaseModel):
     board_attendance: list[AttendanceMember]
 
 GEMINI_TIMEOUT = 300  # seconds; enforced via subprocess SIGTERM
-
-def _call_gemini_subprocess(model_name, prompt_text, result_queue):
-    """Runs the Gemini call in a separate process so SIGTERM can hard-kill it on timeout."""
-    local_credentials, local_project_id = get_credentials()
-    local_client = genai.Client(
-        credentials=local_credentials, project=local_project_id,
-        location='global', vertexai=True,
-        http_options=genai_types.HttpOptions(client_args={'timeout': 120.0}),
-    )
-    try:
-        response = local_client.models.generate_content(
-            model=model_name,
-            contents=prompt_text,
-            config={'response_mime_type': 'application/json', 'response_schema': MeetingReport, 'temperature': 0.1},
-        )
-        result_queue.put(('ok', response.text))
-    except Exception as e:
-        result_queue.put(('err', str(e)))
 
 
 def _load_official_terms_from_gcs(docs, bucket_uri, catalog):
@@ -207,11 +196,10 @@ def _extract_votes_attendance_from_doc(text, glossary_text):
     {text}
     """
     try:
-        response = client.models.generate_content(
-            model=BACKUP_MODEL, contents=prompt,
-            config={'response_mime_type': 'application/json', 'response_schema': VotesAndAttendance, 'temperature': 0.1},
+        response_text, _model = call_llm(
+            _make_client, prompt, temperature=0.1, response_schema=VotesAndAttendance,
         )
-        return json.loads(response.text)
+        return json.loads(response_text)
     except Exception as e:
         print(f"    Warning: could not extract votes/attendance from doc: {e}")
         return None
@@ -295,30 +283,19 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None):
     try:
         time.sleep(2)
 
-        def _attempt(model):
+        def _log_attempt(model):
             print(f"  Sending request to Gemini ({model}) for {date_slug} at {_dt.now().strftime('%H:%M:%S')}...", flush=True)
-            q = MpQueue()
-            p = Process(target=_call_gemini_subprocess, args=(model, prompt, q), daemon=True)
-            p.start()
-            p.join(timeout=GEMINI_TIMEOUT)
-            if p.is_alive():
-                p.terminate()
-                p.join()
-                raise TimeoutError(f"Gemini request timed out after {GEMINI_TIMEOUT}s")
-            try:
-                kind, val = q.get_nowait()
-            except _stdlib_queue.Empty:
-                raise Exception("Subprocess exited with no result")
-            if kind == 'err':
-                raise Exception(val)
-            return type('R', (), {'text': val})()  # lightweight wrapper
 
-        response = call_with_fallback(_attempt)
-        if response is None:
+        try:
+            response_text, model_used = call_llm(
+                _make_client, prompt, temperature=0.1, response_schema=MeetingReport,
+                timeout=GEMINI_TIMEOUT, label=date_slug, on_attempt=_log_attempt,
+            )
+        except AllModelsRateLimited:
             print(f"  All models rate-limited for {date_slug}. Run via production pipeline for higher limits.", flush=True)
             return {"slug": date_slug, "status": "RateLimit"}
         print(f"  Received response for {date_slug} at {_dt.now().strftime('%H:%M:%S')}.")
-        report_data = json.loads(response.text)
+        report_data = json.loads(response_text)
 
         print(f"  Updating .njk file for {date_slug}...")
         with open(njk_path, 'r') as f: content = f.read()
@@ -385,7 +362,7 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None):
 
         new_fm = yaml.dump(data, sort_keys=False, default_flow_style=False)
         with open(njk_path, 'w') as f: f.write('---\n' + new_fm + '---\n' + body)
-        return {"slug": date_slug, "status": "Success", "unresolved_attendance": unresolved}
+        return {"slug": date_slug, "status": "Success", "model": model_used, "unresolved_attendance": unresolved}
 
     except Exception as e:
         return {"slug": date_slug, "status": f"Error: {e}"}
