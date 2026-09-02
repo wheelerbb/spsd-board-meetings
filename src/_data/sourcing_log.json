@@ -1,5 +1,37 @@
 [
   {
+    "run_id": "33686138626",
+    "timestamp": "2026-09-02T21:38:03.795837Z",
+    "trigger": "push",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "33667007830",
     "timestamp": "2026-09-02T18:25:11.896576Z",
     "trigger": "push",
