@@ -6,8 +6,6 @@ import time
 import yaml
 from datetime import datetime as _dt
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from google import genai
-from google.genai import types as genai_types
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from datetime import date
@@ -20,10 +18,8 @@ sys.path.insert(0, BASE_DIR)
 from sourcing.transcripts import get_bucket_vtt_mapping
 from sourcing.vimeo import get_vimeo_mapping
 from sourcing import drive
-from sourcing.auth import get_credentials
 import pipeline_log
-
-_vimeo_map = {}
+from model_config import DEFAULT_MODEL, call_llm, AllModelsRateLimited, build_client, TRANSCRIPT_TIMEOUT
 
 # --- CONFIGURATION ---
 def _make_client():
@@ -31,17 +27,17 @@ def _make_client():
     client, while a subprocess (fresh process memory, no cache) builds its own on first use."""
     global _client
     if _client is None:
-        creds, pid = get_credentials()
-        _client = genai.Client(
-            credentials=creds, project=pid, location='global', vertexai=True,
-            http_options=genai_types.HttpOptions(client_args={'timeout': 120.0}),  # 2-min read timeout
-        )
+        _client = build_client()
     return _client
 
 _client = None
-client = _make_client()  # eager: surfaces credential problems at import, warms the cache above
+# Eager, not just for fail-fast diagnostics: a freshly-constructed genai.Client used immediately
+# (no warm-up gap) has been observed to fail with "client has been closed" — building it here,
+# well before the first real call, avoids that race. Looks unused below since call_llm() gets the
+# client via _make_client(), not this variable directly — do not remove it.
+client = _make_client()
 
-from model_config import DEFAULT_MODEL, call_llm, AllModelsRateLimited
+_vimeo_map = {}
 
 MAX_WORKERS = 2
 
@@ -101,8 +97,6 @@ class MeetingReport(BaseModel):
 class VotesAndAttendance(BaseModel):
     votes: list[Vote]
     board_attendance: list[AttendanceMember]
-
-GEMINI_TIMEOUT = 300  # seconds; enforced via subprocess SIGTERM
 
 
 def _load_official_terms_from_gcs(docs, bucket_uri, catalog):
@@ -196,9 +190,7 @@ def _extract_votes_attendance_from_doc(text, glossary_text):
     {text}
     """
     try:
-        response_text, _model = call_llm(
-            _make_client, prompt, temperature=0.1, response_schema=VotesAndAttendance,
-        )
+        response_text, _model = call_llm(_make_client, prompt, response_schema=VotesAndAttendance)
         return json.loads(response_text)
     except Exception as e:
         print(f"    Warning: could not extract votes/attendance from doc: {e}")
@@ -288,8 +280,8 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None):
 
         try:
             response_text, model_used = call_llm(
-                _make_client, prompt, temperature=0.1, response_schema=MeetingReport,
-                timeout=GEMINI_TIMEOUT, label=date_slug, on_attempt=_log_attempt,
+                _make_client, prompt, response_schema=MeetingReport,
+                timeout=TRANSCRIPT_TIMEOUT, label=date_slug, on_attempt=_log_attempt,
             )
         except AllModelsRateLimited:
             print(f"  All models rate-limited for {date_slug}. Run via production pipeline for higher limits.", flush=True)

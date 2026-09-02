@@ -8,7 +8,7 @@ Reference for all Gemini prompt templates used in the pipeline. Code retains the
 
 **Script:** `scripts/process_transcripts.py → process_single_meeting()`  
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`, shared with `post_process.py`.  
-**Temperature:** 0.1  
+**Timeout:** `TRANSCRIPT_TIMEOUT` (300s) — see [LLM Calls](pipeline.md#llm-calls) intro for why this call gets a longer-than-default timeout.  
 **Output:** Structured JSON via `MeetingReport` Pydantic schema
 
 ### Injected context
@@ -69,8 +69,7 @@ board_attendance: list[AttendanceMember]  # {name, status, role}
 
 **Script:** `scripts/post_process.py → generate_tags()`
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.
-**Temperature:** 0.1 (set in the shared `_tagging_subprocess()` helper, also used by §10)
-**Output:** JSON array of `{tag, evidence_bullets}` objects (parsed manually — not Pydantic), then post-processed by `_normalize_fy()` and `_strip_modifiers()`. Returns `(tags, evidence)` where `evidence` is `{tag: [summary_bullet_index, ...]}`.
+**Output:** Structured JSON via `list[TaggedTopic]` Pydantic schema (`{tag, evidence_bullets}` per entry), then post-processed by `_normalize_fy()` and `_strip_modifiers()`. Returns `(tags, evidence)` where `evidence` is `{tag: [summary_bullet_index, ...]}`.
 **Called from:** the incremental (non-`--retag`) branch of `post_process()`'s tagging step — one call per meeting that doesn't yet have `topics:`, in chronological order. Also used by `--dry-run-tag` for testing.
 
 ### Injected context
@@ -135,9 +134,8 @@ Rules 2–5 above (`_RULE_TIME_BINDING`, `_RULE_SUBJECT_NOT_PROCESS`, `_RULE_GEN
 
 **Script:** `scripts/post_process.py → batch_tag_all_meetings()`
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.
-**Temperature:** 0.0
 **Output:** Structured JSON via `BatchTagResponse` Pydantic schema (`{results: [{slug, tags: [{tag, evidence_bullets}]}]}`)
-**Timeout:** 600s (`BATCH_TAGGING_TIMEOUT`), enforced via subprocess `SIGTERM` — same pattern as §2, just longer given the much larger input/output
+**Timeout:** `BATCH_TIMEOUT` (600s) — see [LLM Calls](pipeline.md#llm-calls) intro for why this call gets a longer-than-default timeout.
 **Called from:** the `--retag` branch of `post_process()`'s tagging step — one call covering every non-stub meeting with a summary, instead of looping §2's single-meeting call once per meeting. Reserved for periodic full recalibration, not the daily incremental path (full-corpus retagging on every cron run risks topic churn on a public site).
 
 ### Why batch mode exists
@@ -192,7 +190,6 @@ A second, different failure mode showed up after adding evidence-bullet citation
 
 **Script:** `scripts/post_process.py → _load_cached_agenda_text()`
 **Model:** `DEFAULT_MODEL`/`BACKUP_MODEL` fallback pair via `scripts/model_config.py` (only when the packet-isolation fallback below triggers)
-**Temperature:** 0.0
 **Output:** Plain text (agenda excerpt), truncated to `max_chars` (default 2500)
 **Called from:** §2 and §3, to ground tagging in the district's own agenda item framing rather than only the Gemini-generated transcript summary.
 
@@ -219,8 +216,7 @@ Return the isolated agenda text only, no commentary or markdown fences.
 
 **Script:** `scripts/post_process.py → synthesize_topic()`  
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`, shared with `process_transcripts.py`.  
-**Temperature:** 0.1  
-**Output:** JSON object (parsed manually — not Pydantic)
+**Output:** JSON object (`json_output=True` mime type, parsed manually — no Pydantic schema for this nested shape)
 
 ### Prompt template
 
@@ -275,8 +271,7 @@ MD5 hash of the evidence string stored in `scripts/topic_hashes.json`. Synthesis
 
 **Script:** `scripts/post_process.py → _extract_official_terms()`  
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.  
-**Temperature:** 0.0  
-**Output:** JSON array (parsed manually)
+**Output:** JSON array (`json_output=True` mime type, parsed manually — no fixed schema shape)
 
 ### Purpose
 
@@ -319,7 +314,6 @@ gs://{bucket}/official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}
 
 **Script:** `scripts/post_process.py → generate_agenda_preview()`  
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.  
-**Temperature:** 0.1  
 **Output:** HTML string (stored in `.njk` frontmatter as `agenda_preview`)
 
 ### Purpose
@@ -354,7 +348,6 @@ Agenda text:
 
 **Script:** `scripts/post_process.py → generate_blurb()`  
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.  
-**Temperature:** 0.1  
 **Output:** Plain text string (stored in `.njk` frontmatter as `blurb`)
 
 ### Purpose
@@ -378,7 +371,6 @@ meeting based on these notes. Do not use quotes or introductory filler:
 
 **Script:** `scripts/process_transcripts.py → _extract_votes_attendance_from_doc()`
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`, shared with every other call in the pipeline.
-**Temperature:** 0.1
 **Output:** Structured JSON via `VotesAndAttendance` Pydantic schema (`{votes: list[Vote], board_attendance: list[AttendanceMember]}`)
 **Called from:** `process_single_meeting()` (§1), only when a "priority source doc" — minutes, or an unratified meeting summary — is available for this meeting (`_find_priority_source_doc()`). Written records are more reliable than transcript speech-to-text for who-voted-what and who-attended, so when one is available its extracted `votes`/`board_attendance` independently override §1's transcript-derived values — `votes`/`board_attendance` are overridden separately (a summary doc may record one but not the other), tracked via the `votes_source`/`attendance_source` frontmatter fields.
 
@@ -410,8 +402,7 @@ Document text:
 
 **Script:** `scripts/post_process.py → generate_vote_evidence()`
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.
-**Temperature:** 0.1 (shared `_tagging_subprocess()` helper, see §2)
-**Output:** JSON array of `{topic, vote_indices}` objects (parsed manually — not Pydantic). Returns `{topic: [vote_index, ...]}`, a topic omitted entirely when none of the meeting's votes are substantively about it.
+**Output:** Structured JSON via `list[VoteTopicEvidence]` Pydantic schema (`{topic, vote_indices}` per entry). Returns `{topic: [vote_index, ...]}`, a topic omitted entirely when none of the meeting's votes are substantively about it.
 **Called from:** `post_process()`'s vote-evidence step — one call per meeting that has both `votes:` and `topics:` but no `vote_evidence:` yet, run right after topic tagging (§2/§3) so the topic list already exists to associate votes against.
 
 ### Purpose

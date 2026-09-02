@@ -16,8 +16,16 @@ Technical reference for the three-stage ingestion and synthesis pipeline. All sc
 
 Every distinct LLM call in the pipeline, in the order it runs. Every call goes through the shared
 `call_llm()` in `scripts/model_config.py`, which tries `DEFAULT_MODEL` → `BACKUP_MODEL`
-(`gemini-2.5-pro` falling back to `gemini-3.5-flash` on a 429). Full prompt text, injected
-context, and output schema for each are in [prompts.md](prompts.md) — "Ref" below is that section.
+(`gemini-2.5-pro` falling back to `gemini-3.5-flash` on a 429). Every call also shares the same
+`VERTEX_LOCATION` (`'global'` — required for the `BACKUP_MODEL` fallback to work at all, since
+`gemini-3.5-flash` isn't served on regional Vertex AI endpoints; see commit `c773440`) and the
+same `DEFAULT_TEMPERATURE` (0.1) — no call in the pipeline has a documented reason to run hotter
+or colder than any other, so this isn't tuned per call. Every call also gets a subprocess
+SIGTERM hard-kill timeout so none can hang the pipeline indefinitely; it defaults to
+`DEFAULT_TIMEOUT` (120s) except for two calls whose payload is genuinely much larger than
+everything else — `TRANSCRIPT_TIMEOUT` (300s, #1: a full meeting transcript) and `BATCH_TIMEOUT`
+(600s, #6: the entire meeting corpus in one call). Full prompt text, injected context, and output
+schema for each are in [prompts.md](prompts.md) — "Ref" below is that section.
 
 | # | Call | Function | Model | Purpose | Ref |
 |---|------|----------|-------|---------|-----|

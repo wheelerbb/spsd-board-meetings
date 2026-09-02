@@ -5,41 +5,42 @@ import re
 import yaml
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from google import genai
-from google.genai import types as genai_types
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# Global default for non-genai network calls in this file (Drive/GCS) — the genai client itself
+# carries its own explicit HttpOptions timeout via model_config.build_client().
 import socket
 socket.setdefaulttimeout(120)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
-from sourcing.auth import get_credentials
 from sourcing import drive as drive_mod
 import pipeline_log
+from model_config import DEFAULT_MODEL, BACKUP_MODEL, call_llm, build_client, BATCH_TIMEOUT
 
 def _make_client():
     """Client factory passed to call_llm() — memoized so repeated in-process calls reuse one
     client, while a subprocess (fresh process memory, no cache) builds its own on first use."""
     global _client
     if _client is None:
-        creds, pid = get_credentials()
-        _client = genai.Client(credentials=creds, project=pid, location='us-central1', vertexai=True)
+        _client = build_client()
     return _client
 
 _client = None
-client = _make_client()  # eager: surfaces credential problems at import, warms the cache above
+# Eager, not just for fail-fast diagnostics: a freshly-constructed genai.Client used immediately
+# (no warm-up gap) has been observed to fail with "client has been closed" — building it here,
+# well before the first real call, avoids that race. Looks unused below since call_llm() gets the
+# client via _make_client(), not this variable directly — do not remove it.
+client = _make_client()
 
-from model_config import DEFAULT_MODEL, BACKUP_MODEL, call_llm
 MAX_WORKERS = 4
 # Safety ceiling on how many meetings' evidence feed one topic's synthesis call — not a real
 # token-budget constraint at current corpus/model scale (evidence chunks are short bullet lists,
 # well within the model's context window), just a guard against unbounded future corpus growth.
 MAX_EVIDENCE_MEETINGS = 60
-TAGGING_TIMEOUT = 120  # seconds; enforced via subprocess SIGTERM
 
 _MATCH_STOP = {'and', 'the', 'in', 'of', 'for', 'a', 'an', 'on', 'at', 'to', 'by', 'or', 'its', 'is', 'are', 'was', 'were', 'with', 'from'}
 
@@ -217,10 +218,7 @@ Respond with a JSON array of objects, one per tag: [{{"tag": "...", "evidence_bu
 every tag must cite at least one. Example:
 [{{"tag": "Elementary School Reconfiguration", "evidence_bullets": [0]}}, {{"tag": "FY27 Budget", "evidence_bullets": [1, 3]}}]"""
 
-    response_text, _model = call_llm(
-        _make_client, prompt, temperature=0.1, response_schema=list[TaggedTopic],
-        timeout=TAGGING_TIMEOUT, label=slug,
-    )
+    response_text, _model = call_llm(_make_client, prompt, response_schema=list[TaggedTopic], label=slug)
     raw = json.loads(response_text)
 
     evidence = {}
@@ -271,10 +269,7 @@ Respond with a JSON array of objects, one per topic that has at least one matchi
 Omit a topic entirely if none of the votes are substantively about it. Example:
 [{{"topic": "Elementary School Reconfiguration", "vote_indices": [1]}}, {{"topic": "FY27 Budget", "vote_indices": [2]}}]"""
 
-    response_text, _model = call_llm(
-        _make_client, prompt, temperature=0.1, response_schema=list[VoteTopicEvidence],
-        timeout=TAGGING_TIMEOUT, label=slug,
-    )
+    response_text, _model = call_llm(_make_client, prompt, response_schema=list[VoteTopicEvidence], label=slug)
     raw = json.loads(response_text)
 
     n_votes = len(votes)
@@ -413,9 +408,7 @@ def _extract_official_terms(meeting_data, bucket_uri, catalog):
             f"Document text:\n{text}"
         )
         try:
-            response_text, _model = call_llm(
-                _make_client, prompt, temperature=0.0, json_output=True, label=f"{slug}/{doc_type}",
-            )
+            response_text, _model = call_llm(_make_client, prompt, json_output=True, label=f"{slug}/{doc_type}")
             terms = json.loads(response_text)
             entry['terms_blob'] = drive_mod.cache_terms(bucket_uri, file_id, entry, json.dumps(terms))
             entry['modified_time'] = current_modified
@@ -477,7 +470,6 @@ def _load_cached_agenda_text(docs, bucket_uri, catalog, max_chars=2500):
             "documents, reports, or exhibits. Return the isolated agenda text only, no "
             "commentary or markdown fences.\n\n"
             f"{packet_text}",
-            temperature=0.0,
         )
         isolated_text = response_text.strip()
         drive_mod.write_blob(bucket_uri, isolated_blob_name, isolated_text)
@@ -515,7 +507,7 @@ def generate_agenda_preview(meeting_data, meeting_dir, bucket_uri, catalog):
         f'Agenda text:\n{text}'
     )
     try:
-        response_text, model = call_llm(_make_client, prompt, temperature=0.1, label=slug)
+        response_text, model = call_llm(_make_client, prompt, label=slug)
         raw = response_text.strip()
         raw = re.sub(r'^```(?:html)?\s*', '', raw)
         raw = re.sub(r'\s*```$', '', raw)
@@ -535,7 +527,7 @@ def generate_blurb(local, meeting_dir):
     prompt = "Write an extremely concise 1-2 sentence objective summary (a 'blurb') of this school board meeting based on these notes. Do not use quotes or introductory filler:\n"
     prompt += "\n".join([f"- {s.get('text', '')}" for s in local.get('summary', [])])
     try:
-        response_text, model = call_llm(_make_client, prompt, temperature=0.1, label=local['slug'])
+        response_text, model = call_llm(_make_client, prompt, label=local['slug'])
         blurb = response_text.strip().replace('\n', ' ')
         njk_path = os.path.join(meeting_dir, local['slug'] + '.njk')
         data, body = _read_njk(njk_path)
@@ -574,7 +566,7 @@ def synthesize_topic(topic, evidence, display_date):
     {evidence}
     """
     try:
-        response_text, model = call_llm(_make_client, prompt, temperature=0.1, json_output=True, label=topic)
+        response_text, model = call_llm(_make_client, prompt, json_output=True, label=topic)
         result = json.loads(response_text)
         return topic, result, model
     except json.JSONDecodeError as e:
@@ -602,9 +594,6 @@ class BatchTagResponse(BaseModel):
 class VoteTopicEvidence(BaseModel):
     topic: str
     vote_indices: list[int]
-
-
-BATCH_TAGGING_TIMEOUT = 600  # seconds; enforced via subprocess SIGTERM
 
 
 def batch_tag_all_meetings(meetings_data, bucket_uri, meeting_dir, topics_lib_path, catalog):
@@ -657,8 +646,8 @@ cite at least one bullet from its own meeting. The citation is bookkeeping for a
 chosen on its merits, not a factor in choosing it."""
 
     response_text, _model = call_llm(
-        _make_client, prompt, temperature=0.0, response_schema=BatchTagResponse,
-        timeout=BATCH_TAGGING_TIMEOUT, label="batch tagging",
+        _make_client, prompt, response_schema=BatchTagResponse,
+        timeout=BATCH_TIMEOUT, label="batch tagging",
     )
     parsed = json.loads(response_text)
     n_bullets_by_slug = {m['slug']: len(m['summary']) for m in candidates}
