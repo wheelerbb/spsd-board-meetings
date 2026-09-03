@@ -1,6 +1,6 @@
 ---
 name: stale-topic-evidence-on-reprocess
-status: pending
+status: complete
 priority: p2
 issue_id: "016"
 tags: [pipeline, topics, data-quality]
@@ -55,11 +55,17 @@ Apply item 1 (clear-on-rewrite) so this can never happen again, and explicitly l
 
 ## Acceptance Criteria
 
-- [ ] `process_single_meeting()` clears `topics`/`topic_evidence`/`vote_evidence` whenever it rewrites a meeting's `summary`/`votes`, so future `--force`/`reprocess_all` runs can't reintroduce this bug
-- [ ] Scope of existing corruption from the 2026-08-20 incident (`56e10b8`) is at least fully enumerated (not just the 14 out-of-range meetings already found — the in-range-but-wrong footprint is still unknown)
-- [ ] A decision is made and executed on how much of the existing corruption to repair (full corpus / targeted / none-yet), per whichever option above is chosen
-- [ ] If any repair runs, spot-check at least the `elementary-school-reconfiguration` topic page (the one that surfaced this) to confirm evidence is now correct and the "steering committee" content question from the original investigation is resolved or explicitly understood as a separate synthesis-wording issue
+- [x] `process_single_meeting()` clears `topics`/`topic_evidence`/`vote_evidence` whenever it rewrites a meeting's `summary`/`votes`, so future `--force`/`reprocess_all` runs can't reintroduce this bug
+- [x] Scope of existing corruption from the 2026-08-20 incident (`56e10b8`) is at least fully enumerated (not just the 14 out-of-range meetings already found — the in-range-but-wrong footprint is still unknown) — superseded: all 56 meetings from the incident were unconditionally re-tagged, regardless of which failure mode (if any) each one hit, so per-meeting enumeration of the corruption pattern was not needed
+- [x] A decision is made and executed on how much of the existing corruption to repair (full corpus / targeted / none-yet), per whichever option above is chosen — Option A (full corpus) chosen and executed
+- [x] If any repair runs, spot-check at least the `elementary-school-reconfiguration` topic page (the one that surfaced this) to confirm evidence is now correct and the "steering committee" content question from the original investigation is resolved or explicitly understood as a separate synthesis-wording issue
 
 ## Work Log
 
 - 2026-08-25: Identified while investigating why "steering committee" dropped out of `/topics/elementary-school-reconfiguration/`'s Current Status/Overview. Traced to `56e10b8` (2026-08-20 18:32 UTC), a `--force` mass reprocess that regenerated `summary`/`votes` for 56 meetings without invalidating their `topic_evidence`. Confirmed 14/56 meetings have out-of-range indices across ~10 topics via direct scan; confirmed at least one in-range-but-wrong case (`2026-04-29.njk` index 5). User asked to defer the repair-scope decision to focus on other work first (processing-log/model-attribution changes); this todo captures the item so it isn't lost.
+- 2026-09-03: Resolved. User confirmed Option A (full corpus repair). Implemented:
+  1. **Root-cause fix** (`457de63`): `process_single_meeting()` now pops `topics`/`topic_evidence`/`vote_evidence` immediately after `data.update(report_data)`, unconditionally.
+  2. **Evidence clear** (`47fc57d`): a one-time script cleared those 3 keys for all 56 meetings from `56e10b8`'s diff, leaving `summary`/`votes`/`timeline` untouched — verified deletion-only (0 insertions across 56 files).
+  3. **Repair run** (`7c22ccf`): tried triggering via `deploy.yml` `workflow_dispatch` first, but discovered the workflow's "Post-process" step never passes `--force` to `post_process.py`, and its "no new content" skip guard fires on every run without a new stub meeting — none of the existing `workflow_dispatch` inputs can force just the tagging step without also forcing a full transcript re-extraction via `reprocess_all`. Ran `uv run python3 scripts/post_process.py --force` locally instead (`.env` GCS credentials); all 56 meetings re-tagged cleanly, no warnings/errors.
+  - Verification: full-corpus bounds-check scan found zero out-of-range indices among the 56 repaired meetings (one unrelated pre-existing out-of-range index found on `2024-04-08`, not part of this incident — see below); diffed changed files against the known 56-slug list — exact match, no over/under-triggering; `2026-04-29`/`2026-07-20` `topic_evidence` for Elementary School Reconfiguration now points at genuinely relevant bullets (previously included an unrelated "Public Criticism of Superintendent Search" bullet); "steering committee" content confirmed present again in the topic's `overview`/`current_status`, both in `topic_summaries.json` and the built `_site/topics/elementary-school-reconfiguration/index.html`; `npm run build` succeeds cleanly.
+  - **New finding, not fixed here** (separate from `56e10b8`, out of scope for this repair): `2024-04-08.njk` has an out-of-range `topic_evidence['Elementary School Reconfiguration']` index (6 ≥ summary length 6). Worth a follow-up todo if it recurs elsewhere.
