@@ -1,5 +1,337 @@
 [
   {
+    "run_id": "33766486425",
+    "timestamp": "2026-09-03T14:23:34.326681Z",
+    "stage": "post_process",
+    "skipped": true,
+    "topics_updated": [],
+    "topics_skipped": 0,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "33766486425",
+    "timestamp": "2026-09-03T14:23:32.390198Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
+    "run_id": "2026-09-03T14:20:25.460204",
+    "timestamp": "2026-09-03T14:20:25.460255Z",
+    "stage": "post_process",
+    "topics_updated": [
+      {
+        "topic": "Middle School Consolidation",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "School Calendar 2026-2027",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "SPHS Athletic Field Referendum",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Educational Equity Policy",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "SPMS Athletic Field Referendum",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Board Leadership Change",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "SPESPA Grievance",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Middle School Administration",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Service Employees Association Contract 2024-2027",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Tobacco-Free Schools Policy",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Special Education",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "SPMS Athletic Field Remediation",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Student Cell Phone Policy 2026",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Elementary School Reconfiguration",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "SPHS Athletic Complex",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Student Enrollment and Class Size",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Education Foundation",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Student Transportation Safety",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Assistant Superintendent Compensation",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "FY26 Budget",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Director of Operations and Safety Resignation",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Superintendent Appointment 2026",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Kaler Elementary School Closure",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Student Transportation",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Kaler Elementary Student Placement",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "FY25 Audit",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Superintendent Search 2026",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Special Education Staffing",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Dyer Elementary School Closure",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "FY27 Budget",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Skillin Elementary School Closure",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Community School Model",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Pre-Kindergarten Special Education",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Extended Learning Opportunities Program",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "SPHS Graduation Venue",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "SPESPA Collective Bargaining",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "SPTA Contract 2025-2028",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Superintendent Transition 2025",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "FY25 Budget Deficit",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Artificial Intelligence Policy",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "SPESPA Contract 2024-2027",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Interim Superintendent Search 2025",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Superintendent Resignation 2025",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Pre-Kindergarten Expansion",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Community Partnerships",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "School Safety",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Federal Title Funding",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "FY24 Audit",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Academic Performance",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Staff Non-Renewals",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Staff Resignations",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Central Office Reorganization",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Finance Director Appointment",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "SPTA Collective Bargaining",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Diversity Equity and Inclusion",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Curriculum Leadership Reorganization",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Student Mental Health",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Social Emotional Learning Programs",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Student Attendance",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "School Climate",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Student Demographics",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Adult Education",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Inclement Weather Policy",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "K-4 Math Curriculum Adoption",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Student Enrollment Trends",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "In-School Health Clinics",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Superintendent Evaluation",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Freedom of Access Act",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "SPHS Principal Appointment",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Facilities Bond Referendum 2024",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Facilities Master Plan",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "DEI Director Appointment",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "FY25 Budget",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "School Calendar 2024-2025",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "Transportation Challenges",
+        "model": "gemini-2.5-pro"
+      },
+      {
+        "topic": "DEI Coordinator Resignation",
+        "model": "gemini-2.5-pro"
+      }
+    ],
+    "topics_skipped": 23,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
     "run_id": "33760054523",
     "timestamp": "2026-09-03T13:16:08.284409Z",
     "stage": "post_process",
