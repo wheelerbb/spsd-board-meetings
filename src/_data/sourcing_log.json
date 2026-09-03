@@ -1,5 +1,60 @@
 [
   {
+    "run_id": "33747698961",
+    "timestamp": "2026-09-03T11:06:21.096434Z",
+    "trigger": "push",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          "2026-10-20",
+          "2026-10-26",
+          "2026-10-08",
+          "2026-09-28",
+          "2026-10-07",
+          "2026-10-13",
+          "2026-09-30",
+          "2026-09-23",
+          "2026-09-09"
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          "2024-03-17",
+          "2025-01-08"
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1223363550",
+            "title": "spcc_20260901 - South Portland City Council - September 1 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [
+        "2026-10-26"
+      ],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "33686138626",
     "timestamp": "2026-09-02T21:38:03.795837Z",
     "trigger": "push",
