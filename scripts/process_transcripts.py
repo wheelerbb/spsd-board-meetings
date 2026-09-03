@@ -312,6 +312,12 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None):
         data['blurb'] = report_data.pop('blurb', '')
         extracted_attendance = report_data.pop('board_attendance', [])
         data.update(report_data)  # votes, summary, timeline
+        # summary/votes just got rewritten from scratch, so any topic_evidence/vote_evidence
+        # (position-based indices into the old lists) is now stale — clear it so post_process.py's
+        # incremental tagging naturally re-tags and re-links this meeting against the new content.
+        data.pop('topics', None)
+        data.pop('topic_evidence', None)
+        data.pop('vote_evidence', None)
         data['votes_source'] = 'Transcript (Unofficial)'
         if extracted_attendance:
             data['board_attendance'] = extracted_attendance
