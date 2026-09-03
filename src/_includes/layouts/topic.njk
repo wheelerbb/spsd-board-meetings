@@ -63,11 +63,19 @@ layout: layouts/base.njk
     {% set recent_votes = [] %}
     {% for tm in topic_meetings %}
       {% if tm.data.votes %}
-        {% for v in tm.data.votes %}
-          {% if v.motion | topicMatch(topic) %}
-            {% set _ = recent_votes.push({ vote: v, date: tm.date, url: tm.url }) %}
-          {% endif %}
-        {% endfor %}
+        {% if tm.data.vote_evidence %}
+          {% for idx in (tm.data.vote_evidence[topic] or []) %}
+            {% if tm.data.votes[idx] %}
+              {% set _ = recent_votes.push({ vote: tm.data.votes[idx], date: tm.date, url: tm.url }) %}
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          {% for v in tm.data.votes %}
+            {% if v.motion | topicMatch(topic) %}
+              {% set _ = recent_votes.push({ vote: v, date: tm.date, url: tm.url }) %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
       {% endif %}
     {% endfor %}
 

@@ -107,9 +107,13 @@ title: "Processing Log — School Board Meeting Archive"
           {% else %}
           <td><span class="status-pill done">Post-Process</span></td>
           <td>
-            {{ run.topics_updated.length }} topics updated, {{ run.topics_skipped }} skipped
-            {% if run.blurbs_generated.length > 0 %} &middot; {{ run.blurbs_generated.length }} blurbs{% endif %}
-            {% if run.previews_generated.length > 0 %} &middot; {{ run.previews_generated.length }} previews{% endif %}
+            {% if run.skipped %}
+              No new content — skipped
+            {% else %}
+              {{ run.topics_updated.length }} topics updated, {{ run.topics_skipped }} skipped
+              {% if run.blurbs_generated.length > 0 %} &middot; {{ run.blurbs_generated.length }} blurbs{% endif %}
+              {% if run.previews_generated.length > 0 %} &middot; {{ run.previews_generated.length }} previews{% endif %}
+            {% endif %}
           </td>
           {% endif %}
         </tr>

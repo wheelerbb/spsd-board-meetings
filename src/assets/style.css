@@ -353,6 +353,9 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .vote-table th:nth-child(2),
 .vote-table th:nth-child(3) { white-space:nowrap; padding-right:1.5rem; }
 .vote-table th:last-child { padding-right:.8rem; }
+.vote-table--topic th:nth-child(1) { width:auto; white-space:nowrap; }
+.vote-table--topic th:nth-child(2) { width:100%; white-space:normal; padding-right:.8rem; }
+.vote-table--topic th:nth-child(3) { width:auto; white-space:nowrap; padding-right:.8rem; }
 .vote-table td { padding:.8rem .8rem; border-bottom:1px solid var(--rule); vertical-align:top; overflow-wrap:break-word; }
 .vote-table tr:last-child td { border-bottom:none; }
 .vote-result { display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
