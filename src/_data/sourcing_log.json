@@ -1,5 +1,58 @@
 [
   {
+    "run_id": "33964238435",
+    "timestamp": "2026-09-05T11:48:33.098049Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          "2024-03-17",
+          "2025-01-08"
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1HMNK2pWSRADsNZUX5cPr-YS54F4Nd4mp",
+            "label": "September 2026 Finance Report",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1_0_UYTajINTwoH-jJF0RGNmnJgFG2yL2",
+            "label": "B&G - Sept 2026",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "33873851146",
     "timestamp": "2026-09-04T12:41:01.032277Z",
     "trigger": "schedule",
