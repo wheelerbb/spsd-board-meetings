@@ -1,5 +1,72 @@
 [
   {
+    "run_id": "34353619987",
+    "timestamp": "2026-09-09T12:55:11.066344Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          "2024-03-17",
+          "2025-01-08"
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1HMNK2pWSRADsNZUX5cPr-YS54F4Nd4mp",
+            "label": "September 2026 Finance Report",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "modified"
+          },
+          {
+            "file_id": "1ipiO9Q2TBl3B7WkUzzDy0vI74i-RHJdC",
+            "label": "Dirigo Reads Donation - 2026",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "13j_NVijwfiK0Rh6jptPUbpcLNcpTnAu5",
+            "label": "Buildings__Grounds_Committee_meeting_minutes_09-03-2026.docx",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-09-03",
+            "change": "new"
+          },
+          {
+            "file_id": "1tu4YrG1d6ugkqzfJvh2EhMkb_4aF07UA",
+            "label": "Finance Committee Minutes_",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-09-04",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "34228151850",
     "timestamp": "2026-09-08T12:50:35.507194Z",
     "trigger": "schedule",
