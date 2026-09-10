@@ -1,5 +1,81 @@
 [
   {
+    "run_id": "34479049445",
+    "timestamp": "2026-09-10T12:53:20.412484Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          "2026-12-14"
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          "2026-06-08",
+          "2024-03-17",
+          "2025-01-08"
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "111XDR9xMXams7HBrxCNuwiGNUrSNzoBj",
+            "label": "1st Read Draft of BEDH Public Participation at Board Meetings September 2026",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1YOKq1jDruaPr7SFfuOYcSqHfqpDfz0lX",
+            "label": "September 2026 - Student Report",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1pX5AAmQkNUmpv4f8D3g1pobCl8bmUSX2",
+            "label": "Board Meeting Minutes",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-08-17",
+            "change": "new"
+          },
+          {
+            "file_id": "13EGBpd5PMRBpKGJQ06eKfi8Cqj28UrqO",
+            "label": "September 2026 Enrollment Report",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1225318380",
+            "title": "spcc_ws_20260908 - South Portland City Council Workshop - September 8 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-08-17",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "34353619987",
     "timestamp": "2026-09-09T12:55:11.066344Z",
     "trigger": "schedule",
