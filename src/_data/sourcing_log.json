@@ -1,5 +1,59 @@
 [
   {
+    "run_id": "34600577866",
+    "timestamp": "2026-09-11T12:47:42.666140Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          "2024-03-17",
+          "2025-01-08"
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "111XDR9xMXams7HBrxCNuwiGNUrSNzoBj",
+            "label": "1st Read Draft of BEDH Public Participation at Board Meetings September 2026",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "modified"
+          },
+          {
+            "file_id": "1dWQs9iQyZB71CxffUt9kdExqxAdc8nEi",
+            "label": "September 2026 Board Meeting Packet",
+            "doc_type": "packet",
+            "meeting_slug": "2026-09-14",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-09-14",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "34479049445",
     "timestamp": "2026-09-10T12:53:20.412484Z",
     "trigger": "schedule",
