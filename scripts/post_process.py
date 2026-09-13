@@ -823,14 +823,22 @@ def post_process():
 
     if not retag and not force and bucket_uri:
         run_id = pipeline_log.current_run_id()
-        this_run_transcripts = [
-            e for e in pipeline_log.load_log(bucket_uri, 'processing_log')
-            if e.get('stage') == 'transcripts' and e.get('run_id') == run_id
+        # Ask source_data.py's own "did anything happen this run" signal (sourcing_log's
+        # any_changes — it already folds in Apptegy/site/Drive/Vimeo/transcripts) rather than
+        # process_transcripts.py's transcript-only success count. The old check skipped
+        # post-processing whenever no new VIDEO showed up, even when source_data.py had just
+        # mapped a brand-new agenda/packet doc to an upcoming stub — so that meeting's
+        # agenda_preview (generated in step 4 below, independent of transcripts) never ran until
+        # someone happened to pass --force. Confirmed live: the 2026-09-14 packet was sourced and
+        # mapped on 2026-09-11, but post_process was skipped that day and the next two scheduled
+        # runs (all logged `skipped: true` off a transcripts-only signal), so its agenda_preview
+        # didn't appear until a manual --force run three days later.
+        this_run_sourcing = [
+            e for e in pipeline_log.load_log(bucket_uri, 'sourcing_log')
+            if e.get('run_id') == run_id
         ]
-        if this_run_transcripts and not any(
-            r.get('status') == 'Success' for r in this_run_transcripts[0].get('results', [])
-        ):
-            print("No new meeting content this run — skipping post-processing.", flush=True)
+        if this_run_sourcing and not this_run_sourcing[0].get('any_changes'):
+            print("No new source content this run — skipping post-processing.", flush=True)
             import datetime as _dt
             pipeline_log.append_entry(bucket_uri, 'processing_log', {
                 "run_id": run_id,
