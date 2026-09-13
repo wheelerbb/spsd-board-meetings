@@ -70,17 +70,27 @@ Personnel, Contracts, Finance, Budget, Policy, Board Governance
 
 ---
 
+## Standalone-page qualification
+
+A tag is written to a meeting's own frontmatter (`topics`, `topic_evidence`, `vote_evidence`) as soon as `generate_tags()`/`batch_tag_all_meetings()` assigns it — no gate at that point. But it only gets promoted to `all_topics.json` (and therefore a standalone `/topics/<slug>/` page and a synthesized `topic_summaries.json` entry) once `_topic_qualifies()` (`scripts/post_process.py`) says it's substantive enough:
+
+- discussed in **2 or more distinct meetings**, OR
+- backed by a **formal board vote** (non-empty `vote_evidence` for that tag in any one meeting), OR
+- the tag name ends in one of `_OUTCOME_WORDS` (`Closure`, `Adoption`, `Referendum`, `Resignation`, `Appointment`) — the same specific-outcome vocabulary `_RULE_SUBJECT_NOT_PROCESS` already treats as a legitimate tag ending, not a process-stage word.
+
+The last two exemptions exist because a school closure, resignation, or referendum is often substantively discussed in exactly one meeting (the vote/announcement) and is still clearly page-worthy — a flat mention-count minimum would silently delist real, significant content.
+
+`post_process.py`'s step 6 recomputes `all_topics.json`'s full membership and recency order from scratch on every run (not an incrementally-maintained file), so this is re-evaluated every time regardless of which meetings changed — a topic can be promoted retroactively once it picks up a second meeting, no manual step needed.
+
 ## How to Add a Topic
 
 1. Tag one or more meetings with the new topic name in their `.njk` frontmatter `topics:` list
-2. Run `post_process.py` — the topic is added to `all_topics.json` automatically and a summary is synthesized
+2. Run `post_process.py` — once it qualifies (see above), it's added to `all_topics.json` automatically and a summary is synthesized
 
 ## How to Retire a Topic
 
 1. Remove the topic from all meeting `.njk` `topics:` frontmatter entries
-2. Delete the topic's entry from `src/_data/topic_summaries.json`
-3. Delete the topic's hash from `scripts/topic_hashes.json`
-4. Run `post_process.py` — the topic drops from `all_topics.json`
+2. Run `post_process.py` — the topic drops from `all_topics.json`, and its `topic_summaries.json`/`topic_hashes.json` entries are pruned automatically since they're no longer in the qualifying set
 
 ## Merging Topics
 

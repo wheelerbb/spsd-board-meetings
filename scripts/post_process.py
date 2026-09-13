@@ -130,13 +130,21 @@ def _warn_if_budget_synonym(tag, slug):
               f"review whether it should be folded into that meeting's FY Budget tag.")
     return tag
 
-def _update_topics_lib(new_tags, path='src/_data/all_topics.json'):
-    existing = json.load(open(path)) if os.path.exists(path) else []
-    existing_set = set(existing)
-    added = [t for t in new_tags if t not in existing_set]
-    if added:
-        with open(path, 'w') as f:
-            json.dump(added + existing, f, indent=2)
+# Specific-outcome words a tag is allowed to end with — see _RULE_SUBJECT_NOT_PROCESS (these name a
+# substantive result, not a deliberation stage) and _topic_qualifies (a single-meeting topic ending
+# in one of these is still substantive enough to stand alone, e.g. a school closure vote).
+_OUTCOME_WORDS = ('Closure', 'Adoption', 'Referendum', 'Resignation', 'Appointment')
+
+def _topic_qualifies(topic, meetings):
+    """Standalone /topics/ page threshold: substantive in >=2 meetings, OR immediately if backed by
+    a formal board vote or naming a specific outcome (see _OUTCOME_WORDS) — a single-meeting
+    closure/resignation/appointment/referendum/adoption is still substantive, not a passing
+    mention. `meetings` is topic_meetings[topic]: that topic's contributing meetings."""
+    if len(meetings) >= 2:
+        return True
+    if any((m.get('vote_evidence') or {}).get(topic) for m in meetings):
+        return True
+    return topic.endswith(_OUTCOME_WORDS)
 
 # Shared tag-quality rule text, interpolated into both generate_tags()'s (single-meeting) and
 # batch_tag_all_meetings()'s (batch) prompts. Kept as single constants — not copy-pasted prose in
@@ -147,7 +155,7 @@ _RULE_TIME_BINDING = """**Time-binding — 3 categories.** Whether (and how gran
    - **Discrete initiatives** (a specific search, closure, or policy rollout): bind to a year/era only when the same type of event could plausibly recur later and future disambiguation will matter (e.g. "Superintendent Search", "Student Cell Phone Policy 2026").
    - **Evergreen** (standing, systemic domains with no natural end — special ed, transportation, facilities, equity, governance): never time-bound."""
 
-_RULE_SUBJECT_NOT_PROCESS = """**Subject, not process stage.** A tag names the SUBJECT being discussed, never what stage of board deliberation it's at. Words like "Development", "Presentation", "Discussion", "Update", "Overview", "Review", "Consideration", "Process", "Session", "Report", "Debate", "Announcement", "Revision(s)", "Projection" describe *where something is in the meeting cycle*, not *what the topic is* — never end a tag with one of these (e.g. "Cell Phone Policy Development" → "Cell Phone Policy"). Words naming a specific, substantive outcome — "Closure", "Adoption", "Referendum", "Resignation", "Appointment" — are fine to keep; they're not process-stage words."""
+_RULE_SUBJECT_NOT_PROCESS = f"""**Subject, not process stage.** A tag names the SUBJECT being discussed, never what stage of board deliberation it's at. Words like "Development", "Presentation", "Discussion", "Update", "Overview", "Review", "Consideration", "Process", "Session", "Report", "Debate", "Announcement", "Revision(s)", "Projection" describe *where something is in the meeting cycle*, not *what the topic is* — never end a tag with one of these (e.g. "Cell Phone Policy Development" → "Cell Phone Policy"). Words naming a specific, substantive outcome — {", ".join(f'"{w}"' for w in _OUTCOME_WORDS)} — are fine to keep; they're not process-stage words."""
 
 _RULE_GENERIC_NOUN = (
     f'Generic category nouns ({_TAG_GENERIC_EXAMPLES}) are never valid tags — this includes exact matches '
@@ -717,7 +725,6 @@ tag you've already chosen on its merits, not a factor in choosing it."""
                     vote_evidence[tag] = sorted(set(vote_indices))
         results[slug] = (tags, evidence, vote_evidence)
 
-    last_seen = {}  # tag -> most recent slug mentioning it
     tagged_count = 0
     for m in candidates:  # candidates is chronological (oldest first), so later writes win
         slug = m['slug']
@@ -735,18 +742,13 @@ tag you've already chosen on its merits, not a factor in choosing it."""
         m['topics'] = tags
         m['topic_evidence'] = evidence
         m['vote_evidence'] = vote_evidence
-        for t in tags:
-            last_seen[t] = slug
         tagged_count += 1
         print(f"  {slug} → {tags}")
 
-    # Recency order (most recently active topic first) — matches the incremental path's
-    # prepend-on-first-seen behavior (_update_topics_lib) and the /topics index's display order,
-    # which reads all_topics.json array order directly with no re-sorting of its own.
-    ordered_tags = sorted(last_seen, key=lambda t: last_seen[t], reverse=True)
-    with open(topics_lib_path, 'w') as f:
-        json.dump(ordered_tags, f, indent=2)
-    print(f"  Tagged {tagged_count}/{len(candidates)} meetings; {len(ordered_tags)} unique tags.")
+    # all_topics.json (membership + recency order) isn't written here — post_process()'s step 6
+    # recomputes it unconditionally from meetings_data right after this returns, for both this
+    # (--retag) path and the normal incremental path, so it can't drift out of sync between them.
+    print(f"  Tagged {tagged_count}/{len(candidates)} meetings.")
 
 
 def dry_run_tag(slugs, bucket_uri, meeting_dir='src/meetings/',
@@ -927,8 +929,11 @@ def post_process():
                 m['topics'] = tags  # keep in-memory data in sync for synthesis step
                 m['topic_evidence'] = evidence
                 m['vote_evidence'] = vote_evidence
-                _update_topics_lib(tags, topics_lib_path)
-                allowed_tags = json.load(open(topics_lib_path))
+                # Keep allowed_tags current for the next meeting in this loop without touching
+                # all_topics.json on disk — step 6 is the sole, authoritative writer of that file.
+                for t in tags:
+                    if t not in allowed_tags:
+                        allowed_tags.append(t)
                 print(f"    → {tags}")
             except Exception as e:
                 print(f"  Warning: tagging failed for {slug}: {e}", flush=True)
@@ -986,10 +991,26 @@ def post_process():
 
     # 6. Generate synthesized topic summaries (concurrent + hash caching)
     print("Generating high-level topic summaries...")
-    topics_lib = []
-    if os.path.exists(topics_lib_path):
-        with open(topics_lib_path, 'r') as f:
-            topics_lib = json.load(f)
+
+    # Build inverted index {topic: [meeting, ...]} newest-first — avoids O(topics × meetings) scan
+    sorted_m = sorted(meetings_data, key=lambda x: str(x.get('date', x.get('slug', ''))), reverse=True)
+    topic_meetings = {}
+    for m in sorted_m:
+        for t in m.get('topics', []):
+            topic_meetings.setdefault(t, []).append(m)
+
+    # all_topics.json membership + order, recomputed from scratch every run (both the incremental
+    # and --retag paths converge here) — this is the single authoritative point that decides which
+    # topics get a standalone page and in what order, so it can't silently drift the way an
+    # incrementally-maintained file did before (see todos/016-adjacent fix history).
+    topics_lib = sorted(
+        (t for t, ms in topic_meetings.items() if _topic_qualifies(t, ms)),
+        key=lambda t: str(topic_meetings[t][0].get('date', topic_meetings[t][0].get('slug', ''))),
+        reverse=True,
+    )
+    with open(topics_lib_path, 'w') as f:
+        json.dump(topics_lib, f, indent=2)
+    print(f"  {len(topics_lib)} topics qualify for a standalone page.")
 
     summaries = {}
     if os.path.exists(summary_lib_path):
@@ -1001,12 +1022,10 @@ def post_process():
         with open(hashes_lib_path, 'r') as f:
             hashes = json.load(f)
 
-    # Build inverted index {topic: [meeting, ...]} newest-first — avoids O(topics × meetings) scan
-    sorted_m = sorted(meetings_data, key=lambda x: str(x.get('date', x.get('slug', ''))), reverse=True)
-    topic_meetings = {}
-    for m in sorted_m:
-        for t in m.get('topics', []):
-            topic_meetings.setdefault(t, []).append(m)
+    # Prune stale entries for topics that no longer qualify (demoted below the threshold, or
+    # dropped entirely) so they don't linger unvisited by the loop below.
+    summaries = {t: v for t, v in summaries.items() if t in topics_lib}
+    hashes = {t: v for t, v in hashes.items() if t in topics_lib}
 
     topic_tasks = []
     for topic in topics_lib:
