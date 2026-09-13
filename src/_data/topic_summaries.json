@@ -95,17 +95,6 @@
       ]
     }
   },
-  "Bullying": {
-    "current_status": "The most recent discussion on this topic involved a student and parent calling for greater peer respect, kindness, and mental health support during public comment. The board has not yet taken any new action based on this testimony.",
-    "overview": [
-      "During the August 17, 2026 meeting, a middle school student and his mother delivered emotional remarks during public comment, calling for greater peer respect, kindness, and mental health support in schools."
-    ],
-    "perspectives": {
-      "Citizens": [
-        "A student and parent called for more peer respect, kindness, and mental health support."
-      ]
-    }
-  },
   "Elementary School Reconfiguration": {
     "current_status": "The district is actively exploring elementary school reconfiguration scenarios to promote socioeconomic diversity and stability. A consulting firm is using GIS demographic modeling to evaluate potential attendance zones and grade-band options ahead of upcoming community forums.",
     "overview": [
@@ -138,23 +127,6 @@
         "Many parents expressed relief over the delay of the initial plan, while some Kaler Elementary parents voiced frustration that the delay prolongs inequity.",
         "Public comment has been divided, with some citizens supporting reconfiguration for equity and others opposing the disruption and rushed process.",
         "Parents have consistently raised concerns about the impact on children, transportation challenges, and the need for a clear, transparent process."
-      ]
-    }
-  },
-  "Student Transportation Safety": {
-    "current_status": "Following reports of severe overcrowding on school buses, the superintendent has launched an immediate investigation into student transportation safety. The issue was raised by parents, a student, and the staff union president.",
-    "overview": [
-      "On May 11, 2026, parents, a student, and the staff union president reported severe overcrowding on school buses, leading the superintendent to promise an immediate investigation."
-    ],
-    "perspectives": {
-      "Administration": [
-        "The superintendent promised an immediate investigation into bus overcrowding concerns."
-      ],
-      "Staff": [
-        "The SPSEA President raised serious safety concerns regarding severe bus overcrowding."
-      ],
-      "Citizens": [
-        "Multiple parents and a student representative cited instances of students sitting in aisles and on laps on school buses."
       ]
     }
   },
@@ -310,22 +282,6 @@
       ]
     }
   },
-  "Student Transportation": {
-    "current_status": "The district is addressing bus overcrowding for the track team and the Brick Hill neighborhood by deploying additional contracted buses. A comprehensive route review is also planned for the upcoming school year to find a more permanent solution.",
-    "overview": [
-      "On June 8, 2026, the administration reported that overcrowding on specific bus routes was being addressed with extra contracted buses and a planned route review for the next school year."
-    ],
-    "perspectives": {
-      "Administration": [
-        "The Director of Operations explained that overcrowding on track team and Brick Hill neighborhood buses was being addressed with contracted buses and a future route review."
-      ]
-    }
-  },
-  "Board Communication Practices": {
-    "current_status": "No recent board actions or discussions regarding board communication practices were found in the provided notes.",
-    "overview": [],
-    "perspectives": {}
-  },
   "Kaler Elementary Student Placement": {
     "current_status": "The board has approved the administration's plan to reassign Kaler Elementary students to the district's four other elementary schools. A robust and prioritized waiver process will be implemented for affected Kaler families to provide them with options.",
     "overview": [
@@ -373,35 +329,6 @@
       ],
       "Citizens": [
         "Voiced strong criticism during public comment regarding the closed search process and lack of stakeholder inclusion on the search committee."
-      ]
-    }
-  },
-  "FY25 Audit": {
-    "current_status": "The FY25 audit revealed a material weakness in the district's financial reconciliation procedures, which will require a multi-year effort to correct. All current budget scenarios project a deficit, primarily due to a structural deficit in the nutrition fund.",
-    "overview": [
-      "On February 9, 2026, the Finance Director reported that the FY25 audit found a material weakness in financial reconciliation procedures resulting from years of leadership turnover."
-    ],
-    "perspectives": {
-      "Administration": [
-        "The Finance Director stated that correcting the material weakness will be a multi-year effort.",
-        "All current budget scenarios project a deficit, largely due to a structural deficit in the nutrition fund."
-      ]
-    }
-  },
-  "FY26 Budget Deficit": {
-    "current_status": "There is no information available in the provided notes regarding the FY26 budget deficit.",
-    "overview": [],
-    "perspectives": {}
-  },
-  "Board Transparency": {
-    "current_status": "Community members are actively challenging recent board decisions, citing a lack of transparency and follow-through from the board and administration. Efforts include a potential recall of the Board Chair and petitions against school closures.",
-    "overview": [
-      "On April 7, 2026, multiple community members announced challenges to board decisions, including a recall effort and petitions, citing a lack of transparency."
-    ],
-    "perspectives": {
-      "Citizens": [
-        "Speakers announced efforts to recall the Board Chair and challenge the closure of Kaler Elementary.",
-        "Citizens criticized the board and administration for a lack of transparency and failure to follow through on public questions and concerns."
       ]
     }
   },
@@ -496,11 +423,6 @@
       ]
     }
   },
-  "Kaler Elementary Environmental Concerns": {
-    "current_status": "There is no information in the provided meeting notes regarding environmental concerns at Kaler Elementary. The notes discuss district-wide grade-level reconfiguration and equity.",
-    "overview": [],
-    "perspectives": {}
-  },
   "Community School Model": {
     "current_status": "The board has unanimously approved a district-wide expansion of the community school model, beginning with the high school. This decision follows a successful implementation at South Portland Middle School that showed improved student outcomes.",
     "overview": [
@@ -516,26 +438,6 @@
         "Proposed a district-wide expansion to integrate academics, health services, and family engagement for all students."
       ]
     }
-  },
-  "Pre-Kindergarten Special Education": {
-    "current_status": "The district is in a fact-finding phase for a multi-year, state-mandated transition to take over special education services for children aged 3-5 from Child Development Services (CDS). This process is being planned in conjunction with regional partners.",
-    "overview": [
-      "On April 30, 2025, the Assistant Superintendent explained that the district is in a fact-finding phase with regional partners to plan for a state-mandated takeover of pre-K special education services from Child Development Services."
-    ],
-    "perspectives": {
-      "Administration": [
-        "Explained the district is in a multi-year, state-mandated transition to assume responsibility for special education services for children aged 3-5.",
-        "Stated the district is currently in a fact-finding phase with regional partners to plan for the change."
-      ],
-      "Citizens": [
-        "Inquired about the district's future plans for pre-K special education."
-      ]
-    }
-  },
-  "Support for Immigrant Families": {
-    "current_status": "There is no information available in the provided meeting notes regarding support for immigrant families.",
-    "overview": [],
-    "perspectives": {}
   },
   "SPHS Graduation Venue": {
     "current_status": "The 2025 SPHS graduation ceremony will remain at the high school's Martin Field. Based on recent survey results, the district is strongly considering a move to a larger, climate-controlled venue for the 2026 ceremony.",
@@ -625,28 +527,6 @@
       "Board": [
         "Focused on ensuring parents are notified and included in the decision-making process for a student's return to play.",
         "Voted to send the policy back to committee for further refinement."
-      ]
-    }
-  },
-  "Payroll System Issues": {
-    "current_status": "There is no information regarding payroll system issues in the provided meeting notes.",
-    "overview": [],
-    "perspectives": {}
-  },
-  "Teacher and Ed Tech Contracts 2025": {
-    "current_status": "Negotiations with ed techs are in mediation, while teacher contract negotiations have moved to fact-finding. The board has stated its commitment to reaching a fair resolution.",
-    "overview": [
-      "On October 6, 2025, Board Chair Ratliff reported that ed tech negotiations are in mediation and teachers have filed for fact-finding, while numerous speakers advocated for fair contracts during public comment."
-    ],
-    "perspectives": {
-      "Board": [
-        "Stated a commitment to a fair resolution for both contracts."
-      ],
-      "Staff": [
-        "Advocated for a fair contract, highlighting issues of pay, benefits, job security, and respect."
-      ],
-      "Citizens": [
-        "Parents and community members spoke in support of a fair contract for educators."
       ]
     }
   },
@@ -831,17 +711,6 @@
       ]
     }
   },
-  "FY24 Audit": {
-    "current_status": "The FY24 audit identified material weaknesses in financial controls related to grants, benefits, and budget overspending. The district has developed a comprehensive corrective action plan to address these findings.",
-    "overview": [
-      "On May 27, 2025, the district's auditing firm, RKO, presented the FY24 audit findings, which included material weaknesses and the administration's corresponding plan for corrective action."
-    ],
-    "perspectives": {
-      "Administration": [
-        "Assistant Superintendent Johanna Prince presented the audit findings and the district's comprehensive corrective action plan."
-      ]
-    }
-  },
   "Community Partnerships": {
     "current_status": "The district maintains extensive community partnerships providing volunteers, food security, and career exploration opportunities. The administration is now planning to establish a formal Education Foundation to further support school initiatives.",
     "overview": [
@@ -852,23 +721,6 @@
       "Administration": [
         "Announced plans to establish a formal Education Foundation to support school initiatives.",
         "Presented reports highlighting the positive impact of volunteers, donations, and career exploration programs."
-      ]
-    }
-  },
-  "Staff Non-Renewals": {
-    "current_status": "The community is urging the board to reconsider the administration's decision not to renew the contracts of two specific educators. Numerous teachers, parents, and staff members have questioned the basis and transparency of the non-renewals.",
-    "overview": [
-      "During the May 27, 2025 meeting, many teachers, parents, and staff members spoke during public comment, asking the board to reconsider the non-renewal of two educators' contracts."
-    ],
-    "perspectives": {
-      "Administration": [
-        "Made the decision to not renew the contracts for two educators."
-      ],
-      "Staff": [
-        "Spoke in support of the two educators whose contracts were not renewed, highlighting their positive impact."
-      ],
-      "Citizens": [
-        "Parents questioned the transparency and basis for the non-renewal decision and urged the board to reconsider."
       ]
     }
   },
@@ -916,20 +768,6 @@
         "The SPTA president reported on collaborative work with the district.",
         "The association is focused on educating members about contract negotiations.",
         "A key goal is creating a protocol with the district for responding to high temperatures in schools."
-      ]
-    }
-  },
-  "Staff Resignations": {
-    "current_status": "The Board has accepted the resignations of three experienced teachers from Kaler and Small schools. Administration has confirmed these departures are not related to budget-driven reductions in force.",
-    "overview": [
-      "On May 12, 2025, the Board accepted the resignations of three teachers from Kaler and Small schools."
-    ],
-    "perspectives": {
-      "Board": [
-        "Accepted the resignations as presented."
-      ],
-      "Administration": [
-        "Clarified that the resignations were not due to budget-related reductions in force."
       ]
     }
   },
@@ -1015,25 +853,6 @@
       ]
     }
   },
-  "Property Tax Impact": {
-    "current_status": "Community members are expressing alarm over proposed budget cuts to student-facing positions. They argue the reductions will harm student mental health, academic support, and sense of belonging, particularly for the most vulnerable students.",
-    "overview": [
-      "On March 17, 2025, teachers, parents, and students voiced strong opposition to proposed cuts affecting social-emotional learning, ESOL, library, and music staff."
-    ],
-    "perspectives": {
-      "Staff": [
-        "Teachers argued that eliminating SEL teachers, ESOL staff, library Ed Techs, and the percussion instructor would directly harm students."
-      ],
-      "Citizens": [
-        "Parents and students warned that the proposed cuts would damage students' mental health, academic support, and sense of belonging."
-      ]
-    }
-  },
-  "School Calendar 2025-2026": {
-    "current_status": "There is no information available in the provided meeting notes regarding the 2025-2026 school calendar. The topic has not yet been discussed in the meetings on record.",
-    "overview": [],
-    "perspectives": {}
-  },
   "School Climate": {
     "current_status": "Recent survey data from January 2025 shows that most school climate metrics are at or above national averages, with modest increases. The district continues to focus on bridging divides between student groups to improve the overall climate.",
     "overview": [
@@ -1096,20 +915,6 @@
       ]
     }
   },
-  "Staff Retirements": {
-    "current_status": "The Superintendent has announced several staff retirements. The board offered heartfelt tributes, particularly for Small Elementary Principal Diane Lang.",
-    "overview": [
-      "On January 13, 2025, the Superintendent announced several staff retirements, and the board paid tribute to the departing employees."
-    ],
-    "perspectives": {
-      "Board": [
-        "Offered heartfelt tributes to retiring staff, especially Principal Diane Lang."
-      ],
-      "Administration": [
-        "Announced the retirements of several long-serving staff members."
-      ]
-    }
-  },
   "Adult Education": {
     "current_status": "The Adult Education program, particularly its ESOL classes, is experiencing rapid growth and is now the third largest in Maine. The administration is highlighting the program's heavy reliance on unstable grant funding and is advocating for increased, sustainable local budget support.",
     "overview": [
@@ -1121,20 +926,6 @@
         "Advocates for increased, sustainable local budget support to stabilize the rapidly growing program.",
         "Highlights that the program is the third largest in Maine, serving over 250 students, primarily in English language acquisition.",
         "Expresses concern over the program's heavy reliance on unstable grant funding."
-      ]
-    }
-  },
-  "Inclement Weather Policy": {
-    "current_status": "The district will revert to traditional snow days for the first five instances of inclement weather, replacing the remote learning day policy. These days will be made up at the end of the school year.",
-    "overview": [
-      "On November 12, 2024, the Superintendent announced a return to using traditional snow days, which will be added to the end of the school year, for the first five instances of inclement weather."
-    ],
-    "perspectives": {
-      "Administration": [
-        "Announced a return to traditional snow days instead of remote learning for the first five weather-related closures."
-      ],
-      "Staff": [
-        "Union representatives voiced concerns about the policy change and offered to collaborate on improving remote learning plans."
       ]
     }
   },
@@ -1153,61 +944,6 @@
       ]
     }
   },
-  "District Goals": {
-    "current_status": "The district is urgently addressing a student mental health crisis following three recent student suicides. Plans are underway to hire a new Director of Mental and Behavioral Health, implement universal screeners, and expand staff training.",
-    "overview": [
-      "On September 9, 2024, the board and superintendent addressed the student mental health crisis, with the administration outlining plans to hire a new Director of Mental and Behavioral Health, implement universal screeners, and expand staff training."
-    ],
-    "perspectives": {
-      "Board": [
-        "Acknowledged the urgency of the student mental health crisis in the wake of recent student suicides."
-      ],
-      "Administration": [
-        "Superintendent Matheney outlined plans to hire a Director of Mental and Behavioral Health, implement universal screeners, and expand staff training."
-      ]
-    }
-  },
-  "Student Enrollment Trends": {
-    "current_status": "The district is grappling with a 15-year low in student enrollment. This decline is the central justification for the proposed FY2026 budget, which includes significant staffing and resource adjustments.",
-    "overview": [
-      "On April 7, 2025, Superintendent Metheny presented the FY2026 budget, framing it as a necessary response to declining student enrollment and the need to 'right-size' the district."
-    ],
-    "perspectives": {
-      "Administration": [
-        "Argued that declining enrollment necessitates difficult decisions and a 'right-sizing' of the district's resources and staffing levels."
-      ],
-      "Staff": [
-        "Opposed cutting student-facing positions such as those in SEL, curriculum, music, and ed techs."
-      ],
-      "Citizens": [
-        "Voiced opposition to cutting student-facing roles while the administration appears 'top-heavy'.",
-        "Expressed concerns about a lack of transparency in the budget process.",
-        "Advocated for addressing declining enrollment by investing in programs that attract families."
-      ]
-    }
-  },
-  "In-School Health Clinics": {
-    "current_status": "In-school health clinics, operated by Greater Portland Health, are actively serving students with increasing demand. Recent data shows a 59% year-over-year increase in medical visits, with multilingual learners being the majority of users.",
-    "overview": [
-      "On October 15, 2024, the Superintendent shared data showing the clinics provided over 1,200 medical, 346 dental, and 479 behavioral health visits in the last year."
-    ],
-    "perspectives": {
-      "Administration": [
-        "The Superintendent presented data highlighting a significant increase in clinic utilization, particularly for medical services."
-      ]
-    }
-  },
-  "Freedom of Access Act": {
-    "current_status": "Board members are undergoing their annual Freedom of Access Act training. Materials were distributed at the latest meeting, and individual follow-up sessions are being scheduled.",
-    "overview": [
-      "On August 19, 2024, board members received materials for their annual Freedom of Access Act training, with individual follow-up sessions to be scheduled to review requirements and answer questions."
-    ],
-    "perspectives": {
-      "Board": [
-        "Members are participating in the required annual training on the Freedom of Access Act."
-      ]
-    }
-  },
   "Superintendent Evaluation": {
     "current_status": "The board's Superintendent Evaluation and Support Committee has detailed its comprehensive annual evaluation process. This process utilizes multiple data sources, including staff surveys and leadership feedback.",
     "overview": [
@@ -1219,22 +955,6 @@
         "The board's committees are actively developing and refining the superintendent evaluation process and policy."
       ]
     }
-  },
-  "District Strategic Plan": {
-    "current_status": "The district has introduced 'Together We Grow' as the new theme for the 2024-25 school year. This appears to be the most recent public-facing element related to the district's strategic direction.",
-    "overview": [
-      "On August 19, 2024, the Superintendent introduced 'Together We Grow' as the new district theme for the 2024-25 school year."
-    ],
-    "perspectives": {
-      "Administration": [
-        "The Superintendent introduced the new district theme as part of preparations for the 2024-25 school year."
-      ]
-    }
-  },
-  "Mental and Behavioral Health Director Appointment": {
-    "current_status": "There is no information available in the provided meeting notes regarding the appointment of a Mental and Behavioral Health Director.",
-    "overview": [],
-    "perspectives": {}
   },
   "SPHS Principal Appointment": {
     "current_status": "SarahGlenn has been appointed as the new principal of South Portland High School. The appointment was made at the May 30, 2024 board meeting.",
@@ -1278,42 +998,6 @@
       ]
     }
   },
-  "Equity in Resource Allocation": {
-    "current_status": "The board has approved a motion to provide additional resources to schools with higher percentages of economically disadvantaged students. A full report on this new allocation is expected by August 2024.",
-    "overview": [
-      "On May 13, 2024, the board passed a motion to ensure schools with disproportionate percentages of economically disadvantaged students receive additional resources and staffing, with a full report on the allocation due by August 2024."
-    ],
-    "perspectives": {
-      "Board": [
-        "Passed a motion to direct additional resources to schools with higher needs to support student learning."
-      ]
-    }
-  },
-  "Facilities Master Plan": {
-    "current_status": "The administration has identified key facility priorities, including security upgrades, deferred maintenance, and stadium renovations. A dedicated workshop is scheduled for May 30, 2024, to discuss these capital improvements in detail.",
-    "overview": [
-      "On May 13, 2024, the administration outlined key facility priorities such as security upgrades, HVAC systems at Skillin, and stadium complex renovations, scheduling a workshop for further discussion."
-    ],
-    "perspectives": {
-      "Administration": [
-        "Recommended focusing on security upgrades, deferred maintenance like HVAC at Skillin, and stadium renovations."
-      ]
-    }
-  },
-  "Student Activity Accessibility": {
-    "current_status": "The Board is exploring the costs of potential future positions that could enhance student accessibility, such as a Director of Intervention and Mental Health and an additional pre-K classroom, though these are currently unfunded.",
-    "overview": [
-      "On March 28, 2024, the administration provided cost estimates for potential but unfunded positions aimed at improving student support and access, including a Director of Intervention and Mental Health and an additional pre-K classroom."
-    ],
-    "perspectives": {
-      "Board": [
-        "Inquired about the costs of unfunded positions related to student support and pre-K."
-      ],
-      "Administration": [
-        "Provided cost estimates for a Director of Intervention and Mental Health ($100,000) and an additional pre-K classroom ($175,000)."
-      ]
-    }
-  },
   "FY25 Budget": {
     "current_status": "The Board of Education approved the final FY25 school budget articles, totaling over $69 million. The budget maintains essential services while navigating the loss of federal funds and rising costs.",
     "overview": [
@@ -1347,18 +1031,6 @@
       ]
     }
   },
-  "Multi-Tiered Systems of Support": {
-    "current_status": "The district is actively implementing a Multi-Tiered System of Support (MTSS) for academic, behavioral, and social-emotional needs. Principals are using the new EDU climber platform to make data-driven decisions.",
-    "overview": [
-      "On March 18, 2024, elementary and middle school principals presented on the implementation of MTSS, highlighting the use of the new EDU climber platform for data-driven decision-making."
-    ],
-    "perspectives": {
-      "Administration": [
-        "Principals are implementing MTSS to address academic, behavioral, and social-emotional needs.",
-        "The administration is emphasizing a data-driven approach using the EDU climber platform."
-      ]
-    }
-  },
   "School Calendar 2024-2025": {
     "current_status": "The 2024-2025 school calendar has been approved by the board. A revision on March 28, 2024, extended the final day of school by one day to June 13, 2025.",
     "overview": [
@@ -1369,24 +1041,6 @@
       "Board": [
         "Voted unanimously on March 28, 2024, to approve a revision extending the school year by one day.",
         "Voted unanimously on March 11, 2024, to approve the initial 2024-2025 school calendar."
-      ]
-    }
-  },
-  "Homeless Student Services": {
-    "current_status": "The district's McKinney-Vento program is seeing a significant increase in students living in doubled-up situations, while a new pilot grant has shown success in preventing student homelessness.",
-    "overview": [
-      "On March 18, 2024, an update on the McKinney-Vento program noted a doubling of students in doubled-up housing situations due to the housing crisis and highlighted the success of a new pilot grant aimed at preventing student homelessness."
-    ],
-    "perspectives": {}
-  },
-  "Multilingual Programs": {
-    "current_status": "The Multilingual Department has presented a new master plan and is implementing new language access initiatives. This includes a new phone interpretation service to better support the district's diverse student population.",
-    "overview": [
-      "On March 18, 2024, the Multilingual Department presented its new master plan and language access initiatives, which include a new inbound phone interpretation service."
-    ],
-    "perspectives": {
-      "Administration": [
-        "Outlined a new master plan and language access initiatives, including a phone interpretation service."
       ]
     }
   },
@@ -1465,18 +1119,6 @@
         "Opposed cutting student-facing positions while the administration seems 'top-heavy' and expressed concerns about budget transparency (April 2025).",
         "Described the situation as a public health emergency and urged the district to immediately consult with external experts on suicide postvention (September 2024).",
         "A parent suggested investing in preventative measures like Pre-K would be more proactive than creating a new leadership role for mental health (April 2024)."
-      ]
-    }
-  },
-  "Middle School Consolidation": {
-    "current_status": "The plan to consolidate the two middle schools into one building has been removed from consideration for the FY27 budget. The administration cited feasibility issues but is still exploring the concept for a future year.",
-    "overview": [
-      "On February 4, 2026, the administration removed the middle school consolidation plan from the FY27 budget due to feasibility concerns, but noted it is still being explored for FY28."
-    ],
-    "perspectives": {
-      "Administration": [
-        "The timeline for FY27 was not feasible due to external dependencies like permitting and traffic studies.",
-        "The concept is still being explored for a future year, possibly FY28."
       ]
     }
   },
@@ -1560,37 +1202,6 @@
       ],
       "Staff": [
         "The South Portland Educational Support Staff Professionals Association (SPESPA) filed a grievance that was ultimately denied."
-      ]
-    }
-  },
-  "Middle School Administration": {
-    "current_status": "A proposal to eliminate one of three assistant principal positions at South Portland Middle School was reversed. The position will be retained after staff and administrators argued it was essential for school operations.",
-    "overview": [
-      "On March 24, 2025, the board reversed its initial support for a proposal to eliminate an assistant principal position at South Portland Middle School to save $141,000."
-    ],
-    "perspectives": {
-      "Board": [
-        "Initially supported the elimination of the position but reversed the decision after hearing testimony."
-      ],
-      "Administration": [
-        "Argued that running a split-grade school with two start times is untenable without adequate leadership."
-      ],
-      "Staff": [
-        "Passionately argued that the school is untenable without the current number of administrators."
-      ]
-    }
-  },
-  "Service Employees Association Contract 2024-2027": {
-    "current_status": "The Board of Education has unanimously ratified a new three-year collective bargaining agreement with the Service Employees Association. The contract, covering 2024-2027, was praised by all parties for the collaborative process that led to it.",
-    "overview": [
-      "On November 12, 2024, the board unanimously ratified a new three-year contract with the South Portland School District Service Employees Association."
-    ],
-    "perspectives": {
-      "Board": [
-        "Members praised the collaborative and professional negotiation process that led to a fair agreement."
-      ],
-      "Administration": [
-        "The superintendent praised the collaborative and professional negotiation process."
       ]
     }
   },
