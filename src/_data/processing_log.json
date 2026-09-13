@@ -1,5 +1,37 @@
 [
   {
+    "run_id": "34754780295",
+    "timestamp": "2026-09-13T11:36:09.994382Z",
+    "stage": "post_process",
+    "skipped": true,
+    "topics_updated": [],
+    "topics_skipped": 0,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "34754780295",
+    "timestamp": "2026-09-13T11:36:08.150065Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
+    "run_id": "2026-09-13T11:31:36.769444",
+    "timestamp": "2026-09-13T11:31:36.769476Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 65,
+    "blurbs_generated": [],
+    "previews_generated": [
+      {
+        "slug": "2026-09-14",
+        "model": "gemini-2.5-pro"
+      }
+    ]
+  },
+  {
     "run_id": "34692744610",
     "timestamp": "2026-09-12T12:08:09.689385Z",
     "stage": "post_process",
