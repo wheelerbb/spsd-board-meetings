@@ -1,6 +1,59 @@
 ---
 layout: layouts/base.njk
 title: "Processing Log — School Board Meeting Archive"
+pageScript: |
+  function toggleCell(btn) {
+    const detail = btn.nextElementSibling;
+    if (!detail) return;
+    if (detail.hasAttribute('hidden')) {
+      detail.removeAttribute('hidden');
+      btn.classList.add('open');
+    } else {
+      detail.setAttribute('hidden', '');
+      btn.classList.remove('open');
+    }
+  }
+
+  function initPagination(tableId, pageSize) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    const container = table.closest('.status-table-container');
+    const controls = container ? container.querySelector('.pagination-controls') : null;
+    if (!tbody || !controls) return;
+
+    const rows = Array.from(tbody.children);
+    const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+    if (rows.length <= pageSize) {
+      controls.style.display = 'none';
+      return;
+    }
+
+    const info = controls.querySelector('.page-info');
+    const prevBtn = controls.querySelector('.page-prev');
+    const nextBtn = controls.querySelector('.page-next');
+    let page = 1;
+
+    function render() {
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      rows.forEach((row, i) => {
+        row.style.display = (i >= start && i < end) ? '' : 'none';
+      });
+      info.textContent = `Page ${page} of ${totalPages}`;
+      prevBtn.disabled = page <= 1;
+      nextBtn.disabled = page >= totalPages;
+    }
+
+    prevBtn.addEventListener('click', () => { if (page > 1) { page--; render(); } });
+    nextBtn.addEventListener('click', () => { if (page < totalPages) { page++; render(); } });
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    initPagination('sourcing-table', 25);
+    initPagination('pipeline-table', 25);
+  });
 ---
 
 <style>
@@ -15,10 +68,35 @@ title: "Processing Log — School Board Meeting Archive"
   .status-pill.done { background: #edf7f1; color: #2d7a4f; }
   .status-pill.stub { background: #fff8eb; color: #855b00; }
   .status-pill.none { opacity: 0.3; font-weight: 400; color: var(--muted); }
+  .status-pill.blurb-updated { background: #eef4fc; color: #1c5fa8; }
+  .status-pill.preview-updated { background: #f2ecfa; color: #6b3fa0; }
+  .status-pill.file-mapping-only { background: #f0f0f0; color: var(--muted); }
+  .status-pill.pending { background: #fdf1f1; color: #a83a3a; }
 
   .section-heading { font-size: 1.1rem; font-weight: 700; color: var(--navy); margin: 0 0 0.75rem; }
   .run-id { font-family: monospace; font-size: 0.65rem; color: var(--muted); }
   .empty-note { padding: 1.5rem; color: var(--muted); font-size: 0.85rem; }
+
+  .cell-toggle { background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font: inherit; color: inherit; }
+  .cell-toggle .caret { font-size: 0.6rem; color: var(--muted); transition: transform 0.15s ease; display: inline-block; }
+  .cell-toggle.open .caret { transform: rotate(180deg); }
+  .cell-detail { margin-top: 0.4rem; padding: 0.5rem 0.6rem; background: #faf8f4; border: 1px solid var(--rule); border-radius: 6px; font-size: 0.7rem; max-width: 320px; }
+  .cell-detail ul { margin: 0; padding-left: 1rem; }
+  .cell-detail li { margin-bottom: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+  .cell-detail li:last-child { margin-bottom: 0; }
+  .detail-group { margin-bottom: 0.6rem; }
+  .detail-group:last-child { margin-bottom: 0; }
+  .detail-group strong { display: block; font-size: 0.65rem; text-transform: uppercase; color: var(--muted); margin-bottom: 0.25rem; letter-spacing: 0.03em; }
+  .detail-meta { color: var(--muted); }
+  .doc-type { text-transform: uppercase; font-size: 0.6rem; background: #eef1f5; color: var(--navy); padding: 1px 5px; border-radius: 3px; font-weight: 600; }
+  .change-tag { font-size: 0.6rem; text-transform: uppercase; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+  .change-tag.new { background: #edf7f1; color: #2d7a4f; }
+  .change-tag.modified { background: #fff8eb; color: #855b00; }
+
+  .pagination-controls { display: flex; align-items: center; justify-content: center; gap: 0.75rem; padding: 0.75rem; border-top: 1px solid var(--rule); font-size: 0.75rem; }
+  .page-btn { background: #fff; border: 1px solid var(--rule); border-radius: 5px; padding: 0.3rem 0.7rem; cursor: pointer; font: inherit; color: var(--navy); }
+  .page-btn:disabled { opacity: 0.35; cursor: default; }
+  .page-info { color: var(--muted); }
 </style>
 
 <div class="hero" style="padding: 3rem 2rem;">
@@ -32,7 +110,7 @@ title: "Processing Log — School Board Meeting Archive"
   <h2 class="section-heading">Sourcing Runs</h2>
   <div class="status-table-container">
     {% if sourcing_log and sourcing_log.length > 0 %}
-    <table class="status-table">
+    <table class="status-table" id="sourcing-table">
       <thead>
         <tr>
           <th>Time</th>
@@ -56,16 +134,70 @@ title: "Processing Log — School Board Meeting Archive"
               {% if not s or not s.fetched %}
                 <span class="status-pill none">cached</span>
               {% elif s.changed and s.changed.length > 0 %}
-                <span class="status-pill done">{{ s.changed.length }} changed</span>
+                <button class="cell-toggle" onclick="toggleCell(this)">
+                  <span class="status-pill done">{{ s.changed.length }} changed</span>
+                  <span class="caret">&#9662;</span>
+                </button>
+                <div class="cell-detail" hidden>
+                  <ul>
+                    {% for item in s.changed %}
+                    <li>
+                      {% if src == 'vimeo' %}
+                        {{ item.title or item.video_id }}
+                      {% elif src == 'transcripts' %}
+                        <a href="{{ ('/meetings/' + item + '/') | url }}">{{ item }}</a>
+                      {% elif src == 'drive' %}
+                        {% if item.meeting_slug %}
+                          <a href="{{ ('/meetings/' + item.meeting_slug + '/') | url }}">{{ item.meeting_slug }}</a>
+                        {% else %}
+                          <span class="detail-meta">unmapped</span>
+                        {% endif %}
+                        {% if item.doc_type %}<span class="doc-type">{{ item.doc_type }}</span>{% endif %}
+                        {% if item.label %}<span class="detail-meta">{{ item.label }}</span>{% endif %}
+                        {% if item.change %}<span class="change-tag {{ item.change }}">{{ item.change }}</span>{% endif %}
+                      {% else %}
+                        <a href="{{ ('/meetings/' + item.date + '/') | url }}">{{ item.date }}</a>
+                        {% if item.doc_type %}<span class="doc-type">{{ item.doc_type }}</span>{% endif %}
+                        {% if item.label %}<span class="detail-meta">{{ item.label }}</span>{% elif item.title %}<span class="detail-meta">{{ item.title }}</span>{% endif %}
+                        {% if item.change %}<span class="change-tag {{ item.change }}">{{ item.change }}</span>{% endif %}
+                      {% endif %}
+                    </li>
+                    {% endfor %}
+                  </ul>
+                </div>
               {% else %}
                 <span class="status-pill none">no changes</span>
               {% endif %}
             </td>
           {% endfor %}
           <td>
-            {% if run.meetings.created.length > 0 %}<div>{{ run.meetings.created.length }} created</div>{% endif %}
-            {% if run.meetings.updated.length > 0 %}<div>{{ run.meetings.updated.length }} updated</div>{% endif %}
-            {% if run.meetings.created.length == 0 and run.meetings.updated.length == 0 %}
+            {% set anyMeetings = run.meetings.created.length > 0 or run.meetings.updated.length > 0 %}
+            {% if anyMeetings %}
+              <button class="cell-toggle" onclick="toggleCell(this)">
+                {% if run.meetings.created.length > 0 %}<span class="status-pill done">{{ run.meetings.created.length }} created</span>{% endif %}
+                {% if run.meetings.updated.length > 0 %}<span class="status-pill done">{{ run.meetings.updated.length }} updated</span>{% endif %}
+                <span class="caret">&#9662;</span>
+              </button>
+              <div class="cell-detail" hidden>
+                <ul>
+                  {% for date in run.meetings.created %}
+                  {% set changeType = date | meetingChangeType(run.run_id, processing_log) %}
+                  <li>
+                    <a href="{{ ('/meetings/' + date + '/') | url }}">{{ date }}</a>
+                    <span class="detail-meta">new</span>
+                    <span class="status-pill {{ changeType | replace(' ', '-') }}">{{ changeType }}</span>
+                  </li>
+                  {% endfor %}
+                  {% for date in run.meetings.updated %}
+                  {% set changeType = date | meetingChangeType(run.run_id, processing_log) %}
+                  <li>
+                    <a href="{{ ('/meetings/' + date + '/') | url }}">{{ date }}</a>
+                    <span class="status-pill {{ changeType | replace(' ', '-') }}">{{ changeType }}</span>
+                  </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% else %}
               <span class="status-pill none">none</span>
             {% endif %}
           </td>
@@ -73,6 +205,11 @@ title: "Processing Log — School Board Meeting Archive"
         {% endfor %}
       </tbody>
     </table>
+    <div class="pagination-controls">
+      <button class="page-btn page-prev">&larr; Prev</button>
+      <span class="page-info"></span>
+      <button class="page-btn page-next">Next &rarr;</button>
+    </div>
     {% else %}
     <div class="empty-note">No sourcing runs logged yet.</div>
     {% endif %}
@@ -81,7 +218,7 @@ title: "Processing Log — School Board Meeting Archive"
   <h2 class="section-heading">Pipeline Runs</h2>
   <div class="status-table-container">
     {% if processing_log and processing_log.length > 0 %}
-    <table class="status-table">
+    <table class="status-table" id="pipeline-table">
       <thead>
         <tr>
           <th>Time</th>
@@ -103,6 +240,20 @@ title: "Processing Log — School Board Meeting Archive"
             {% if run.rate_limited and run.rate_limited.length > 0 %}
               &middot; <span class="status-pill stub">{{ run.rate_limited.length }} rate-limited</span>
             {% endif %}
+            {% if run.targeted and run.targeted.length > 0 %}
+              <button class="cell-toggle" onclick="toggleCell(this)"><span class="caret">&#9662;</span></button>
+              <div class="cell-detail" hidden>
+                <ul>
+                  {% for date in run.targeted %}
+                  <li>
+                    <a href="{{ ('/meetings/' + date + '/') | url }}">{{ date }}</a>
+                    {% if run.results and date in run.results %}<span class="status-pill done">finished</span>
+                    {% elif run.rate_limited and date in run.rate_limited %}<span class="status-pill stub">rate-limited</span>{% endif %}
+                  </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
           </td>
           {% else %}
           <td><span class="status-pill done">Post-Process</span></td>
@@ -113,6 +264,42 @@ title: "Processing Log — School Board Meeting Archive"
               {{ run.topics_updated.length }} topics updated, {{ run.topics_skipped }} skipped
               {% if run.blurbs_generated.length > 0 %} &middot; {{ run.blurbs_generated.length }} blurbs{% endif %}
               {% if run.previews_generated.length > 0 %} &middot; {{ run.previews_generated.length }} previews{% endif %}
+              {% set hasDetail = run.topics_updated.length > 0 or run.blurbs_generated.length > 0 or run.previews_generated.length > 0 %}
+              {% if hasDetail %}
+                <button class="cell-toggle" onclick="toggleCell(this)"><span class="caret">&#9662;</span></button>
+                <div class="cell-detail" hidden>
+                  {% if run.topics_updated.length > 0 %}
+                  <div class="detail-group">
+                    <strong>Topics</strong>
+                    <ul>
+                      {% for t in run.topics_updated %}
+                      <li>{{ t.topic }} <span class="detail-meta">({{ t.reason or 'updated' }}, {{ t.model }})</span></li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                  {% endif %}
+                  {% if run.blurbs_generated.length > 0 %}
+                  <div class="detail-group">
+                    <strong>Blurbs</strong>
+                    <ul>
+                      {% for b in run.blurbs_generated %}
+                      <li><a href="{{ ('/meetings/' + b.slug + '/') | url }}">{{ b.slug }}</a> <span class="detail-meta">({{ b.model }})</span></li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                  {% endif %}
+                  {% if run.previews_generated.length > 0 %}
+                  <div class="detail-group">
+                    <strong>Previews</strong>
+                    <ul>
+                      {% for p in run.previews_generated %}
+                      <li><a href="{{ ('/meetings/' + p.slug + '/') | url }}">{{ p.slug }}</a> <span class="detail-meta">({{ p.model }})</span></li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                  {% endif %}
+                </div>
+              {% endif %}
             {% endif %}
           </td>
           {% endif %}
@@ -120,6 +307,11 @@ title: "Processing Log — School Board Meeting Archive"
         {% endfor %}
       </tbody>
     </table>
+    <div class="pagination-controls">
+      <button class="page-btn page-prev">&larr; Prev</button>
+      <span class="page-info"></span>
+      <button class="page-btn page-next">Next &rarr;</button>
+    </div>
     {% else %}
     <div class="empty-note">No pipeline runs logged yet.</div>
     {% endif %}

@@ -1064,8 +1064,10 @@ def post_process():
         evidence_str = "---".join(evidence_list[:MAX_EVIDENCE_MEETINGS])
         current_hash = hashlib.md5(evidence_str.encode('utf-8')).hexdigest()
 
-        if current_hash != hashes.get(topic) or topic not in summaries:
-            topic_tasks.append((topic, evidence_str, display_date, current_hash))
+        is_new_topic = topic not in summaries
+        if current_hash != hashes.get(topic) or is_new_topic:
+            reason = "new topic" if is_new_topic else "evidence changed"
+            topic_tasks.append((topic, evidence_str, display_date, current_hash, reason))
         else:
             print(f"  Skipping {topic} (no new evidence).")
 
@@ -1078,7 +1080,7 @@ def post_process():
                 if result_text:
                     summaries[topic] = result_text
                     hashes[topic] = futures[future][3]
-                    updated_topics.append({"topic": topic, "model": model})
+                    updated_topics.append({"topic": topic, "model": model, "reason": futures[future][4]})
 
     with open(summary_lib_path, 'w') as f:
         json.dump(summaries, f, indent=2)

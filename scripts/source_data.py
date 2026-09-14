@@ -479,10 +479,17 @@ def main():
             if date_slug not in all_data: all_data[date_slug] = {}
             if 'events' not in all_data[date_slug]: all_data[date_slug]['events'] = []
             all_data[date_slug]['events'].append(info)
-        apptegy_changed = [
-            s for s in {s for s in event_mapping if s >= CUTOFF_DATE}
-            if all_data.get(s, {}).get('events') != old_master_map.get(s, {}).get('events')
-        ]
+        apptegy_changed = []
+        for s in {s for s in event_mapping if s >= CUTOFF_DATE}:
+            new_events = all_data.get(s, {}).get('events')
+            old_events = old_master_map.get(s, {}).get('events')
+            if new_events == old_events:
+                continue
+            apptegy_changed.append({
+                "date": s,
+                "title": new_events[0].get('title') if new_events else None,
+                "change": "new" if not old_events else "modified",
+            })
     else:
         print("  Using cached Apptegy data.")
         for date_slug, data in old_master_map.items():
@@ -504,10 +511,26 @@ def main():
             if date_slug < CUTOFF_DATE: continue
             if date_slug not in all_data: all_data[date_slug] = {}
             all_data[date_slug]['site'] = info
-        site_changed = [
-            s for s in site_mapping
-            if s >= CUTOFF_DATE and all_data.get(s, {}).get('site') != old_master_map.get(s, {}).get('site')
-        ]
+        site_changed = []
+        for s in site_mapping:
+            if s < CUTOFF_DATE:
+                continue
+            new_site = all_data.get(s, {}).get('site')
+            old_site = old_master_map.get(s, {}).get('site')
+            if new_site == old_site:
+                continue
+            old_urls = {d.get('url') for d in (old_site or {}).get('docs', [])}
+            new_docs = (new_site or {}).get('docs', [])
+            per_doc = [
+                {"date": s, "label": d.get('label'), "doc_type": d.get('type'), "change": "new"}
+                for d in new_docs if d.get('url') not in old_urls
+            ]
+            # Something about this date changed (e.g. a doc's type/label was corrected, or a
+            # doc was removed) but no new URL appeared — still surface it rather than drop it.
+            site_changed.extend(per_doc if per_doc else [
+                {"date": s, "label": d.get('label'), "doc_type": d.get('type'), "change": "modified"}
+                for d in new_docs
+            ] or [{"date": s, "label": None, "doc_type": None, "change": "modified"}])
     else:
         print("  Using cached site data.")
         for date_slug, data in old_master_map.items():

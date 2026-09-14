@@ -32,6 +32,24 @@ module.exports = function (eleventyConfig) {
 
   eleventyConfig.addFilter("meetingNav", require("./src/_lib/meetingNav"));
 
+  // Classify what happened downstream for a given meeting date within a specific sourcing
+  // run — joined by run_id (shared across a GitHub Actions run's script invocations, see
+  // pipeline_log.current_run_id) since sourcing_log/processing_log are independent logs with
+  // no other shared key. "pending" means no processing_log entry has recorded that run yet
+  // (post_process sometimes runs on its own schedule with its own run_id) — never inferred
+  // as "file mapping only", which would misreport a run we simply haven't seen results for.
+  eleventyConfig.addFilter("meetingChangeType", (date, runId, processingLog) => {
+    const matches = (processingLog || []).filter(
+      (e) => e.stage === "post_process" && e.run_id === runId
+    );
+    if (matches.length === 0) return "pending";
+    for (const entry of matches) {
+      if ((entry.blurbs_generated || []).some((b) => b.slug === date)) return "blurb updated";
+      if ((entry.previews_generated || []).some((p) => p.slug === date)) return "preview updated";
+    }
+    return "file mapping only";
+  });
+
   eleventyConfig.addFilter("secondsToTime", (s) => {
     const h = Math.floor(s / 3600);
     const m = Math.floor((s % 3600) / 60);
