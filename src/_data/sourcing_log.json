@@ -1,5 +1,78 @@
 [
   {
+    "run_id": "35010733536",
+    "timestamp": "2026-09-15T19:00:00.919977Z",
+    "trigger": "workflow_dispatch",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-09-14",
+            "label": "September Meeting Packet",
+            "doc_type": "minutes",
+            "change": "new"
+          },
+          {
+            "date": "2026-08-17",
+            "label": "August Meeting Packet",
+            "doc_type": "packet",
+            "change": "modified"
+          }
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "11YXQO6WNMVmfL-X3VgGMThw1yDnSavHQ",
+            "label": "Board Slides",
+            "doc_type": "misc",
+            "meeting_slug": "2026-09-14",
+            "change": "new"
+          },
+          {
+            "file_id": "1ZWPB2byF8St76KsCAr93QLiMVkxhhfLY",
+            "label": "spboe_20260914 - South Portland Board of Education - September 14 2026",
+            "doc_type": "transcript",
+            "meeting_slug": "2026-09-14",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1227046450",
+            "title": "spboar_20260914 - South portland Board of Assessment Review - September 14 2026 re"
+          },
+          {
+            "video_id": "1227017598",
+            "title": "spboe_20260914 - South Portland Board of Education - September 14 2026 re"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-09-14",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "35009453768",
     "timestamp": "2026-09-15T18:46:16.528389Z",
     "trigger": "workflow_dispatch",
