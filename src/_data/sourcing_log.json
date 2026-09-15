@@ -1,5 +1,59 @@
 [
   {
+    "run_id": "34974723626",
+    "timestamp": "2026-09-15T13:26:40.180655Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-12-23",
+            "title": "Winter Break \u2013 No School",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2024-03-17",
+            "label": "Budget Workshop I Agenda",
+            "doc_type": "agenda",
+            "change": "modified"
+          },
+          {
+            "date": "2025-01-08",
+            "label": "Special Meeting Agenda",
+            "doc_type": "agenda",
+            "change": "modified"
+          }
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "34859520655",
     "timestamp": "2026-09-14T15:02:59.918477Z",
     "trigger": "push",
