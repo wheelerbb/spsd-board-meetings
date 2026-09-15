@@ -219,6 +219,8 @@ pageScript: |
           <div class="card-title">{{ m.title | safe }}</div>
           {% if m.blurb %}
           <div class="card-blurb">{{ m.blurb | safe }}</div>
+          {% elif m.stub and not m.future %}
+          <div class="card-pending-notice">Transcript not available or not processed. Transcripts are typically available within 24-48 hrs of meetings.</div>
           {% endif %}
           {% if m.topics and m.topics.length > 0 %}
           <div class="card-topics">

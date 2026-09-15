@@ -511,22 +511,29 @@ def main():
             if date_slug < CUTOFF_DATE: continue
             if date_slug not in all_data: all_data[date_slug] = {}
             all_data[date_slug]['site'] = info
-        site_changed = []
         for s in site_mapping:
             if s < CUTOFF_DATE:
                 continue
-            new_site = all_data.get(s, {}).get('site')
-            old_site = old_master_map.get(s, {}).get('site')
-            if new_site == old_site:
+            new_docs = all_data.get(s, {}).get('site', {}).get('docs', [])
+            old_docs = old_master_map.get(s, {}).get('site', {}).get('docs', [])
+            # Compare by a normalized URL, not the raw one — Drive share links carry volatile
+            # query params (usp=sharing vs usp=drive_link, etc.) that vary between scrapes of
+            # the same physical file, and a raw comparison flags that noise as a real edit.
+            # clean_url is the same normalizer every other URL comparison in this file already
+            # uses (see the site_url_to_slug / drive_changed lookups below).
+            def _doc_sig(d):
+                return (drive.clean_url(d.get('url')), d.get('label'), d.get('type'))
+            old_sigs = {_doc_sig(d) for d in old_docs}
+            new_sigs = {_doc_sig(d) for d in new_docs}
+            if old_sigs == new_sigs:
                 continue
-            old_urls = {d.get('url') for d in (old_site or {}).get('docs', [])}
-            new_docs = (new_site or {}).get('docs', [])
+            old_urls = {drive.clean_url(d.get('url')) for d in old_docs}
             per_doc = [
                 {"date": s, "label": d.get('label'), "doc_type": d.get('type'), "change": "new"}
-                for d in new_docs if d.get('url') not in old_urls
+                for d in new_docs if drive.clean_url(d.get('url')) not in old_urls
             ]
-            # Something about this date changed (e.g. a doc's type/label was corrected, or a
-            # doc was removed) but no new URL appeared — still surface it rather than drop it.
+            # A doc's label/type was corrected, or a doc was removed, but no new URL appeared —
+            # still surface it rather than drop it.
             site_changed.extend(per_doc if per_doc else [
                 {"date": s, "label": d.get('label'), "doc_type": d.get('type'), "change": "modified"}
                 for d in new_docs

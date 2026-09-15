@@ -2,16 +2,26 @@
 layout: layouts/base.njk
 title: "Processing Log — School Board Meeting Archive"
 pageScript: |
-  function toggleCell(btn) {
-    const detail = btn.nextElementSibling;
-    if (!detail) return;
-    if (detail.hasAttribute('hidden')) {
-      detail.removeAttribute('hidden');
-      btn.classList.add('open');
-    } else {
-      detail.setAttribute('hidden', '');
-      btn.classList.remove('open');
-    }
+  function toggleRow(row) {
+    const details = row.querySelectorAll(':scope > td > .cell-detail');
+    if (!details.length) return;
+    const anyHidden = Array.from(details).some((d) => d.hasAttribute('hidden'));
+    details.forEach((d) => {
+      if (anyHidden) d.removeAttribute('hidden');
+      else d.setAttribute('hidden', '');
+    });
+    row.classList.toggle('open', anyHidden);
+  }
+
+  function initRowExpansion() {
+    document.querySelectorAll('.status-table tbody tr').forEach((row) => {
+      if (!row.querySelector(':scope > td > .cell-detail')) return;
+      row.classList.add('has-detail');
+      row.addEventListener('click', function (e) {
+        if (e.target.closest('a')) return; // let meeting/topic links navigate normally
+        toggleRow(row);
+      });
+    });
   }
 
   function initPagination(tableId, pageSize) {
@@ -51,6 +61,7 @@ pageScript: |
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    initRowExpansion();
     initPagination('sourcing-table', 25);
     initPagination('pipeline-table', 25);
   });
@@ -63,6 +74,10 @@ pageScript: |
   .status-table th { background: var(--navy); color: #fff; padding: 0.75rem; text-align: left; position: sticky; top: 0; z-index: 10; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
   .status-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
   .status-table tr:hover { background: #fdfaf5; }
+  .status-table tr.has-detail { cursor: pointer; }
+  .status-table tr.has-detail td:first-child { position: relative; padding-left: 1.4rem; }
+  .status-table tr.has-detail td:first-child::before { content: '\25B8'; position: absolute; left: 0.5rem; color: var(--muted); font-size: 0.65rem; transition: transform 0.15s ease; }
+  .status-table tr.has-detail.open td:first-child::before { transform: rotate(90deg); }
 
   .status-pill { display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; }
   .status-pill.done { background: #edf7f1; color: #2d7a4f; }
@@ -77,9 +92,6 @@ pageScript: |
   .run-id { font-family: monospace; font-size: 0.65rem; color: var(--muted); }
   .empty-note { padding: 1.5rem; color: var(--muted); font-size: 0.85rem; }
 
-  .cell-toggle { background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font: inherit; color: inherit; }
-  .cell-toggle .caret { font-size: 0.6rem; color: var(--muted); transition: transform 0.15s ease; display: inline-block; }
-  .cell-toggle.open .caret { transform: rotate(180deg); }
   .cell-detail { margin-top: 0.4rem; padding: 0.5rem 0.6rem; background: #faf8f4; border: 1px solid var(--rule); border-radius: 6px; font-size: 0.7rem; max-width: 320px; }
   .cell-detail ul { margin: 0; padding-left: 1rem; }
   .cell-detail li { margin-bottom: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
@@ -134,10 +146,7 @@ pageScript: |
               {% if not s or not s.fetched %}
                 <span class="status-pill none">cached</span>
               {% elif s.changed and s.changed.length > 0 %}
-                <button class="cell-toggle" onclick="toggleCell(this)">
-                  <span class="status-pill done">{{ s.changed.length }} changed</span>
-                  <span class="caret">&#9662;</span>
-                </button>
+                <span class="status-pill done">{{ s.changed.length }} changed</span>
                 <div class="cell-detail" hidden>
                   <ul>
                     {% for item in s.changed %}
@@ -156,7 +165,11 @@ pageScript: |
                         {% if item.label %}<span class="detail-meta">{{ item.label }}</span>{% endif %}
                         {% if item.change %}<span class="change-tag {{ item.change }}">{{ item.change }}</span>{% endif %}
                       {% else %}
-                        <a href="{{ ('/meetings/' + item.date + '/') | url }}">{{ item.date }}</a>
+                        {# Older log entries (before per-item apptegy/site tracking shipped)
+                           logged these as bare date strings, not dicts — fall back to the
+                           string itself so those rows still render instead of going blank. #}
+                        {% set itemDate = item.date or item %}
+                        <a href="{{ ('/meetings/' + itemDate + '/') | url }}">{{ itemDate }}</a>
                         {% if item.doc_type %}<span class="doc-type">{{ item.doc_type }}</span>{% endif %}
                         {% if item.label %}<span class="detail-meta">{{ item.label }}</span>{% elif item.title %}<span class="detail-meta">{{ item.title }}</span>{% endif %}
                         {% if item.change %}<span class="change-tag {{ item.change }}">{{ item.change }}</span>{% endif %}
@@ -173,11 +186,8 @@ pageScript: |
           <td>
             {% set anyMeetings = run.meetings.created.length > 0 or run.meetings.updated.length > 0 %}
             {% if anyMeetings %}
-              <button class="cell-toggle" onclick="toggleCell(this)">
-                {% if run.meetings.created.length > 0 %}<span class="status-pill done">{{ run.meetings.created.length }} created</span>{% endif %}
-                {% if run.meetings.updated.length > 0 %}<span class="status-pill done">{{ run.meetings.updated.length }} updated</span>{% endif %}
-                <span class="caret">&#9662;</span>
-              </button>
+              {% if run.meetings.created.length > 0 %}<span class="status-pill done">{{ run.meetings.created.length }} created</span>{% endif %}
+              {% if run.meetings.updated.length > 0 %}<span class="status-pill done">{{ run.meetings.updated.length }} updated</span>{% endif %}
               <div class="cell-detail" hidden>
                 <ul>
                   {% for date in run.meetings.created %}
@@ -241,7 +251,6 @@ pageScript: |
               &middot; <span class="status-pill stub">{{ run.rate_limited.length }} rate-limited</span>
             {% endif %}
             {% if run.targeted and run.targeted.length > 0 %}
-              <button class="cell-toggle" onclick="toggleCell(this)"><span class="caret">&#9662;</span></button>
               <div class="cell-detail" hidden>
                 <ul>
                   {% for date in run.targeted %}
@@ -266,7 +275,6 @@ pageScript: |
               {% if run.previews_generated.length > 0 %} &middot; {{ run.previews_generated.length }} previews{% endif %}
               {% set hasDetail = run.topics_updated.length > 0 or run.blurbs_generated.length > 0 or run.previews_generated.length > 0 %}
               {% if hasDetail %}
-                <button class="cell-toggle" onclick="toggleCell(this)"><span class="caret">&#9662;</span></button>
                 <div class="cell-detail" hidden>
                   {% if run.topics_updated.length > 0 %}
                   <div class="detail-group">
