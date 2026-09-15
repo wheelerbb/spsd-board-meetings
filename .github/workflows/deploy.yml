@@ -2,7 +2,11 @@ name: Automate, Build, and Deploy
 
 on:
   schedule:
-    - cron: '0 8 * * *' # Run daily at 8:00 AM UTC
+    # Noon and midnight US/Eastern. GitHub Actions cron is UTC-only (no timezone support), so
+    # these are pinned to EDT (UTC-4) — during EST (~Nov-Mar) they'll actually fire at 1pm/1am
+    # Eastern instead. Re-pin by ±1 hour around the DST changeover if that drift matters.
+    - cron: '0 16 * * *' # ~Noon Eastern (EDT)
+    - cron: '0 4 * * *'  # ~Midnight Eastern (EDT)
   push:
     branches: [main]
   workflow_dispatch:
