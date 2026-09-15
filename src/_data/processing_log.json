@@ -1,5 +1,45 @@
 [
   {
+    "run_id": "35009453768",
+    "timestamp": "2026-09-15T18:48:46.406878Z",
+    "stage": "post_process",
+    "topics_updated": [
+      {
+        "topic": "Student Cell Phone Policy 2026",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Special Education Staffing",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "FY26 Budget",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      }
+    ],
+    "topics_skipped": 62,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "35009453768",
+    "timestamp": "2026-09-15T18:47:28.146116Z",
+    "stage": "transcripts",
+    "targeted": [
+      "2026-09-14"
+    ],
+    "results": [
+      {
+        "slug": "2026-09-14",
+        "status": "Success"
+      }
+    ],
+    "rate_limited": []
+  },
+  {
     "run_id": "35008613627",
     "timestamp": "2026-09-15T18:38:06.599435Z",
     "stage": "post_process",
