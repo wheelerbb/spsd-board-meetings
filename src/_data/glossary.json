@@ -4,5 +4,8 @@
   { "correct": "Skillins", "aliases": ["Skillens"] },
   { "correct": "Atkinson Duina", "aliases": ["Atkinson-Dena", "Atkinson Dena"] },
   { "correct": "SPESPA", "aliases": [], "note": "Support Professionals" },
-  { "correct": "SPTA", "aliases": [], "note": "Teachers" }
+  { "correct": "SPTA", "aliases": [], "note": "Teachers" },
+  { "correct": "Claire Holman", "aliases": ["Elyse Holman"], "note": "At-Large board member" },
+  { "correct": "Eleni Richardson", "aliases": ["Heather Richardson"], "note": "At-Large board member" },
+  { "correct": "Ishmeel Daniels", "aliases": ["Judd Daniels"], "note": "recurring public commenter" }
 ]
