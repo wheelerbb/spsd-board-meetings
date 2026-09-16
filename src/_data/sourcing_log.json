@@ -1,5 +1,45 @@
 [
   {
+    "run_id": "35077691305",
+    "timestamp": "2026-09-16T09:10:42.455204Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1221856910",
+            "title": "Weatherization Kit Tutorials - September 15 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "35011141062",
     "timestamp": "2026-09-15T19:02:15.743999Z",
     "trigger": "push",
