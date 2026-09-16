@@ -1,5 +1,73 @@
 [
   {
+    "run_id": "35109858397",
+    "timestamp": "2026-09-16T14:38:34.184310Z",
+    "stage": "post_process",
+    "skipped": true,
+    "topics_updated": [],
+    "topics_skipped": 0,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "35109858397",
+    "timestamp": "2026-09-16T14:38:32.253113Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
+    "run_id": "2026-09-16T14:35:29.742821",
+    "timestamp": "2026-09-16T14:35:29.742844Z",
+    "stage": "post_process",
+    "topics_updated": [
+      {
+        "topic": "Public Participation Policy",
+        "model": "gemini-2.5-pro",
+        "reason": "new topic"
+      },
+      {
+        "topic": "Special Education Staffing",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "SPHS Athletic Complex",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Student Cell Phone Policy 2026",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "FY26 Budget",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      }
+    ],
+    "topics_skipped": 61,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "2026-09-16T13:42:52.609820",
+    "timestamp": "2026-09-16T13:42:52.609859Z",
+    "stage": "transcripts",
+    "targeted": [
+      "2026-09-14"
+    ],
+    "results": [
+      {
+        "slug": "2026-09-14",
+        "status": "Success"
+      }
+    ],
+    "rate_limited": []
+  },
+  {
     "run_id": "35077691305",
     "timestamp": "2026-09-16T09:11:28.553311Z",
     "stage": "post_process",
