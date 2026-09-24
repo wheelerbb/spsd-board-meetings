@@ -1,5 +1,96 @@
 [
   {
+    "run_id": "35978953969",
+    "timestamp": "2026-09-24T09:05:41.919699Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2027-01-18",
+            "title": "Martin Luther King Jr. Day \u2013 No School",
+            "change": "new"
+          },
+          {
+            "date": "2027-01-11",
+            "title": "School Board Meeting",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "129EiQIFZou3C06CuMH_AZ18eHyOwUhnu",
+            "label": "Executive Session & Retreat Minutes",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-09-21",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1229686220",
+            "title": "spmccc_20260922 - South Portland Mahoney City Center Committee - September 22 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "35909180852",
+    "timestamp": "2026-09-23T19:26:04.674195Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "35841158866",
     "timestamp": "2026-09-23T09:10:08.571735Z",
     "trigger": "schedule",
