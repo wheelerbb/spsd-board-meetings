@@ -1,5 +1,89 @@
 [
   {
+    "run_id": "36118468118",
+    "timestamp": "2026-09-25T09:28:29.721741Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1229976173",
+            "title": "spedc_20260916 - South Portland Economic Development - Brownfields - South Port Marine - September 16 2026"
+          },
+          {
+            "video_id": "1229899326",
+            "title": "sppb_20260923 - South Portland Planning Board - September 23 2026"
+          },
+          {
+            "video_id": "1229897937",
+            "title": "Age Friendly Fair 2026"
+          },
+          {
+            "video_id": "1229896641",
+            "title": "econ_dev_20260923 - South Portland Economic Development - Energy Management Seminar - September 23 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "36050310559",
+    "timestamp": "2026-09-24T19:46:13.826488Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "35978953969",
     "timestamp": "2026-09-24T09:05:41.919699Z",
     "trigger": "schedule",
