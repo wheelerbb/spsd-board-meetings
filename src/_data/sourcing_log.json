@@ -1,5 +1,72 @@
 [
   {
+    "run_id": "36232050150",
+    "timestamp": "2026-09-26T09:13:46.348565Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "36181795802",
+    "timestamp": "2026-09-25T19:47:44.013328Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "36118468118",
     "timestamp": "2026-09-25T09:28:29.721741Z",
     "trigger": "schedule",
