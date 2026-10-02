@@ -1,5 +1,85 @@
 [
   {
+    "run_id": "36994954951",
+    "timestamp": "2026-10-02T10:23:11.395959Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1232210681",
+            "title": "splib_20260618 - South Portland Public Library - Black Salts - June 18 2026"
+          },
+          {
+            "video_id": "1232153778",
+            "title": "sphs_20170611 - South Portland High School Graduation - June 11 2017"
+          },
+          {
+            "video_id": "1232105439",
+            "title": "spcpc_20260930 - South Portland Comprehensive Plan Committee - September 30 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "36923929046",
+    "timestamp": "2026-10-01T20:46:07.079895Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "36851167799",
     "timestamp": "2026-10-01T10:48:11.235705Z",
     "trigger": "schedule",
