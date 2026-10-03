@@ -1,5 +1,142 @@
 [
   {
+    "run_id": "37113978350",
+    "timestamp": "2026-10-03T09:45:00.065731Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-10-05",
+            "title": "Policy Committee Meeting",
+            "change": "new"
+          },
+          {
+            "date": "2026-11-02",
+            "title": "Policy Committee Meeting",
+            "change": "new"
+          },
+          {
+            "date": "2026-12-08",
+            "title": "Policy Committee Meeting",
+            "change": "new"
+          },
+          {
+            "date": "2026-10-30",
+            "title": "Finance Committee Meeting",
+            "change": "new"
+          },
+          {
+            "date": "2026-12-03",
+            "title": "Buildings & Grounds Committee Meeting",
+            "change": "new"
+          },
+          {
+            "date": "2026-12-04",
+            "title": "Finance Committee Meeting",
+            "change": "new"
+          },
+          {
+            "date": "2026-11-05",
+            "title": "Buildings & Grounds Committee Meeting",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-09-21",
+            "label": "Executive Session Agenda",
+            "doc_type": "agenda",
+            "change": "new"
+          },
+          {
+            "date": "2026-09-21",
+            "label": "Board Retreat Agenda",
+            "doc_type": "agenda",
+            "change": "new"
+          },
+          {
+            "date": "2026-09-14",
+            "label": "September Meeting Packet",
+            "doc_type": "packet",
+            "change": "modified"
+          }
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1F15lOY9a_PZHVsYawWBINA_BiiqDBJN2",
+            "label": "SPMS Donation",
+            "doc_type": "misc",
+            "meeting_slug": "2026-09-25",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1232424406",
+            "title": "spboar_20261001 - South Portland Board of Assessment Review - October 1 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [
+        "2026-09-21"
+      ],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "37059687862",
+    "timestamp": "2026-10-02T20:18:34.660770Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "36994954951",
     "timestamp": "2026-10-02T10:23:11.395959Z",
     "trigger": "schedule",
