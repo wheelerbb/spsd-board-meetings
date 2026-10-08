@@ -1,5 +1,87 @@
 [
   {
+    "run_id": "37768344669",
+    "timestamp": "2026-10-08T11:13:10.504392Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-12-09",
+            "title": "Early Release",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1233854147",
+            "title": "spaeo_20261005 - SP Assessing Educational Outreach - October 5 2026 - Session 1"
+          },
+          {
+            "video_id": "1233847265",
+            "title": "spaeo_20261005 - SP Assessing Educational Outreach - October 5 2026 - Session 2"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "37685971133",
+    "timestamp": "2026-10-07T20:58:34.110118Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "37610371160",
     "timestamp": "2026-10-07T10:55:25.017959Z",
     "trigger": "schedule",
