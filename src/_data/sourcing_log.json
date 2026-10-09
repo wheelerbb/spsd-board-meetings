@@ -1,5 +1,122 @@
 [
   {
+    "run_id": "37922034701",
+    "timestamp": "2026-10-09T11:12:08.016533Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-12-14",
+            "title": "School Board Meeting",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1oUaqp4RHvo_qDRRuJyHxekNBCeReg8a4",
+            "label": "October 2026 Enrollment Report  - 26-27 Board Summary",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "17dEjNhDA2KPuQ5KuGLiq2upr5z2XBu6v",
+            "label": "1st and 2nd Read Draft of BEDH Public Participation at Board Meetings September 2026",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1XXS1pDR7LxxHJGxWV4zrJK6LxThHAp1k",
+            "label": "Policy COMMITTEE MEETING MINUTES",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-09-08",
+            "change": "new"
+          },
+          {
+            "file_id": "1KDMEEwtW4zJ6DOM5gdZy9crOlc6s0aIv",
+            "label": "Finance Committee Minutes_",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-09-04",
+            "change": "new"
+          },
+          {
+            "file_id": "1eY3pHCdon7PyIob7ysZo5hH6KXaUdcgG",
+            "label": "Board Meeting Minutes",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-09-14",
+            "change": "new"
+          },
+          {
+            "file_id": "13aQf1Lc_NegT8Zb_MdC5Nt0hj-TbvuWb",
+            "label": "Buildings__Grounds_Committee_meeting_minutes_09-03-2026.docx",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-09-03",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-09-14",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "37843596181",
+    "timestamp": "2026-10-08T21:00:42.193275Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "37768344669",
     "timestamp": "2026-10-08T11:13:10.504392Z",
     "trigger": "schedule",
