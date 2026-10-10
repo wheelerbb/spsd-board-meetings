@@ -1,5 +1,108 @@
 [
   {
+    "run_id": "38044946907",
+    "timestamp": "2026-10-10T10:28:46.567234Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-12-23",
+            "title": "Winter Break \u2013 No School",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1oUaqp4RHvo_qDRRuJyHxekNBCeReg8a4",
+            "label": "October 2026 Enrollment Report  - 26-27 Board Summary",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "modified"
+          },
+          {
+            "file_id": "1-vUJ9jK3Pb6BqjKvTzB0wq5P583O859I",
+            "label": "October 2026 Board Meeting Packet",
+            "doc_type": "packet",
+            "meeting_slug": "2026-10-14",
+            "change": "new"
+          },
+          {
+            "file_id": "1Z4uM9o_4dwWTHEWqIZPH5st2cnI6i0hQ",
+            "label": "FY27 YTD August 2026 Report _9.2.26 data.xlsx",
+            "doc_type": "misc",
+            "meeting_slug": "2026-09-02",
+            "change": "new"
+          },
+          {
+            "file_id": "1DKFrHU2HsYoCUkAO_LVH6_l6io5EOp5P",
+            "label": "FY26 EOY 6.30.26 Report_9.2.26 data",
+            "doc_type": "misc",
+            "meeting_slug": "2026-06-30",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-10-14",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "37987495106",
+    "timestamp": "2026-10-09T20:31:25.425071Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "37922034701",
     "timestamp": "2026-10-09T11:12:08.016533Z",
     "trigger": "schedule",

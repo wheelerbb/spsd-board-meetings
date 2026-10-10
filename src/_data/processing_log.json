@@ -1,5 +1,27 @@
 [
   {
+    "run_id": "38044946907",
+    "timestamp": "2026-10-10T10:31:10.279428Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 66,
+    "blurbs_generated": [],
+    "previews_generated": [
+      {
+        "slug": "2026-10-14",
+        "model": "gemini-2.5-pro"
+      }
+    ]
+  },
+  {
+    "run_id": "38044946907",
+    "timestamp": "2026-10-10T10:28:49.786362Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
     "run_id": "37922034701",
     "timestamp": "2026-10-09T11:14:03.545224Z",
     "stage": "post_process",
