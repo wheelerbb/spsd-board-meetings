@@ -1,5 +1,91 @@
 [
   {
+    "run_id": "38541639666",
+    "timestamp": "2026-10-14T09:23:16.477429Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2027-01-04",
+            "title": "Policy Committee Meeting",
+            "change": "modified"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1235674663",
+            "title": "splib_20260928 - South Portland Public Library - Maine POWs - September 28 2026"
+          },
+          {
+            "video_id": "1235509926",
+            "title": "Deputy Chief Seth Hagar - Public Safety Buildings Video Series"
+          },
+          {
+            "video_id": "1235487160",
+            "title": "Public Safety Virtual Session - October 8 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "38466968696",
+    "timestamp": "2026-10-13T20:58:37.772196Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "38390481323",
     "timestamp": "2026-10-13T11:31:06.488361Z",
     "trigger": "schedule",
