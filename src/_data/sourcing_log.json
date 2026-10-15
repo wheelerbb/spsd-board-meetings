@@ -1,5 +1,107 @@
 [
   {
+    "run_id": "38758743048",
+    "timestamp": "2026-10-15T15:19:15.140356Z",
+    "trigger": "push",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2027-01-07",
+            "title": "Buildings & Grounds Committee Meeting",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-10-14",
+            "label": "October Meeting Packet",
+            "doc_type": "minutes",
+            "change": "new"
+          }
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "16YHdgoc4YmlcEn6XFKSkrqcUkD47EjKs",
+            "label": "Board Slides",
+            "doc_type": "misc",
+            "meeting_slug": "2026-10-14",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1236253864",
+            "title": "wrp_20261014 - South Portland WRP - Pearl St Pump Station Groundbreaking - October 14 2026"
+          },
+          {
+            "video_id": "1236250840",
+            "title": "spboe_20261014 - South Portland Board of Education - October 14 2026"
+          },
+          {
+            "video_id": "1236226892",
+            "title": "sppb_20261014 - South Portland Planning Board - October 14 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-10-14",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "38709216661",
+    "timestamp": "2026-10-15T08:56:34.309168Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "38678882407",
     "timestamp": "2026-10-15T03:57:31.645275Z",
     "trigger": "push",
