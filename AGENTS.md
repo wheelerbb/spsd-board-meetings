@@ -187,3 +187,5 @@ Documents or transcripts found in auxiliary sources (Google Drive, Vimeo) are ma
 ### Vimeo Deep-Linking
 
 Timestamp deep links use `#t=[SECONDS]s` (e.g. `https://vimeo.com/12345678#t=300s`). Convert VTT cue times: `(H × 3600) + (M × 60) + S`. Verify a link on the live page when processing a new meeting.
+
+If the video has a lead-in the VTT lacks, every link lands early by the same amount. Set `video_offset: <seconds>` in the meeting's front matter (e.g. `23` on 2026-10-14). The layout adds it to both the deep links and the displayed times; the stored `seconds` stay as VTT cue times.

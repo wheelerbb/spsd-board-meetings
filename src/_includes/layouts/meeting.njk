@@ -101,6 +101,9 @@ layout: layouts/base.njk
 
     {# 3. TIMELINE #}
     {% if timeline and timeline.length %}
+    {# Timeline seconds are VTT cue times; video_offset (front matter, seconds) shifts them onto
+       the Vimeo video when it has a lead-in the transcript lacks (e.g. +23 on 2026-10-14). #}
+    {% set vo = video_offset or 0 %}
     <div class="content-block">
       <div class="section-head">Detailed Proceedings</div>
       <p class="tl-caption">Note: Transcripts are generated from video auto-captions. While highly accurate, they are non-official and do not meet State Archivist record-keeping requirements.</p>
@@ -109,9 +112,9 @@ layout: layouts/base.njk
         <li class="tl-item">
           <div class="tl-time">
             {% if has_video %}
-            <a href="{{ video_url }}#t={{ item.seconds }}s" target="_blank" class="tl-time-btn">
+            <a href="{{ video_url }}#t={{ item.seconds + vo }}s" target="_blank" class="tl-time-btn">
               <svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6V2z"/></svg>
-              {{ item.seconds | secondsToTime }}
+              {{ (item.seconds + vo) | secondsToTime }}
             </a>
             {% else %}
             <span class="tl-time-btn tl-time-btn--disabled">{{ item.seconds | secondsToTime }}</span>
@@ -126,9 +129,9 @@ layout: layouts/base.njk
               <li class="tl-child">
                 <div class="tl-child-meta">
                   {% if has_video %}
-                  <a href="{{ video_url }}#t={{ child.seconds }}s" target="_blank" class="tl-time-btn tl-time-btn--sm">
+                  <a href="{{ video_url }}#t={{ child.seconds + vo }}s" target="_blank" class="tl-time-btn tl-time-btn--sm">
                     <svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6V2z"/></svg>
-                    {{ child.seconds | secondsToTime }}
+                    {{ (child.seconds + vo) | secondsToTime }}
                   </a>
                   {% endif %}
                   <span class="tl-child-speaker">{{ child.speaker }}</span>
