@@ -7,6 +7,11 @@ import requests
 VIMEO_API_BASE = "https://api.vimeo.com"
 SPCTV_USER = "spctv"
 
+# SPC TV posts every city body's meetings to one channel, often several on the same date
+# (e.g. Planning Board + Board of Education on 2026-10-14), so only School Board videos may
+# be mapped to a meeting date.
+_SCHOOL_BOARD_TITLE = re.compile(r'\bspboe|board of education', re.I)
+
 _MONTHS = ["January", "February", "March", "April", "May", "June",
            "July", "August", "September", "October", "November", "December"]
 
@@ -19,6 +24,8 @@ def get_vimeo_mapping(file_path='vimeo_master_list.json'):
 
         mapping = {}
         for video_id, title in vimeo_data.items():
+            if not _SCHOOL_BOARD_TITLE.search(title):
+                continue
             # Match YYYYMMDD
             match = re.search(r'(\d{4})(\d{2})(\d{2})', title)
             if match:
