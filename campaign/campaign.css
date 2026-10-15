@@ -1,0 +1,38 @@
+/* Campaign recolor for the wheelerforspsd.org copy of the digest. Loaded after
+   src/assets/style.css by campaign/eleventy.config.js; the GitHub Pages build never sees it.
+   Palette from the campaign design system: harbor teal #224d4f, school bus yellow #ffd800,
+   off-white #f7f3ec. */
+:root {
+  --navy: #224d4f;       /* harbor teal: nav, hero, headers, card tops, footer */
+  --gold-light: #ffd800; /* school bus yellow: used almost only as text/accents on --navy */
+  /* --gold is mostly text or fills on light grounds (chips, labels, links, badges with #fff
+     text) where yellow would read 1.4:1, so it maps to teal. Yellow shows where the site is dark. */
+  --gold: #224d4f;
+  --cream: #f7f3ec;
+  --text: #224d4f;
+}
+
+/* Gold accents that sit on the dark (--navy) ground: keep them yellow, not teal-on-teal. */
+nav { border-bottom-color: var(--gold-light); }
+.nav-logo-mark { background: var(--gold-light); }
+nav a.nav-link[style] { color: var(--gold-light) !important; } /* inline gold on the Topics link */
+.disclosure-notice { background: rgba(255,216,0,.08); border-color: var(--gold-light); }
+.card-badge,
+.card-badge[data-type="Regular"] { background: rgba(255,216,0,.15); border-color: var(--gold-light); }
+footer { border-top-color: var(--gold-light); }
+.footer-disclosure { border-color: var(--gold-light); }
+
+/* Hardcoded rgba(200,150,62,…) gold tints in style.css. */
+.hero::before,
+.meeting-header::before {
+  background: radial-gradient(ellipse 60% 80% at 90% 50%, rgba(255,216,0,.12) 0%, transparent 70%);
+}
+.topic-chip { background: rgba(34,77,79,.07); border-color: rgba(34,77,79,.3); }
+.topic-section-label { background: rgba(34,77,79,.07); border-color: rgba(34,77,79,.35); }
+.source-badge--transcript { background: rgba(34,77,79,.07); }
+.upcoming-card { box-shadow: 0 10px 40px rgba(34,77,79,.1); }
+.upcoming-card:hover { box-shadow: 0 14px 48px rgba(34,77,79,.18); }
+.meeting-card:hover { box-shadow: 0 8px 30px rgba(34,77,79,.12); }
+
+/* Timestamp buttons are --navy and hover to --gold; both are teal now, so hover to yellow. */
+.tl-time-btn:hover { background: var(--gold-light); color: var(--navy); }

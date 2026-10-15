@@ -1,0 +1,13 @@
+// Assets-only Cloudflare Worker serving the campaign build at wheelerforspsd.org/spsd-board-meetings/.
+// The route runs in front of the main campaign site's Worker (Custom Domain), so that repo is untouched.
+{
+  "name": "spsd-board-meetings",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./_site",
+    "html_handling": "auto-trailing-slash"
+  },
+  "routes": [
+    { "pattern": "wheelerforspsd.org/spsd-board-meetings*", "zone_name": "wheelerforspsd.org" }
+  ]
+}
