@@ -8,8 +8,8 @@ knows about it.
 ## How it works
 
 - `eleventy.config.js` wraps the main `.eleventy.js` and builds to `campaign/_site/spsd-board-meetings/`
-  with `pathPrefix: /spsd-board-meetings/`. An HTML transform injects `campaign.css`, points the
-  logo at wheelerforspsd.org, and adds the "Paid for…" line to the footer. If `base.njk` changes so
+  with `pathPrefix: /spsd-board-meetings/`. An HTML transform injects `campaign.css`, swaps the
+  SP logo for the campaign wordmark (linked to wheelerforspsd.org), and adds the "Paid for…" line to the footer. If `base.njk` changes so
   one of those anchors no longer matches, the build throws rather than silently dropping it.
 - `campaign.css` overrides `style.css`'s color tokens (`--navy`, `--gold`, `--gold-light`, `--cream`,
   `--text`) plus a handful of hardcoded gold tints.

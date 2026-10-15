@@ -5,6 +5,11 @@ const base = require("../.eleventy.js");
 
 const PATH_PREFIX = "/spsd-board-meetings/";
 const CAMPAIGN_URL = "https://wheelerforspsd.org/";
+// Campaign site wordmark, using the footer (on-teal) coloring since the digest nav is teal.
+const LOCKUP = `<a href="${CAMPAIGN_URL}" class="lockup on-teal" aria-label="Wheeler for School Board">
+    <div class="l1"><span class="name">Wheeler</span><span class="chip">For</span></div>
+    <div class="l2"><span>S</span><span>C</span><span>H</span><span>O</span><span>O</span><span>L</span><span class="gap"></span><span>B</span><span>O</span><span>A</span><span>R</span><span>D</span></div>
+  </a>`;
 const PAID_FOR =
   "Paid for and authorized by Wheeler for School Board, 7 Ship Channel Rd, South Portland, ME 04106";
 
@@ -17,9 +22,9 @@ const EDITS = [
     replace: `<link rel="stylesheet" href="${PATH_PREFIX}assets/campaign.css">\n</head>`,
   },
   {
-    name: "logo link",
-    find: `<a href="${PATH_PREFIX}" class="nav-logo">`,
-    replace: `<a href="${CAMPAIGN_URL}" class="nav-logo">`,
+    name: "wordmark",
+    find: new RegExp(`<a href="${PATH_PREFIX}" class="nav-logo">[\\s\\S]*?</a>`),
+    replace: LOCKUP,
   },
   {
     name: "paid-for line",
@@ -31,12 +36,18 @@ const EDITS = [
 module.exports = function (eleventyConfig) {
   const cfg = base(eleventyConfig);
 
-  eleventyConfig.addPassthroughCopy({ "campaign/campaign.css": "assets/campaign.css" });
+  eleventyConfig.addPassthroughCopy({
+    "campaign/campaign.css": "assets/campaign.css",
+    "campaign/fonts": "assets/campaign-fonts",
+  });
 
   eleventyConfig.addTransform("campaign", function (content) {
     if (!(this.page.outputPath || "").endsWith(".html")) return content;
     return EDITS.reduce((html, edit) => {
-      const count = html.split(edit.find).length - 1;
+      const count =
+        typeof edit.find === "string"
+          ? html.split(edit.find).length - 1
+          : (html.match(new RegExp(edit.find.source, "g")) || []).length;
       if (count !== 1) {
         throw new Error(
           `campaign transform "${edit.name}": expected 1 match in ${this.page.inputPath}, found ${count}`

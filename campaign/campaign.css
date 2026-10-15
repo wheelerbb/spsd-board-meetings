@@ -14,7 +14,6 @@
 
 /* Gold accents that sit on the dark (--navy) ground: keep them yellow, not teal-on-teal. */
 nav { border-bottom-color: var(--gold-light); }
-.nav-logo-mark { background: var(--gold-light); }
 nav a.nav-link[style] { color: var(--gold-light) !important; } /* inline gold on the Topics link */
 .disclosure-notice { background: rgba(255,216,0,.08); border-color: var(--gold-light); }
 .card-badge,
@@ -36,3 +35,25 @@ footer { border-top-color: var(--gold-light); }
 
 /* Timestamp buttons are --navy and hover to --gold; both are teal now, so hover to yellow. */
 .tl-time-btn:hover { background: var(--gold-light); color: var(--navy); }
+
+/* Campaign wordmark in the nav (replaces the SP logo via the build transform). Rules ported
+   from wheelerforspsd.org/css/styles.css, footer (on-teal) coloring. Only Sora 800 is used. */
+@font-face { font-family: "Sora"; src: url("campaign-fonts/sora-800.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
+.lockup { display: inline-grid; text-decoration: none; font-size: 22px; }
+.lockup .l1 { display: flex; align-items: center; gap: .28em; white-space: nowrap; }
+.lockup .name,
+.lockup .chip,
+.lockup .l2 { font-family: "Sora", ui-sans-serif, system-ui, sans-serif; font-weight: 800; text-transform: uppercase; }
+.lockup .name { font-size: 1em; line-height: .9; letter-spacing: .01em; }
+.lockup .chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: .4em; line-height: 1; letter-spacing: .06em; white-space: nowrap;
+  padding: 0 .56em; border-radius: 4px; height: 1.8em;
+}
+.lockup .l2 { display: flex; justify-content: space-between; width: 100%; font-size: .6em; line-height: 1; margin-top: .22em; letter-spacing: -.01em; }
+.lockup .l2 span { display: inline-block; }
+.lockup .l2 .gap { width: .55em; }
+.lockup.on-teal .name,
+.lockup.on-teal .l2 { color: var(--cream); }
+.lockup.on-teal .chip { background: var(--gold-light); color: var(--navy); }
+@media (max-width: 640px) { .lockup { font-size: 18px; } }
