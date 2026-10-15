@@ -1,5 +1,49 @@
 [
   {
+    "run_id": "38781669712",
+    "timestamp": "2026-10-15T18:00:24.736342Z",
+    "trigger": "workflow_dispatch",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1LFBa0jGKK7Ze4Yr0vMx1pW2n04sMH_oM",
+            "label": "spboe_20261014 - South Portland Board of Education - October 14 2026",
+            "doc_type": "transcript",
+            "meeting_slug": "2026-10-14",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-10-14",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "38758743048",
     "timestamp": "2026-10-15T15:19:15.140356Z",
     "trigger": "push",

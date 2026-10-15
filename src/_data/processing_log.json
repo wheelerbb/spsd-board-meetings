@@ -1,5 +1,50 @@
 [
   {
+    "run_id": "38781669712",
+    "timestamp": "2026-10-15T18:03:54.226540Z",
+    "stage": "post_process",
+    "topics_updated": [
+      {
+        "topic": "Public Participation Policy",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Artificial Intelligence Policy",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Elementary School Reconfiguration",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "SPESPA Collective Bargaining",
+        "model": "gemini-3.5-flash",
+        "reason": "evidence changed"
+      }
+    ],
+    "topics_skipped": 62,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "38781669712",
+    "timestamp": "2026-10-15T18:01:51.144763Z",
+    "stage": "transcripts",
+    "targeted": [
+      "2026-10-14"
+    ],
+    "results": [
+      {
+        "slug": "2026-10-14",
+        "status": "Success"
+      }
+    ],
+    "rate_limited": []
+  },
+  {
     "run_id": "38758743048",
     "timestamp": "2026-10-15T15:20:20.102094Z",
     "stage": "post_process",

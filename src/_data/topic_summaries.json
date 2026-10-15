@@ -103,37 +103,39 @@
     }
   },
   "Elementary School Reconfiguration": {
-    "current_status": "The district is actively exploring elementary school reconfiguration scenarios to promote socioeconomic diversity and stability. A consulting firm is using GIS demographic modeling to evaluate potential attendance zones and grade-band options ahead of upcoming community forums.",
+    "current_status": "The district is analyzing community feedback on five proposed reconfiguration maps, which showed strong support for the current configuration and opposition to grade-banding. A steering committee will use this data to bring two refined proposals to the board for a workshop.",
     "overview": [
-      "On August 17, 2026, the administration shared findings from a steering committee and announced a partnership with a firm for demographic modeling of reconfiguration scenarios.",
-      "The board held a workshop on July 20, 2026, to identify and rank priorities for the reconfiguration, including socioeconomic balance, academic equity, and building use.",
-      "On April 29, 2026, the board voted 5-1 to delay the implementation of the elementary school reconfiguration until the 2027-2028 school year to allow for more thorough planning.",
-      "This vote reversed the board's previous decision from March 30, 2026, which had approved a reconfiguration plan to begin in Fall 2026.",
-      "On March 23, 2026, the administration had presented the reconfiguration model as the preferred option to accompany the closure of Kaler Elementary School.",
-      "The board first voted on February 9, 2026, to request a formal proposal from the superintendent on reconfiguring elementary schools as a potential cost-saving measure."
+      "On October 14, 2026, the administration presented community survey data on five proposed maps, with a committee now tasked to narrow the options to two proposals for a board workshop.",
+      "On August 17, 2026, the district announced a partnership with a firm for demographic modeling to evaluate potential attendance zones and grade-band scenarios.",
+      "On July 20, 2026, the board held a workshop to identify and rank priorities for the reconfiguration, including socioeconomic balance, academic equity, and proximity to home.",
+      "On April 29, 2026, the board voted 5-1 to officially delay the implementation of any elementary school reconfiguration until the 2027-2028 school year.",
+      "The board's decision to delay reversed its previous vote on March 30, 2026, which had adopted a 'Primary and Intermediate Model' for reconfiguration.",
+      "On February 9, 2026, the board formally requested a proposal from the superintendent on reconfiguring the elementary schools as a cost-saving measure, initiating the current process."
     ],
     "perspectives": {
       "Board": [
-        "Members have expressed differing views on prioritizing neighborhood schools versus implementing systemic change to achieve socioeconomic balance.",
-        "In response to public feedback, the board voted to delay the initial reconfiguration plan to allow for a more thoughtful and transparent process.",
-        "Some members have consistently argued that reconfiguration is a necessary step to address long-standing equity issues between schools.",
-        "The board initially voted 4-2 to adopt the reconfiguration plan, with supporters citing equity and opponents citing the rushed process."
+        "Members have expressed differing views on prioritizing neighborhood schools versus the need for systemic change to address segregation.",
+        "Following the initial rushed decision, the Board Chair initiated an action item to halt and delay the plan to allow for a more thorough process.",
+        "A majority of members initially expressed strong opposition to any scenario involving the closure of Skillin Elementary.",
+        "Some members have consistently argued that reconfiguration is a necessary step toward achieving greater equity, even if disruptive."
       ],
       "Administration": [
-        "The administration is leading the planning process, presenting data on demographic disparities and gathering community input on priorities.",
-        "District leaders have consistently recommended reconfiguration as the best method to desegregate schools, improve equity, and streamline services.",
-        "Reconfiguration was originally proposed as a major cost-saving concept to help address a structural budget deficit."
+        "The administration has consistently recommended reconfiguration as a way to improve equity, balance demographics, and streamline services across the district.",
+        "Assistant Superintendent Johanna Prince is leading a steering committee process to analyze data and community feedback to develop proposals for the board.",
+        "The administration initially advocated for a rapid reconfiguration following the vote to close Kaler Elementary but has since shifted to a longer planning timeline.",
+        "District leaders have presented data showing significant demographic and academic disparities between schools as the primary rationale for change."
       ],
       "Staff": [
-        "Feedback from staff has revealed a tension between those who prioritize equity-driven changes and those who advocate for preserving neighborhood schools.",
-        "Many teachers and union leaders voiced strong opposition to the initial rushed timeline, citing the immense pressure it placed on staff.",
-        "Some educators have spoken in favor of reconfiguration as a necessary, if disruptive, step toward achieving greater equity for all students."
+        "Feedback from district principals revealed a deep tension between staff prioritizing equity-driven changes and those advocating for the preservation of neighborhood schools.",
+        "Teachers and union leaders voiced strong opposition to the initial rushed reconfiguration plan, citing the immense pressure it placed on them and the lack of a clear plan.",
+        "Some educators have spoken in favor of reconfiguration as a necessary step toward achieving greater equity, despite the disruption.",
+        "Staff expressed deep anxiety over the rapid four-month timeline of the original plan and its impact on student well-being."
       ],
       "Citizens": [
-        "Community feedback has identified socioeconomic diversity and stability in school attendance as top priorities for any reconfiguration plan.",
-        "Many parents expressed relief over the delay of the initial plan, while some Kaler Elementary parents voiced frustration that the delay prolongs inequity.",
-        "Public comment has been divided, with some citizens supporting reconfiguration for equity and others opposing the disruption and rushed process.",
-        "Parents have consistently raised concerns about the impact on children, transportation challenges, and the need for a clear, transparent process."
+        "Recent survey data showed strong community support for the current school configuration and significant opposition to grade-banding or socioeconomic balancing maps.",
+        "Public comment has consistently revealed a deep division between those prioritizing equity and systemic change and those advocating for neighborhood schools and stability.",
+        "Many parents expressed relief over the delay of the initial plan but also frustration that the delay prolongs inequity, particularly for the Kaler Elementary community.",
+        "Parents have repeatedly criticized the process for being rushed and lacking transparency, raising concerns about logistics like transportation and childcare."
       ]
     }
   },
@@ -471,15 +473,16 @@
     }
   },
   "SPESPA Collective Bargaining": {
-    "current_status": "Negotiations with the South Portland Educational Support Professionals Association (SPESPA) are ongoing. Staff and union leaders are publicly urging the board to settle the contract quickly for educational support professionals.",
+    "current_status": "Negotiations between the school board and the South Portland School Department Service Employees Association remain stalled, with the union seeking mediation to address ongoing contract disputes and critical staffing shortages.",
     "overview": [
-      "On November 3, 2025, union leaders and staff publicly urged the board to expedite contract negotiations for educational support professionals.",
-      "The board voted to enter an executive session to discuss collective bargaining with SPESPA on May 30, 2024."
+      "On October 14, 2026, SPESPA President Connie DeSanto addressed the board regarding dangerously low Ed Tech staffing levels and noted that the union has sought a mediator due to frustration over contract negotiations.",
+      "On November 3, 2025, union leaders and staff urged the board during public comment to quickly settle the contract for educational support professionals.",
+      "On May 30, 2024, the board voted unanimously to enter into executive session to discuss collective bargaining with the South Portland School Department Service Employees Association."
     ],
     "perspectives": {
       "Staff": [
-        "Union leaders and members urged the board to settle the contract quickly.",
-        "Speakers highlighted the crucial role of ed techs, clerks, and office managers."
+        "Union leadership is frustrated with negotiations, has requested a mediator, and is open to temporary subcontracting to address critical Ed Tech staffing shortages.",
+        "Staff and union representatives emphasize the crucial, underappreciated roles of ed techs, clerks, and office managers in the district."
       ]
     }
   },
@@ -591,17 +594,28 @@
     }
   },
   "Artificial Intelligence Policy": {
-    "current_status": "The district is implementing an educational strategy for Artificial Intelligence centered on a 'walled garden' software approach and a 'traffic light' system for assignments. The plan focuses on developing curriculum for students and providing training for staff.",
+    "current_status": "The AI Advisory Committee is developing policy guidelines due in January 2027. A proposed moratorium on student AI use was recently withdrawn to allow for more community and staff engagement before the board takes action.",
     "overview": [
-      "On July 14, 2025, the Director of Technology presented the AI Steering Committee's plan to educate students and staff using a 'walled garden' software approach, curriculum development, and a 'traffic light' system for assignments.",
-      "On July 8, 2024, the AI Steering Committee first proposed a controlled 'walled garden' approach using Magic School AI, recommending staff competency training and delaying formal policy changes in favor of adapting existing ones."
+      "On October 14, 2026, the board discussed and ultimately withdrew a proposed moratorium on K-8 student AI use to allow for more stakeholder engagement.",
+      "On July 14, 2025, the AI Steering Committee presented a plan to educate students and staff using a 'walled garden' software approach and a 'traffic light' system for assignments.",
+      "On July 8, 2024, the district's AI Steering Committee first proposed a controlled 'walled garden' approach using Magic School AI, requiring staff training, and adapting existing policies."
     ],
     "perspectives": {
+      "Board": [
+        "Engaged in lengthy discussion regarding a potential student AI moratorium.",
+        "Withdrew the proposed moratorium to seek more stakeholder input before enacting policy."
+      ],
       "Administration": [
-        "Recommends a 'walled garden' software approach using tools like Magic School AI.",
-        "Proposes a 'traffic light' system for teachers to clarify acceptable AI use on assignments.",
-        "Advocates for developing student curriculum on ethical AI use and requiring staff competency training.",
-        "Favors adapting existing policies rather than creating a new formal AI policy."
+        "The Director of Technology is leading an AI Advisory Committee to develop guidelines, policies, and educational materials.",
+        "Recommends a 'walled garden' software approach and a 'traffic light' system for assignments.",
+        "Proposes developing student curriculum and requiring staff competency training."
+      ],
+      "Staff": [
+        "The board is seeking more staff engagement before enacting policy.",
+        "Competency training is a required component of the administration's plan."
+      ],
+      "Citizens": [
+        "The board is seeking more community engagement before enacting policy."
       ]
     }
   },
@@ -1241,13 +1255,20 @@
     }
   },
   "Public Participation Policy": {
-    "current_status": "The board is considering changes to the public participation policy. A first read proposed eliminating the practice of yielding time to other speakers and setting a 10:00 PM meeting end time.",
+    "current_status": "The board has approved changes to the public participation policy, which eliminates the ability for speakers to yield their time to another person. The new policy was passed on a 4-2 vote and is now in effect.",
     "overview": [
-      "On September 14, 2026, the board held a first read of changes to the public participation policy (BEDH), which proposed eliminating the practice of yielding time and setting a 10:00 PM meeting end time."
+      "On October 14, 2026, the board held a second reading and voted 4-2 to approve the revised public participation policy, eliminating the practice of yielding time.",
+      "The board held a first reading of proposed changes to the public participation policy (BEDH) on September 14, 2026, which included eliminating time-yielding and setting a 10:00 PM meeting end time."
     ],
     "perspectives": {
+      "Board": [
+        "The final vote was split 4-2, indicating division on the issue.",
+        "Some members supported the change as a necessary step.",
+        "Other members argued the change unnecessarily limits the public's voice."
+      ],
       "Citizens": [
-        "The proposed changes sparked debate during the public comment period."
+        "Public comment occurred at both meetings where the policy was discussed.",
+        "The proposed changes sparked debate during public comment at the September 14, 2026 meeting."
       ]
     }
   }
