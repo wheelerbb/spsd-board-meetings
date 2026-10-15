@@ -202,6 +202,7 @@ nav a.nav-link:hover { color:var(--gold-light); }
 .card-badge[data-type="Workshop"]      { background:rgba(52,211,153,.2);   border-color:#34d399;      color:#6ee7b7; }
 .card-badge[data-type="Exec. Session"] { background:rgba(148,163,184,.2);  border-color:#94a3b8;      color:#cbd5e1; }
 .card-badge[data-type="Inauguration"]  { background:rgba(167,139,250,.2);  border-color:#a78bfa;      color:#ddd6fe; }
+.card-badge[data-type="Retreat"]       { background:rgba(45,212,191,.2);   border-color:#2dd4bf;      color:#99f6e4; }
 .card-badge[data-type="Emergency"]     { background:rgba(248,113,113,.2);  border-color:#f87171;      color:#fca5a5; }
 
 /* TOPICS INDEX PAGE */

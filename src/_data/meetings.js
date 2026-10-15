@@ -30,6 +30,7 @@ function meetingType(tag) {
   if (t.startsWith('workshop'))  return 'Workshop';
   if (t.startsWith('emergency')) return 'Emergency';
   if (t.startsWith('inaug'))     return 'Inauguration';
+  if (t.startsWith('retreat'))   return 'Retreat';
   return 'Regular';
 }
 

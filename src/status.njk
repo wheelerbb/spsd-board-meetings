@@ -21,6 +21,9 @@ title: "Data Status — School Board Meeting Archive"
   
   .file-list { list-style: none; margin: 0; padding: 0; }
   .file-list li { margin-bottom: 2px; }
+
+  .unmapped-section { margin-top: 2.5rem; }
+  .unmapped-section p { margin-bottom: 1rem; }
 </style>
 
 <div class="hero" style="padding: 3rem 2rem;">
@@ -143,4 +146,24 @@ title: "Data Status — School Board Meeting Archive"
       </tbody>
     </table>
   </div>
+
+  {% if unmapped_documents and unmapped_documents.length > 0 %}
+  <div class="unmapped-section">
+    <div class="section-head">Unmapped Files</div>
+    <p>The table below lists files found in the district's Google Drive folder but not matched to a meeting date (date not identified in the document content, filename, or on the SPSD site).</p>
+    <div class="status-table-container">
+      <table class="status-table">
+        <thead><tr><th>File</th><th>Type</th></tr></thead>
+        <tbody>
+          {% for doc in unmapped_documents %}
+          <tr>
+            <td><a href="{{ doc.url }}" target="_blank" rel="noopener">{{ doc.label }}</a></td>
+            <td>{{ doc.type }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 </div>
