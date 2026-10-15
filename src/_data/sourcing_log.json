@@ -1,5 +1,85 @@
 [
   {
+    "run_id": "38671722506",
+    "timestamp": "2026-10-15T02:36:50.032154Z",
+    "trigger": "push",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1-vUJ9jK3Pb6BqjKvTzB0wq5P583O859I",
+            "label": "October 2026 Board Meeting Packet",
+            "doc_type": "packet",
+            "meeting_slug": "2026-10-14",
+            "change": "modified"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1235910487",
+            "title": "spcc_20261013 - South Portland City Council - October 13 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "38627858279",
+    "timestamp": "2026-10-14T19:57:05.515111Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "38541639666",
     "timestamp": "2026-10-14T09:23:16.477429Z",
     "trigger": "schedule",
