@@ -19,8 +19,9 @@
     </div>
   </a>
   <div class="nav-links">
-    <a href="{{ '/meetings/' | url }}" class="nav-link">Meetings</a>
-    <a href="{{ '/topics/' | url }}" class="nav-link" style="color:var(--gold); font-weight:700;">Topics</a>
+    {% set pageUrl = page.url or '' %}
+    <a href="{{ '/meetings/' | url }}" class="nav-link{% if pageUrl.startsWith('/meetings/') %} active{% endif %}"{% if pageUrl == '/meetings/' %} aria-current="page"{% endif %}>Meetings</a>
+    <a href="{{ '/topics/' | url }}" class="nav-link{% if pageUrl.startsWith('/topics/') %} active{% endif %}"{% if pageUrl == '/topics/' %} aria-current="page"{% endif %}>Topics</a>
   </div>
 </nav>
 

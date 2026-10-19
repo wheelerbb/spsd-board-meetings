@@ -12,6 +12,7 @@ pageScript: |
     currentYear = year;
     applyFilters();
     updateAvailableTopics();
+    updateFilterStatus();
   }
 
   function filterTopic(topic, btn) {
@@ -20,6 +21,27 @@ pageScript: |
     currentTopic = topic;
     applyFilters();
     highlightTopicChips(topic);
+    updateFilterStatus();
+  }
+
+  function updateFilterStatus() {
+    const active = [currentYear, currentTopic].filter(v => v !== 'all');
+    document.getElementById('filtersClear').hidden = active.length === 0;
+    document.getElementById('filtersSummary').textContent = active.map(v => '· ' + v).join(' ');
+  }
+
+  function clearFilters() {
+    document.querySelector('.year-btn').click();
+    document.querySelector('.topic-filter-btn[data-topic="all"]').click();
+  }
+
+  function toggleFilters(btn) {
+    const collapsed = document.getElementById('filtersPanel').classList.toggle('collapsed');
+    btn.setAttribute('aria-expanded', String(!collapsed));
+  }
+
+  if (window.matchMedia('(max-width: 640px)').matches) {
+    toggleFilters(document.querySelector('.filters-toggle'));
   }
 
   function highlightTopicChips(topic) {
@@ -91,7 +113,10 @@ pageScript: |
       e.stopPropagation();
       const topic = e.target.dataset.topic;
       const filterBtn = Array.from(document.querySelectorAll('.topic-filter-btn')).find(b => b.dataset.topic === topic);
-      if (filterBtn) filterBtn.click();
+      if (filterBtn) {
+        filterBtn.click();
+        document.getElementById('filtersPanel').scrollIntoView({ block: 'start' });
+      }
     }
   });
 ---
@@ -99,12 +124,18 @@ pageScript: |
 <div class="hero">
   <div class="hero-inner">
     <h1>Meeting Index</h1>
-    <div class="disclosure-notice">
-      Select a meeting below to view a detailed summary including trascript highlights along side links to the specific video section.
-    </div>
+    <div class="hero-subtitle">Select an individual meeting for a detailed summary.</div>
   </div>
 </div>
 
+<div class="filters-panel" id="filtersPanel">
+<div class="filters-header">
+  <button class="filters-toggle" aria-expanded="true" aria-controls="filtersBody" onclick="toggleFilters(this)">
+    Filters <span class="filters-summary" id="filtersSummary"></span>
+  </button>
+  <button class="filters-clear" id="filtersClear" hidden onclick="clearFilters()">Clear ✕</button>
+</div>
+<div class="filters-body" id="filtersBody">
 <div class="filter-bar">
   <span class="filter-label">School Year</span>
   <div class="filter-content">
@@ -130,6 +161,8 @@ pageScript: |
   <button class="expand-toggle" onclick="toggleTopics(this)">
     <span class="toggle-text">Show more</span>
   </button>
+</div>
+</div>
 </div>
 
 <main class="main" id="meetingList">
