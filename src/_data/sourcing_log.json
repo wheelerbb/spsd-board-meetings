@@ -1,5 +1,78 @@
 [
   {
+    "run_id": "39574886862",
+    "timestamp": "2026-10-21T09:12:46.671197Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2027-01-11",
+            "title": "School Board Meeting",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "39486565796",
+    "timestamp": "2026-10-20T19:48:50.468392Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "39399108891",
     "timestamp": "2026-10-20T09:15:17.283186Z",
     "trigger": "schedule",
