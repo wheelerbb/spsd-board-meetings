@@ -1,5 +1,151 @@
 [
   {
+    "run_id": "40039323538",
+    "timestamp": "2026-10-23T23:24:31.160346Z",
+    "trigger": "workflow_dispatch",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-11-02",
+        "2026-11-09",
+        "2026-12-14",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "40038751427",
+    "timestamp": "2026-10-23T23:21:00.281300Z",
+    "trigger": "workflow_dispatch",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-12-04",
+            "title": "Finance Committee Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2026-12-14",
+            "title": "School Board Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2026-11-02",
+            "title": "Policy Committee Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2027-01-07",
+            "title": "Buildings & Grounds Committee Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2026-12-08",
+            "title": "Policy Committee Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2026-10-26",
+            "title": "Special Board Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2026-11-05",
+            "title": "Buildings & Grounds Committee Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2026-11-09",
+            "title": "School Board Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2027-01-04",
+            "title": "Finance Committee Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2026-10-29",
+            "title": "SPHS Athletic Complex Presentation and Public Comment",
+            "change": "modified"
+          },
+          {
+            "date": "2026-10-28",
+            "title": "Elementary Reconfiguration Steering Committee Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2026-12-03",
+            "title": "Buildings & Grounds Committee Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2026-10-30",
+            "title": "Finance Committee Meeting",
+            "change": "modified"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-10-26",
+        "2026-11-02",
+        "2026-11-09",
+        "2026-12-14",
+        "2026-10-14",
+        "2026-09-14",
+        "2026-07-20",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "40038751268",
     "timestamp": "2026-10-23T23:17:20.215169Z",
     "trigger": "push",

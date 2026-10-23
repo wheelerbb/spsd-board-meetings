@@ -1,5 +1,44 @@
 [
   {
+    "run_id": "40039323538",
+    "timestamp": "2026-10-23T23:25:09.485230Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 66,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "40039323538",
+    "timestamp": "2026-10-23T23:24:34.215683Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
+    "run_id": "40038751427",
+    "timestamp": "2026-10-23T23:21:59.701254Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 66,
+    "blurbs_generated": [],
+    "previews_generated": [
+      {
+        "slug": "2026-10-26",
+        "model": "gemini-2.5-pro"
+      }
+    ]
+  },
+  {
+    "run_id": "40038751427",
+    "timestamp": "2026-10-23T23:21:04.619038Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
     "run_id": "40038751268",
     "timestamp": "2026-10-23T23:18:09.980172Z",
     "stage": "post_process",
@@ -2508,40 +2547,6 @@
   {
     "run_id": "32397688377",
     "timestamp": "2026-08-20T17:27:56.980133Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "32396738968",
-    "timestamp": "2026-08-20T17:19:44.079069Z",
-    "stage": "post_process",
-    "topics_updated": [],
-    "topics_skipped": 88,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "32396738968",
-    "timestamp": "2026-08-20T17:19:13.853122Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "32396736498",
-    "timestamp": "2026-08-20T17:18:21.794783Z",
-    "stage": "post_process",
-    "topics_updated": [],
-    "topics_skipped": 88,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "32396736498",
-    "timestamp": "2026-08-20T17:17:42.952965Z",
     "stage": "transcripts",
     "targeted": [],
     "results": [],
