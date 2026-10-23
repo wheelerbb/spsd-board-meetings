@@ -137,6 +137,44 @@ def _dedupe_identical_content(docs, catalog, bucket_uri):
         return docs, 0
     return [d for i, d in enumerate(docs) if i not in to_drop], len(to_drop)
 
+def _resolve_title(dt, data):
+    """Derive (heading, meeting type, location) for a date from its current Apptegy events, else
+    site data. Shared by stub creation and the stub refresh in reconcile_meetings, so a meeting
+    the district re-titles or reschedules (e.g. a workshop moved out and a special meeting
+    dropped into its slot) gets its heading re-derived rather than frozen at creation time."""
+    title = "Regular Meeting"
+    location = "South Portland High School Lecture Hall"
+    mtype = "Regular"
+
+    if data.get('events'):
+        valid_events = [e for e in data['events'] if 'board' in e.get('title', '').lower() or 'executive' in e.get('title', '').lower()]
+        event = valid_events[0] if valid_events else data['events'][0]
+        title = event.get('title', title)
+        location = event.get('location', location)
+    elif data.get('site'):
+        mtype = data['site'].get('type', mtype)
+        title = f"{mtype} Meeting"
+
+    # Refine mtype based on title
+    title_lower = title.lower()
+    if "special" in title_lower: mtype = "Special"
+    elif "workshop" in title_lower: mtype = "Workshop"
+    elif "budget" in title_lower: mtype = "Budget"
+    elif "executive" in title_lower: mtype = "Executive Session"
+
+    # Final title cleanup
+    if mtype == "Regular":
+        title = f"{dt.strftime('%B')} Regular Meeting"
+    elif "meeting" not in title_lower:
+        title = f"{mtype} Meeting"
+
+    return title, mtype, location
+
+
+def _meeting_tag(dt, mtype):
+    return f"{mtype} Meeting · {dt.strftime('%B %Y')}"
+
+
 def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
     """
     Unified reconciliation and stub generation.
@@ -264,6 +302,18 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
                     fm_data['docs'] = merged_docs
                     updated = True
 
+                # Upcoming stubs track the district's current schedule: re-derive heading/tag
+                # from this run's events. Processed meetings keep theirs.
+                if fm_data.get('stub') and has_valid_event:
+                    dt = datetime.strptime(date_slug, "%Y-%m-%d")
+                    title, mtype, _ = _resolve_title(dt, data)
+                    tag = _meeting_tag(dt, mtype)
+                    if fm_data.get('heading') != title or fm_data.get('meeting_tag') != tag:
+                        print(f"  Re-titling stub {date_slug}: {fm_data.get('heading')!r} -> {title!r}")
+                        fm_data['heading'] = title
+                        fm_data['meeting_tag'] = tag
+                        updated = True
+
                 if video_url and not fm_data.get('video_url'):
                     fm_data['video_url'] = video_url
                     fm_data['has_video'] = True
@@ -309,32 +359,7 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
         display_date = dt.strftime("%B %d, %Y").replace(" 0", " ")
         day_of_week = dt.strftime("%A")
 
-        # Resolve Title & Location
-        title = "Regular Meeting"
-        location = "South Portland High School Lecture Hall"
-        mtype = "Regular"
-
-        if data.get('events'):
-            valid_events = [e for e in data['events'] if 'board' in e.get('title', '').lower() or 'executive' in e.get('title', '').lower()]
-            event = valid_events[0] if valid_events else data['events'][0]
-            title = event.get('title', title)
-            location = event.get('location', location)
-        elif data.get('site'):
-            mtype = data['site'].get('type', mtype)
-            title = f"{mtype} Meeting"
-
-        # Refine mtype based on title
-        title_lower = title.lower()
-        if "special" in title_lower: mtype = "Special"
-        elif "workshop" in title_lower: mtype = "Workshop"
-        elif "budget" in title_lower: mtype = "Budget"
-        elif "executive" in title_lower: mtype = "Executive Session"
-
-        # Final title cleanup
-        if mtype == "Regular":
-            title = f"{dt.strftime('%B')} Regular Meeting"
-        elif "meeting" not in title_lower:
-            title = f"{mtype} Meeting"
+        title, mtype, location = _resolve_title(dt, data)
 
         front_matter = {
             "layout": "layouts/meeting.njk",
@@ -343,7 +368,7 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
             "breadcrumb": dt.strftime("%b %d, %Y").replace(" 0", " "),
             "display_date": display_date,
             "day_of_week": day_of_week,
-            "meeting_tag": f"{mtype} Meeting · {dt.strftime('%B %Y')}",
+            "meeting_tag": _meeting_tag(dt, mtype),
             "time": "6:00 PM",
             "location": location,
             "has_video": bool(video_url),
@@ -474,11 +499,10 @@ def main():
         cache_updated = True
         apptegy_fetched = True
         event_mapping = apptegy.get_event_mapping(events)
-        for date_slug, info in event_mapping.items():
+        for date_slug, day_events in event_mapping.items():
             if date_slug < CUTOFF_DATE: continue
             if date_slug not in all_data: all_data[date_slug] = {}
-            if 'events' not in all_data[date_slug]: all_data[date_slug]['events'] = []
-            all_data[date_slug]['events'].append(info)
+            all_data[date_slug]['events'] = day_events
         apptegy_changed = []
         for s in {s for s in event_mapping if s >= CUTOFF_DATE}:
             new_events = all_data.get(s, {}).get('events')

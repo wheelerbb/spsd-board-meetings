@@ -29,7 +29,8 @@ def parse_event_date(event):
     return start_at.split('T')[0]
 
 def get_event_mapping(events):
-    """Creates a mapping of date_slug to event details."""
+    """Creates a mapping of date_slug to the list of that day's event details (a day can hold
+    several, e.g. a committee meeting and a board workshop)."""
     mapping = {}
     for event in events:
         date_slug = parse_event_date(event)
@@ -37,11 +38,11 @@ def get_event_mapping(events):
             continue
         
         # Capture basic info for now
-        mapping[date_slug] = {
+        mapping.setdefault(date_slug, []).append({
             'title': event.get('title'),
             'location': event.get('location'),
             'id': event.get('id')
-        }
+        })
     return mapping
 
 if __name__ == "__main__":
