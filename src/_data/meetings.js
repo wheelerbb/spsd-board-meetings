@@ -51,6 +51,8 @@ function getMeetings() {
           date:           slug,
           display_date:   data.display_date,
           day_of_week:    data.day_of_week    || '',
+          time:           data.time           || '',
+          location:       data.location       || '',
           type:           meetingType(data.meeting_tag),
           // NOTE: meetings.json 'title' = .njk 'heading' (short display title).
           //       .njk 'title' is the HTML <title> tag value — do NOT use that.

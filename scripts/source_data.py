@@ -138,19 +138,19 @@ def _dedupe_identical_content(docs, catalog, bucket_uri):
     return [d for i, d in enumerate(docs) if i not in to_drop], len(to_drop)
 
 def _resolve_title(dt, data):
-    """Derive (heading, meeting type, location) for a date from its current Apptegy events, else
-    site data. Shared by stub creation and the stub refresh in reconcile_meetings, so a meeting
+    """Derive (heading, meeting type, Apptegy location or None) for a date from its current
+    Apptegy events, else site data. Shared by stub creation and the stub refresh in reconcile_meetings, so a meeting
     the district re-titles or reschedules (e.g. a workshop moved out and a special meeting
     dropped into its slot) gets its heading re-derived rather than frozen at creation time."""
     title = "Regular Meeting"
-    location = "South Portland High School Lecture Hall"
+    location = None
     mtype = "Regular"
 
     if data.get('events'):
         valid_events = [e for e in data['events'] if 'board' in e.get('title', '').lower() or 'executive' in e.get('title', '').lower()]
         event = valid_events[0] if valid_events else data['events'][0]
         title = event.get('title', title)
-        location = event.get('location', location)
+        location = event.get('location')
     elif data.get('site'):
         mtype = data['site'].get('type', mtype)
         title = f"{mtype} Meeting"
@@ -169,6 +169,33 @@ def _resolve_title(dt, data):
         title = f"{mtype} Meeting"
 
     return title, mtype, location
+
+
+def _resolve_location(event_location, docs, catalog, bucket_uri):
+    """Apptegy's venue when it names a place; otherwise the location in the meeting's own agenda
+    header (agenda first, then packet), read from the shared Drive catalog's cached text. A bare
+    street address from Apptegy ("637 Highland Ave, ...") is less specific than the agenda's room,
+    so it's only the last resort. None if nothing has a location."""
+    if event_location and not re.match(r'\d+\s', event_location):
+        return event_location
+    return _agenda_location(docs, catalog, bucket_uri) or event_location
+
+
+def _agenda_location(docs, catalog, bucket_uri):
+    if not bucket_uri or not catalog:
+        return None
+    for doc_type in ('agenda', 'packet'):
+        for d in docs or []:
+            if d.get('type') != doc_type:
+                continue
+            m = re.search(r'/file/d/([^/?]+)', d.get('url') or '')
+            entry = catalog.get(m.group(1)) if m else None
+            if not entry or not entry.get('text_blob'):
+                continue
+            location = drive.extract_location_from_content(drive.read_cached_blob(bucket_uri, entry['text_blob']))
+            if location:
+                return location
+    return None
 
 
 def _meeting_tag(dt, mtype):
@@ -304,14 +331,23 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
 
                 # Upcoming stubs track the district's current schedule: re-derive heading/tag
                 # from this run's events. Processed meetings keep theirs.
+                dt = datetime.strptime(date_slug, "%Y-%m-%d")
+                title, mtype, event_location = _resolve_title(dt, data)
                 if fm_data.get('stub') and has_valid_event:
-                    dt = datetime.strptime(date_slug, "%Y-%m-%d")
-                    title, mtype, _ = _resolve_title(dt, data)
                     tag = _meeting_tag(dt, mtype)
                     if fm_data.get('heading') != title or fm_data.get('meeting_tag') != tag:
                         print(f"  Re-titling stub {date_slug}: {fm_data.get('heading')!r} -> {title!r}")
                         fm_data['heading'] = title
                         fm_data['meeting_tag'] = tag
+                        updated = True
+
+                # Location likewise tracks the schedule for upcoming stubs (an agenda often lands
+                # after the stub is created); for past meetings it's only filled in when missing.
+                if (fm_data.get('stub') and date_slug >= date.today().isoformat()) or not fm_data.get('location'):
+                    location = _resolve_location(event_location, merged_docs, catalog, bucket_uri)
+                    if location and location != fm_data.get('location'):
+                        print(f"  Setting location for {date_slug}: {fm_data.get('location')!r} -> {location!r}")
+                        fm_data['location'] = location
                         updated = True
 
                 if video_url and not fm_data.get('video_url'):
@@ -359,7 +395,8 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
         display_date = dt.strftime("%B %d, %Y").replace(" 0", " ")
         day_of_week = dt.strftime("%A")
 
-        title, mtype, location = _resolve_title(dt, data)
+        title, mtype, event_location = _resolve_title(dt, data)
+        location = _resolve_location(event_location, combined_docs, catalog, bucket_uri)
 
         front_matter = {
             "layout": "layouts/meeting.njk",

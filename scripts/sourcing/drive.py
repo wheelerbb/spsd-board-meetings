@@ -336,6 +336,52 @@ def extract_date_from_content(text):
         return _month_date_to_iso(match)
     return None
 
+# An agenda header reads "<KIND> <DAY>, <MONTH> <D>, <YYYY> <TIME> P.M. <LOCATION>" in all caps,
+# e.g. "REGULAR MEETING MONDAY, SEPTEMBER 14, 2026 6:00 P.M. SOUTH PORTLAND HIGH SCHOOL / LECTURE
+# HALL 1.0 Call to Order". The location is the all-caps run after the time, ending at the first
+# agenda item number, attendance checkbox, REVISED marker, or mixed-case word. Case-sensitive on
+# purpose: body text ("6 p.m. Monday, August 17, SPHS Lecture Hall") never matches.
+_AGENDA_HEADER_LOCATION = re.compile(
+    r"\b\d{1,2}:\d{2}\s*[AP]\.?\s?M\.?\s+"
+    r"(?P<loc>[A-Z0-9&/.,'\-]+(?:\s+[A-Z0-9&/.,'\-]+)*?)"
+    r"\s*(?=REVISED\b|\d+\.\d|☐|[A-Z][a-z]|$)"
+)
+_LOCATION_SCAN_CHARS = 8000  # packets can open with a full executive-session section first
+
+
+def _title_case_location(loc):
+    words = []
+    for w in loc.split():
+        # Keep vowel-less abbreviations (SPHS) upper; title-case the rest.
+        words.append(w if not re.search(r'[AEIOU]', w) and len(w) > 1 else w.capitalize())
+    return ' '.join(words)
+
+
+def extract_location_from_content(text):
+    """
+    Finds a meeting's location from its agenda header (see _AGENDA_HEADER_LOCATION). Packets for
+    regular meetings often lead with an executive-session header in a different room, so the first
+    header not preceded by EXECUTIVE SESSION wins; an executive-session-only agenda falls back to its
+    own header. Returns None if no header is found.
+    """
+    if not text:
+        return None
+    norm = re.sub(r'\s+', ' ', text[:_LOCATION_SCAN_CHARS])
+    fallback = None
+    for m in _AGENDA_HEADER_LOCATION.finditer(norm):
+        loc = m.group('loc').strip(' /,-')
+        # Older PDFs extract with word spacing lost ("SOUTHPORTLANDHIGHSCHOOL/ LECTUREHALL") —
+        # no usable location there.
+        if len(loc) < 3 or any(len(w) > 15 for w in re.split(r'[\s/]+', loc)):
+            continue
+        loc = _title_case_location(loc)
+        if 'EXECUTIVE SESSION' in norm[max(0, m.start() - 80):m.start()]:
+            fallback = fallback or loc
+            continue
+        return loc
+    return fallback
+
+
 def categorize_document(filename):
     """Categorizes the document based on its name."""
     name_lower = filename.lower()

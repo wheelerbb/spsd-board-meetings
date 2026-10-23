@@ -40,7 +40,7 @@ def get_event_mapping(events):
         # Capture basic info for now
         mapping.setdefault(date_slug, []).append({
             'title': event.get('title'),
-            'location': event.get('location'),
+            'location': (event.get('venue') or '').strip() or None,
             'id': event.get('id')
         })
     return mapping
