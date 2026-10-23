@@ -1,5 +1,27 @@
 [
   {
+    "run_id": "40038751268",
+    "timestamp": "2026-10-23T23:18:09.980172Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 66,
+    "blurbs_generated": [],
+    "previews_generated": [
+      {
+        "slug": "2026-10-26",
+        "model": "gemini-2.5-pro"
+      }
+    ]
+  },
+  {
+    "run_id": "40038751268",
+    "timestamp": "2026-10-23T23:17:22.940757Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
     "run_id": "40017825318",
     "timestamp": "2026-10-23T20:20:46.492490Z",
     "stage": "post_process",
@@ -2520,23 +2542,6 @@
   {
     "run_id": "32396736498",
     "timestamp": "2026-08-20T17:17:42.952965Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "32391053480",
-    "timestamp": "2026-08-20T16:18:28.985537Z",
-    "stage": "post_process",
-    "topics_updated": [],
-    "topics_skipped": 88,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "32391053480",
-    "timestamp": "2026-08-20T16:17:55.419251Z",
     "stage": "transcripts",
     "targeted": [],
     "results": [],
