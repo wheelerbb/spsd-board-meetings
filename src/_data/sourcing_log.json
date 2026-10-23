@@ -1,5 +1,65 @@
 [
   {
+    "run_id": "40017825318",
+    "timestamp": "2026-10-23T20:19:16.310320Z",
+    "trigger": "workflow_dispatch",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2027-01-04",
+            "title": "Finance Committee Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2026-11-02",
+            "title": "Policy Committee Meeting",
+            "change": "modified"
+          },
+          {
+            "date": "2026-10-26",
+            "title": "Special Board Meeting",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1Sf_MIDjFYR3FjbsFRl5i4Ulnjz5NKqfH",
+            "label": "SCHOOL BOARD AGENDA - SPECIAL MEETING",
+            "doc_type": "agenda",
+            "meeting_slug": "2026-10-26",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-10-26",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "40017825579",
     "timestamp": "2026-10-23T20:16:05.063847Z",
     "trigger": "push",
