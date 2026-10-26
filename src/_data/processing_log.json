@@ -1,5 +1,22 @@
 [
   {
+    "run_id": "40302603339",
+    "timestamp": "2026-10-26T09:53:02.646830Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 66,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "40302603339",
+    "timestamp": "2026-10-26T09:52:18.045874Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
     "run_id": "40178784987",
     "timestamp": "2026-10-25T09:02:31.730426Z",
     "stage": "post_process",
@@ -2141,41 +2158,6 @@
     "stage": "transcripts",
     "targeted": [],
     "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "32403959012",
-    "timestamp": "2026-08-20T18:40:11.701797Z",
-    "stage": "post_process",
-    "topics_updated": [
-      "FY26 Budget",
-      "School Safety",
-      "Diversity Equity and Inclusion",
-      "Social Emotional Learning Programs",
-      "Property Tax Impact",
-      "Inclement Weather Policy",
-      "In-School Health Clinics",
-      "SPHS Principal Appointment",
-      "Multi-Tiered Systems of Support",
-      "Physical Restraint and Seclusion Policy"
-    ],
-    "topics_skipped": 78,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "32403959012",
-    "timestamp": "2026-08-20T18:38:10.016785Z",
-    "stage": "transcripts",
-    "targeted": [
-      "2025-03-17"
-    ],
-    "results": [
-      {
-        "slug": "2025-03-17",
-        "status": "Success"
-      }
-    ],
     "rate_limited": []
   }
 ]
