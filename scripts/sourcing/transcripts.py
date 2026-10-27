@@ -30,6 +30,17 @@ def _parse_vtt_date(filename):
     return None
 
 
+def to_webvtt(text):
+    """Return caption text as WebVTT. VTT passes through unchanged; SRT (same cue structure, but
+    no WEBVTT header and comma-separated milliseconds) is converted, so every
+    transcripts/<slug>.vtt blob in GCS is genuinely WebVTT whatever format Drive held."""
+    text = text.lstrip('\ufeff').replace('\r\n', '\n')
+    if text.lstrip().startswith('WEBVTT'):
+        return text
+    text = re.sub(r'(\d{2}:\d{2}:\d{2}),(\d{3})', r'\1.\2', text)
+    return 'WEBVTT\n\n' + text.lstrip()
+
+
 def get_bucket_vtt_mapping(bucket_uri, cutoff_date='2023-08-01'):
     """Lists transcripts/<date_slug>.vtt blobs in GCS. Returns {date_slug: gs_uri}."""
     from google.cloud import storage

@@ -457,7 +457,7 @@ def upload_to_bucket(bucket_uri, local_path):
 
 
 def sync_drive_vtts_to_bucket(bucket_uri, all_data, existing_bucket_slugs, cutoff_date):
-    """Download Drive VTTs (type=vtt docs) not yet in bucket and upload them."""
+    """Download Drive transcripts (VTT, or SRT converted to VTT) not yet in bucket and upload them."""
     from google.cloud import storage
     bucket_name, prefix = _bucket_parts(bucket_uri)
     gcs = storage.Client()
@@ -477,7 +477,7 @@ def sync_drive_vtts_to_bucket(bucket_uri, all_data, existing_bucket_slugs, cutof
             if blob.exists():
                 break
             try:
-                content = drive.download_file(fid.group(1))
+                content = transcripts.to_webvtt(drive.download_file(fid.group(1)))
                 blob.upload_from_string(content.encode('utf-8'), content_type='text/vtt')
                 print(f"  Synced Drive VTT {date_slug} → gs://{bucket_name}/{blob_name}")
                 uploaded += 1

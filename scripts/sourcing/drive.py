@@ -388,7 +388,9 @@ def categorize_document(filename):
     if 'agenda' in name_lower: return 'agenda'
     if 'packet' in name_lower: return 'packet'
     if 'minutes' in name_lower: return 'minutes'
-    if name_lower.endswith('.vtt') or 'transcript' in name_lower or re.match(r'spboe_\d', name_lower): return 'transcript'
+    # Caption exports arrive as VTT or SRT, named spboe_<YYYYMMDD> for regular meetings and
+    # spboe_<kind>_<YYYYMMDD> for others (e.g. spboe_sm_20261026 for a special meeting).
+    if name_lower.endswith(('.vtt', '.srt')) or 'transcript' in name_lower or re.match(r'spboe_(?:[a-z]+_)?\d', name_lower): return 'transcript'
     return 'misc'
 
 # Native Google Docs/Sheets/Slides have no filename extension, so their file type can only come
@@ -418,7 +420,7 @@ def clean_url(url):
 def clean_label(label):
     """Cleans up document labels by removing leading/trailing dates and common extensions."""
     if not label: return label
-    label = re.sub(r'\.(pdf|vtt|docx|doc|txt)$', '', label, flags=re.I)
+    label = re.sub(r'\.(pdf|vtt|srt|docx|doc|txt)$', '', label, flags=re.I)
     label = re.sub(r'^\d{1,2}[\.\-/]\d{1,2}[\.\-/]\d{2,4}\s*', '', label)
     label = re.sub(r'\s*\d{1,2}[\.\-/]\d{1,2}[\.\-/]\d{2,4}$', '', label)
     return label.strip()
