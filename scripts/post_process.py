@@ -566,7 +566,7 @@ def generate_agenda_preview(meeting_data, meeting_dir, bucket_uri, catalog):
 
 def generate_blurb(local, meeting_dir):
     print(f"  Generating blurb for {local['slug']}...")
-    prompt = "Write an extremely concise 1-2 sentence objective summary (a 'blurb') of this school board meeting based on these notes. Do not use quotes or introductory filler:\n"
+    prompt = "Write an extremely concise 1-2 sentence objective summary (a 'blurb') of this school board meeting based on these notes. Do not use quotes or introductory filler. Write in normal sentence casing — never all caps, even where the notes use them. Use 'Board of Education' for the full name and 'the board' (lowercase) as the short form:\n"
     prompt += "\n".join([f"- {s.get('text', '')}" for s in local.get('summary', [])])
     try:
         response_text, model = call_llm(_make_client, prompt, label=local['slug'])

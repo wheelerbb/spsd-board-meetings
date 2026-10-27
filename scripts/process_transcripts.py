@@ -246,6 +246,9 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None):
 
     Guidelines:
     - Blurb: 1-2 sentence hook for the landing page.
+      Write in normal sentence casing — never all caps, even where the source (agenda headers,
+      captions) uses them. Use "Board of Education" for the full name and "the board" (lowercase)
+      as the short form.
     - Votes: Exact motion, result (use "Passed" or "Failed" — a unanimous vote is "Passed"), count, and movers.
       For moved_2nd, use last names only (e.g. "DeAngelis, Richardson") — not full names, titles,
       or "Moved by X, seconded by Y" phrasing.
