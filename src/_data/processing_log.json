@@ -1,5 +1,35 @@
 [
   {
+    "run_id": "40526884951",
+    "timestamp": "2026-10-27T15:07:08.679393Z",
+    "stage": "post_process",
+    "topics_updated": [
+      {
+        "topic": "Student Demographics",
+        "model": "gemini-3.5-flash",
+        "reason": "evidence changed"
+      }
+    ],
+    "topics_skipped": 65,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "40526884951",
+    "timestamp": "2026-10-27T15:06:02.316151Z",
+    "stage": "transcripts",
+    "targeted": [
+      "2026-10-26"
+    ],
+    "results": [
+      {
+        "slug": "2026-10-26",
+        "status": "Success"
+      }
+    ],
+    "rate_limited": []
+  },
+  {
     "run_id": "40526605667",
     "timestamp": "2026-10-27T15:00:49.784613Z",
     "stage": "post_process",
@@ -2137,23 +2167,6 @@
   {
     "run_id": "32628787100",
     "timestamp": "2026-08-23T08:40:08.182707Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "32562789935",
-    "timestamp": "2026-08-22T08:40:13.707784Z",
-    "stage": "post_process",
-    "topics_updated": [],
-    "topics_skipped": 88,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "32562789935",
-    "timestamp": "2026-08-22T08:39:40.586392Z",
     "stage": "transcripts",
     "targeted": [],
     "results": [],
