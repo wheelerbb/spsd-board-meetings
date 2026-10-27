@@ -1,5 +1,61 @@
 [
   {
+    "run_id": "40525931386",
+    "timestamp": "2026-10-27T14:57:56.100752Z",
+    "trigger": "workflow_dispatch",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1mb1XVHJ8_1yT5SFniDX0Db6xAJou9Scr",
+            "label": "Donation Letter (Machias Savings) - Skillin",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1dgK6PnD9zyu6BST3g1k6kMMHwha6pieK",
+            "label": "spboe_sm_20261026 - South Portland Board of Education - Special Meeting - October 26 2026.srt",
+            "doc_type": "misc",
+            "meeting_slug": "2026-10-26",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1239854778",
+            "title": "spboe_sm_20261026 - South Portland Board of Education - Special Meeting - October 26 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08",
+        "2026-10-26"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "40482440092",
     "timestamp": "2026-10-27T09:41:42.382806Z",
     "trigger": "schedule",
