@@ -1,5 +1,22 @@
 [
   {
+    "run_id": "40482440092",
+    "timestamp": "2026-10-27T09:42:25.678252Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 66,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "40482440092",
+    "timestamp": "2026-10-27T09:41:47.135345Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
     "run_id": "40302603339",
     "timestamp": "2026-10-26T09:53:02.646830Z",
     "stage": "post_process",
@@ -2136,25 +2153,6 @@
   {
     "run_id": "32494944355",
     "timestamp": "2026-08-21T14:58:00.040578Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "32464968722",
-    "timestamp": "2026-08-21T08:52:05.666789Z",
-    "stage": "post_process",
-    "topics_updated": [
-      "Physical Restraint and Seclusion Policy"
-    ],
-    "topics_skipped": 87,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "32464968722",
-    "timestamp": "2026-08-21T08:51:21.122074Z",
     "stage": "transcripts",
     "targeted": [],
     "results": [],

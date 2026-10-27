@@ -1,5 +1,84 @@
 [
   {
+    "run_id": "40482440092",
+    "timestamp": "2026-10-27T09:41:42.382806Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2027-01-11",
+            "title": "School Board Meeting",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1239595503",
+            "title": "Spooky SoPo 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2027-01-11",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "40399471308",
+    "timestamp": "2026-10-26T20:52:53.983917Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "40302603339",
     "timestamp": "2026-10-26T09:52:12.879167Z",
     "trigger": "schedule",
