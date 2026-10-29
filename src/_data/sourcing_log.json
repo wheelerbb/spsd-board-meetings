@@ -1,5 +1,90 @@
 [
   {
+    "run_id": "40859865714",
+    "timestamp": "2026-10-29T10:45:53.354761Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2027-01-18",
+            "title": "Martin Luther King Jr. Day \u2013 No School",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-10-14",
+            "label": "October Meeting Packet",
+            "doc_type": "packet",
+            "change": "modified"
+          }
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1240326356",
+            "title": "spcc_20261027 - South Portland City Council - October 27 2027"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "40765951843",
+    "timestamp": "2026-10-28T20:44:59.804213Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "40671741760",
     "timestamp": "2026-10-28T10:25:42.837424Z",
     "trigger": "schedule",
