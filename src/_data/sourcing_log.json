@@ -1,5 +1,92 @@
 [
   {
+    "run_id": "41629470533",
+    "timestamp": "2026-11-03T11:42:56.199773Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2027-02-01",
+            "title": "Policy Committee Meeting",
+            "change": "new"
+          },
+          {
+            "date": "2027-02-04",
+            "title": "Buildings & Grounds Committee Meeting",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1242452229",
+            "title": "econ_dev_20261021 - Lunch and Learn Energy Seminar - October 21 2026"
+          },
+          {
+            "video_id": "1240934088",
+            "title": "Officer Jessica Ramsay - Public Safety Buildings Video Series"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "41544263163",
+    "timestamp": "2026-11-02T23:18:09.249629Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "41441672112",
     "timestamp": "2026-11-02T12:05:50.325658Z",
     "trigger": "schedule",
