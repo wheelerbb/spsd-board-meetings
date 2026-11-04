@@ -1,5 +1,35 @@
 [
   {
+    "run_id": "41824642770",
+    "timestamp": "2026-11-04T11:58:36.683504Z",
+    "stage": "post_process",
+    "topics_updated": [
+      {
+        "topic": "Elementary School Reconfiguration",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      }
+    ],
+    "topics_skipped": 65,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "41824642770",
+    "timestamp": "2026-11-04T11:57:19.871284Z",
+    "stage": "transcripts",
+    "targeted": [
+      "2026-11-02"
+    ],
+    "results": [
+      {
+        "slug": "2026-11-02",
+        "status": "Success"
+      }
+    ],
+    "rate_limited": []
+  },
+  {
     "run_id": "41629470533",
     "timestamp": "2026-11-03T11:43:39.212958Z",
     "stage": "post_process",
@@ -2166,23 +2196,6 @@
   {
     "run_id": "33412083739",
     "timestamp": "2026-08-31T16:08:14.770873Z",
-    "stage": "post_process",
-    "topics_updated": [],
-    "topics_skipped": 88,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "33412083739",
-    "timestamp": "2026-08-31T16:07:29.464091Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "33314979763",
-    "timestamp": "2026-08-30T13:46:59.181026Z",
     "stage": "post_process",
     "topics_updated": [],
     "topics_skipped": 88,

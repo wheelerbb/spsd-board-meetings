@@ -1,5 +1,121 @@
 [
   {
+    "run_id": "41824642770",
+    "timestamp": "2026-11-04T11:55:51.715321Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-11-02",
+            "label": "Workshop Agenda",
+            "doc_type": "agenda",
+            "change": "new"
+          }
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1SIATcQc-No2UH5hrCYgI6fnsp-a22jxS",
+            "label": "SPMS Donation",
+            "doc_type": "misc",
+            "meeting_slug": "2026-10-16",
+            "change": "new"
+          },
+          {
+            "file_id": "14ye-wJdPhxW7hkY_wBMsaxcBZNrpakUi",
+            "label": "KLGC Relations with Law Enforcement Personnel_ Limitations on Authority for Entry or to Review Records in Schools DRAFT 2026",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1BIvvkLn1D8m_274p4kHHGDdVEENQuT78",
+            "label": "KLG-R Relations with law Enforcement Procedures DRAFT2026",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1VECzGF8km-zWB0bRR5wS7X3JhW_VmRSO",
+            "label": "KLG Relations with law Enforcement Authorities DRAFT 2026",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1v7TzOx_dNWPI3R6IyLaDflW_3peklDiV",
+            "label": "spboe_ws_20261102 - South Portland Board of Education - Workshop - November 2 2026",
+            "doc_type": "transcript",
+            "meeting_slug": "2026-11-02",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1242868789",
+            "title": "spboe_ws_20261102 - South Portland Board of Education - Workshop - November 2 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-11-02",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "41722007787",
+    "timestamp": "2026-11-03T21:28:34.729021Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "41629470533",
     "timestamp": "2026-11-03T11:42:56.199773Z",
     "trigger": "schedule",
