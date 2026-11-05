@@ -35,24 +35,24 @@ footer { border-top-color: var(--gold-light); }
 /* Timestamp buttons are --navy and hover to --gold; both are teal now, so hover to yellow. */
 .tl-time-btn:hover { background: var(--gold-light); color: var(--navy); }
 
-/* "SOUTH PORTLAND / [BoE] DIGEST" wordmark in the nav (replaces the SP logo via the build
-   transform). Line 1 sets the width; line 2 is the yellow BoE badge, then DIGEST spread across
-   the rest. Everything scales in em from .lockup's font-size. Only Sora 800 is used. */
+/* "[SPSD] SCHOOL BOARD / MEETING DIGEST" wordmark in the nav (replaces the SP logo via the build
+   transform): a yellow SPSD block spanning both lines, then School Board over Meeting Digest spread
+   to the same width. Everything scales in em from .lockup's font-size. Only Sora 800 is used. */
 @font-face { font-family: "Sora"; src: url("theme-fonts/sora-800.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
-.lockup { display: inline-grid; text-decoration: none; font-size: 22px; }
-.lockup .l1,
-.lockup .l2 { font-family: "Sora", ui-sans-serif, system-ui, sans-serif; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
-.lockup .name { font-size: 1em; line-height: .9; letter-spacing: .01em; }
-.lockup .l2 { display: flex; align-items: center; gap: .45em; width: 100%; font-size: .8em; line-height: 1; margin-top: .22em; letter-spacing: -.01em; }
-.lockup .chip {
-  display: inline-flex; align-items: center; justify-content: center; flex: none;
-  font-size: .62em; line-height: 1; letter-spacing: .04em; text-transform: none;
-  padding: 0 .5em; border-radius: 4px; height: 1.75em;
+.lockup {
+  display: inline-flex; align-items: stretch; gap: .35em; text-decoration: none; font-size: 22px;
+  font-family: "Sora", ui-sans-serif, system-ui, sans-serif; font-weight: 800; text-transform: uppercase;
+  line-height: 1; white-space: nowrap;
 }
-.lockup .word { display: flex; justify-content: space-between; flex: 1; }
-.lockup .word span { display: inline-block; }
-.lockup.on-teal .name,
-.lockup.on-teal .l2 { color: var(--cream); }
+.lockup .chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: .62em; letter-spacing: .05em; padding: 0 .5em; border-radius: 4px;
+}
+.lockup .txt { display: flex; flex-direction: column; justify-content: center; }
+.lockup .t1 { font-size: .9em; line-height: .95; }
+.lockup .t2 { display: flex; justify-content: space-between; font-size: .54em; margin-top: .28em; }
+.lockup .t2 span { display: inline-block; }
+.lockup.on-teal .txt { color: var(--cream); }
 .lockup.on-teal .chip { background: var(--gold-light); color: var(--navy); }
 @media (max-width: 640px) { .lockup { font-size: 18px; } }
-@media (max-width: 380px) { .lockup { font-size: 15px; } }
+@media (max-width: 380px) { .lockup { font-size: 13.5px; } }

@@ -13,8 +13,10 @@ URLs working.
 
 - `eleventy.config.js` wraps the main `.eleventy.js` and builds to `wheelerforspsd/_site/` with
   `pathPrefix: /`. An HTML transform injects `theme.css` and swaps the SP logo for the
-  "SOUTH PORTLAND / BoE DIGEST" wordmark. If `base.njk` changes so one of those anchors no longer
+  "[SPSD] SCHOOL BOARD / MEETING DIGEST" wordmark (SPSD as a yellow block). If `base.njk` changes so one of those anchors no longer
   matches, the build throws rather than silently dropping it.
+- `icons/` holds the split teal/yellow favicon carried over from the campaign site, copied to the
+  site root and linked from every page by the same transform.
 - `theme.css` overrides `style.css`'s color tokens (`--navy`, `--gold`, `--gold-light`, `--cream`,
   `--text`) plus a handful of hardcoded gold tints, and styles the wordmark (Sora 800 from `fonts/`).
 - `_redirects` (copied to the site root):

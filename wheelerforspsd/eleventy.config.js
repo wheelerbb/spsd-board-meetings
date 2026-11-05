@@ -4,19 +4,23 @@
 const base = require("../.eleventy.js");
 
 const PATH_PREFIX = "/";
-// "SOUTH PORTLAND / [BoE] DIGEST" wordmark; the digest nav is teal, so on-teal coloring.
-const LOCKUP = `<a href="${PATH_PREFIX}" class="lockup on-teal" aria-label="South Portland BoE Digest">
-    <div class="l1"><span class="name">South Portland</span></div>
-    <div class="l2"><span class="chip">BoE</span><span class="word"><span>D</span><span>I</span><span>G</span><span>E</span><span>S</span><span>T</span></span></div>
+// "[SPSD] SCHOOL BOARD / MEETING DIGEST" wordmark; the digest nav is teal, so on-teal coloring.
+const LOCKUP = `<a href="${PATH_PREFIX}" class="lockup on-teal" aria-label="SPSD School Board Meeting Digest">
+    <span class="chip">SPSD</span>
+    <span class="txt"><span class="t1">School Board</span><span class="t2"><span>M</span><span>e</span><span>e</span><span>t</span><span>i</span><span>n</span><span>g</span><span>&nbsp;</span><span>D</span><span>i</span><span>g</span><span>e</span><span>s</span><span>t</span></span></span>
   </a>`;
 
 // Each edit must match exactly once; a miss throws so a future change to base.njk fails
 // this build loudly instead of silently dropping (e.g.) the theme stylesheet.
 const EDITS = [
   {
-    name: "theme stylesheet",
+    name: "theme stylesheet and favicons",
     find: "</head>",
-    replace: `<link rel="stylesheet" href="${PATH_PREFIX}assets/theme.css">\n</head>`,
+    replace: `<link rel="stylesheet" href="${PATH_PREFIX}assets/theme.css">
+<link rel="icon" href="${PATH_PREFIX}favicon.ico" sizes="32x32">
+<link rel="icon" href="${PATH_PREFIX}favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="${PATH_PREFIX}apple-touch-icon.png">
+</head>`,
   },
   {
     name: "wordmark",
@@ -32,6 +36,8 @@ module.exports = function (eleventyConfig) {
     "wheelerforspsd/theme.css": "assets/theme.css",
     "wheelerforspsd/fonts": "assets/theme-fonts",
     "wheelerforspsd/_redirects": "_redirects",
+    // Split teal/yellow icon carried over from the campaign site; served from the root.
+    "wheelerforspsd/icons": "/",
   });
 
   eleventyConfig.addTransform("wheelerforspsd", function (content) {
