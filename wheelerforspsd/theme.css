@@ -1,7 +1,6 @@
-/* Campaign recolor for the wheelerforspsd.org copy of the digest. Loaded after
-   src/assets/style.css by campaign/eleventy.config.js; the GitHub Pages build never sees it.
-   Palette from the campaign design system: harbor teal #224d4f, school bus yellow #ffd800,
-   off-white #f7f3ec. */
+/* Theme for the wheelerforspsd.org copy of the digest. Loaded after src/assets/style.css by
+   wheelerforspsd/eleventy.config.js; the GitHub Pages build never sees it.
+   Palette: harbor teal #224d4f, school bus yellow #ffd800, off-white #f7f3ec. */
 :root {
   --navy: #224d4f;       /* harbor teal: nav, hero, headers, card tops, footer */
   --gold-light: #ffd800; /* school bus yellow: used almost only as text/accents on --navy */
@@ -36,24 +35,24 @@ footer { border-top-color: var(--gold-light); }
 /* Timestamp buttons are --navy and hover to --gold; both are teal now, so hover to yellow. */
 .tl-time-btn:hover { background: var(--gold-light); color: var(--navy); }
 
-/* Campaign wordmark in the nav (replaces the SP logo via the build transform). Rules ported
-   from wheelerforspsd.org/css/styles.css, footer (on-teal) coloring. Only Sora 800 is used. */
-@font-face { font-family: "Sora"; src: url("campaign-fonts/sora-800.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
+/* "SOUTH PORTLAND / [BoE] DIGEST" wordmark in the nav (replaces the SP logo via the build
+   transform). Line 1 sets the width; line 2 is the yellow BoE badge, then DIGEST spread across
+   the rest. Everything scales in em from .lockup's font-size. Only Sora 800 is used. */
+@font-face { font-family: "Sora"; src: url("theme-fonts/sora-800.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
 .lockup { display: inline-grid; text-decoration: none; font-size: 22px; }
-.lockup .l1 { display: flex; align-items: center; gap: .28em; white-space: nowrap; }
-.lockup .name,
-.lockup .chip,
-.lockup .l2 { font-family: "Sora", ui-sans-serif, system-ui, sans-serif; font-weight: 800; text-transform: uppercase; }
+.lockup .l1,
+.lockup .l2 { font-family: "Sora", ui-sans-serif, system-ui, sans-serif; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
 .lockup .name { font-size: 1em; line-height: .9; letter-spacing: .01em; }
+.lockup .l2 { display: flex; align-items: center; gap: .45em; width: 100%; font-size: .8em; line-height: 1; margin-top: .22em; letter-spacing: -.01em; }
 .lockup .chip {
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: .4em; line-height: 1; letter-spacing: .06em; white-space: nowrap;
-  padding: 0 .56em; border-radius: 4px; height: 1.8em;
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  font-size: .62em; line-height: 1; letter-spacing: .04em; text-transform: none;
+  padding: 0 .5em; border-radius: 4px; height: 1.75em;
 }
-.lockup .l2 { display: flex; justify-content: space-between; width: 100%; font-size: .6em; line-height: 1; margin-top: .22em; letter-spacing: -.01em; }
-.lockup .l2 span { display: inline-block; }
-.lockup .l2 .gap { width: .55em; }
+.lockup .word { display: flex; justify-content: space-between; flex: 1; }
+.lockup .word span { display: inline-block; }
 .lockup.on-teal .name,
 .lockup.on-teal .l2 { color: var(--cream); }
 .lockup.on-teal .chip { background: var(--gold-light); color: var(--navy); }
 @media (max-width: 640px) { .lockup { font-size: 18px; } }
+@media (max-width: 380px) { .lockup { font-size: 15px; } }

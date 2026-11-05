@@ -1,0 +1,6 @@
+# The digest used to live under /spsd-board-meetings/ while the campaign site held the root.
+/spsd-board-meetings/*  /:splat  301
+/spsd-board-meetings    /        301
+# Old campaign URLs. /qr is printed on campaign handouts; 302 so it can be repointed later.
+/qr                     /        302
+/donate                 /        301

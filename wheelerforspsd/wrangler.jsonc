@@ -1,0 +1,13 @@
+// Assets-only Cloudflare Worker serving the wheelerforspsd.org build at the root of the domain.
+// Custom Domain: wrangler creates the DNS record and certificate on deploy.
+{
+  "name": "spsd-board-meetings",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./_site",
+    "html_handling": "auto-trailing-slash"
+  },
+  "routes": [
+    { "pattern": "wheelerforspsd.org", "custom_domain": true }
+  ]
+}

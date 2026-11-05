@@ -1,8 +1,8 @@
-name: Deploy campaign copy (wheelerforspsd.org)
+name: Deploy wheelerforspsd.org copy
 
-# Second publishing destination: builds the campaign-recolored variant (campaign/) and deploys
-# it as a Cloudflare Worker at wheelerforspsd.org/spsd-board-meetings/. Kept separate from
-# deploy.yml so it can be removed by deleting this file and campaign/. See campaign/README.md.
+# Second publishing destination: builds the teal/yellow variant (wheelerforspsd/) and deploys
+# it as a Cloudflare Worker at the root of wheelerforspsd.org. Kept separate from deploy.yml so
+# it can be removed by deleting this file and wheelerforspsd/. See wheelerforspsd/README.md.
 
 on:
   # Runs after every main pipeline run so both sites publish the same content. The checkout
@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: campaign-deploy
+  group: wheelerforspsd-deploy
   cancel-in-progress: false
 
 jobs:
@@ -37,11 +37,11 @@ jobs:
       - name: Install NPM Dependencies
         run: npm ci
 
-      - name: Build campaign variant
-        run: npx @11ty/eleventy --config=campaign/eleventy.config.js
+      - name: Build wheelerforspsd.org variant
+        run: npx @11ty/eleventy --config=wheelerforspsd/eleventy.config.js
 
       - name: Deploy to Cloudflare
-        working-directory: campaign
+        working-directory: wheelerforspsd
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
