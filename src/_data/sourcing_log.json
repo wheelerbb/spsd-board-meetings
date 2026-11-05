@@ -1,5 +1,88 @@
 [
   {
+    "run_id": "42022994709",
+    "timestamp": "2026-11-05T11:58:35.801243Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1jifx0N8w1X2vBZL8a-IlZWqN7746B1n5",
+            "label": "Enrollment Report  November 2026",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1GIa_sN7kQ4ObsAWzUhhs-mRAXBTZAnOi",
+            "label": "Board Meeting Minutes",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-10-14",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-10-14",
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "41918451541",
+    "timestamp": "2026-11-04T21:42:18.068493Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "41824642770",
     "timestamp": "2026-11-04T11:55:51.715321Z",
     "trigger": "schedule",
