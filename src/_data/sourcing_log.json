@@ -1,5 +1,132 @@
 [
   {
+    "run_id": "42213442046",
+    "timestamp": "2026-11-06T11:54:30.207552Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2027-02-08",
+            "title": "School Board Meeting",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1GIa_sN7kQ4ObsAWzUhhs-mRAXBTZAnOi",
+            "label": "Board Meeting Minutes",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-10-14",
+            "change": "modified"
+          },
+          {
+            "file_id": "1vzsIFhYX2Ez7FkHK3G9HxQWWBll9i9WK",
+            "label": "November 2026 Board Meeting Packet",
+            "doc_type": "packet",
+            "meeting_slug": "2026-11-09",
+            "change": "new"
+          },
+          {
+            "file_id": "1L6sdmrumQlfsPkcENtd6nPpsKAsetIxL",
+            "label": "FY27 YTD October 2026 Report _10.30.26 data",
+            "doc_type": "misc",
+            "meeting_slug": "2026-10-30",
+            "change": "new"
+          },
+          {
+            "file_id": "12VAgeScb9V_vIAK5dTAOOxwwU8hs830z",
+            "label": "AI Moratorium Resolution",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1JApH67dYULmkyuhELPnQU1MzjT0jj3CS",
+            "label": "Board Workshop Meeting Minutes",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-11-02",
+            "change": "new"
+          },
+          {
+            "file_id": "1UxdHAPudAYvkTDPuTtsAtU-_-uKF6oDZ",
+            "label": "B&G October 2026 Minutes",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-10-01",
+            "change": "new"
+          },
+          {
+            "file_id": "1rTCsKYraLGUHWK2T-y7IJ8RocxaBkY_4",
+            "label": "Special Board Meeting Minutes",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-10-26",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-11-09",
+        "2027-02-08",
+        "2026-11-02",
+        "2024-03-17",
+        "2025-01-08",
+        "2026-10-26"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "42115443763",
+    "timestamp": "2026-11-05T21:45:46.092310Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "42082102416",
     "timestamp": "2026-11-05T18:13:42.685971Z",
     "trigger": "push",
