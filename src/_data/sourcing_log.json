@@ -1,5 +1,108 @@
 [
   {
+    "run_id": "42814058291",
+    "timestamp": "2026-11-10T12:16:35.616915Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2027-02-15",
+            "title": "Mid-Winter Break: No School",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1vzsIFhYX2Ez7FkHK3G9HxQWWBll9i9WK",
+            "label": "November 2026 Board Meeting Packet",
+            "doc_type": "packet",
+            "meeting_slug": "2026-11-09",
+            "change": "modified"
+          },
+          {
+            "file_id": "1Dpc9T5wrGc51eK_yMWfOpMM_K2QyWrBc",
+            "label": "Donors Choose - SPMS TC Donation",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "160szKsZ0vN7M47ZSwL5D2BEfOVO4N3p8",
+            "label": "Donors Choose - SPMS PW Donation",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1-pjK-UFJ08acyOO5fkn1VDKO0Bk6AkLQ",
+            "label": "Board Slides",
+            "doc_type": "misc",
+            "meeting_slug": "2026-11-09",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08",
+        "2026-11-09"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "42724419049",
+    "timestamp": "2026-11-09T23:56:59.977162Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "42618302094",
     "timestamp": "2026-11-09T12:37:34.919749Z",
     "trigger": "schedule",
