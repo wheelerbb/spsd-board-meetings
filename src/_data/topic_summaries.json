@@ -103,39 +103,38 @@
     }
   },
   "Elementary School Reconfiguration": {
-    "current_status": "The board is considering two final redistricting maps and a proposal for an early learning campus at the former Kaler Elementary. Following a community survey on these options, a vote is anticipated at the November 9, 2026 meeting.",
+    "current_status": "The board has pivoted away from a district-wide elementary school reconfiguration or redistricting plan. Instead, it has approved the superintendent's recommendations to explore creating an early learning center, establish a committee for differential school funding, and commission an external review of special education programming.",
     "overview": [
-      "On November 2, 2026, the board reviewed two final options for elementary reconfiguration: maintaining current K-4 boundaries or creating a K-2/3-4 grade-banded system, with a vote anticipated on November 9.",
-      "On October 14, 2026, the administration reported that community survey data showed strong support for maintaining the current configuration and significant opposition to grade-banding, leading a committee to narrow five proposed maps down to two.",
-      "On April 29, 2026, the board voted to delay the implementation of the PK-4 elementary school grade reconfiguration to the 2027-2028 school year to allow for more thorough planning.",
-      "The delay reversed a 4-2 vote from March 30, 2026, which had adopted a grade-banded model for reconfiguration immediately following the decision to close Kaler Elementary School.",
-      "On March 23, 2026, the administration presented two paths forward following the proposed closure of Kaler Elementary: reconfiguring the remaining schools into grade-level bands or maintaining K-4 schools with new boundaries.",
-      "On February 9, 2026, the board formally requested a proposal from the superintendent on reconfiguring the district's elementary schools as a potential cost-saving measure to address a budget deficit."
+      "On November 9, 2026, the board reversed its direction on reconfiguration, unanimously approving the superintendent's new recommendations to pursue an early learning center, a differential funding committee, and a special education review instead.",
+      "At the November 2, 2026 meeting, the administration presented two final options for board consideration: maintaining current K-4 boundaries or creating an east-west grade-banded system.",
+      "The board had previously voted on April 29, 2026, to delay the implementation of any elementary reconfiguration until the 2027-2028 school year to allow for more thoughtful planning.",
+      "This delay reversed a 4-2 vote from March 30, 2026, which had adopted a grade-banded reconfiguration model to be implemented following the closure of Kaler Elementary School.",
+      "The reconfiguration process was initiated in early 2026 to address significant demographic, resource, and academic disparities identified between the district's elementary schools."
     ],
     "perspectives": {
       "Board": [
-        "Expressed disappointment with the final two map options presented on November 2, 2026, questioning if either truly solves the district's equity problems.",
-        "Members have consistently shown differing views on prioritizing neighborhood schools versus implementing systemic change to address segregation and inequity.",
-        "Previously voiced strong opposition to any scenario that involved closing Skillin Elementary, citing the disproportionate impact on the west end's marginalized populations.",
-        "Debate has centered on the urgency of addressing inequity versus the need for more data and a less disruptive process for families."
+        "Unanimously approved the superintendent's November 2026 recommendations to pivot away from major reconfiguration.",
+        "Expressed disappointment in the final map options presented on November 2, 2026, questioning if they truly solved the district's equity problems.",
+        "Initially held differing views, with some supporting reconfiguration for equity while others opposed the rushed process and lack of detailed planning.",
+        "Directed the administration in March 2026 to avoid any scenario that involved closing Skillin Elementary School."
       ],
       "Administration": [
-        "Presented two final redistricting maps and a proposal for an early learning campus at the former Kaler Elementary for board consideration in November 2026.",
-        "Has consistently recommended reconfiguration into grade-level bands as a method to desegregate schools, improve equity, and streamline specialized services.",
-        "Partnered with external consultants for GIS demographic modeling to evaluate potential attendance zone and grade-band scenarios.",
-        "Initially proposed closing Kaler or Skillin elementary schools as part of a reconfiguration plan to address budget shortfalls and demographic imbalances."
+        "On November 9, 2026, the Superintendent recommended against a major reconfiguration, citing a need for stability and proposing alternative equity-focused initiatives.",
+        "Previously presented two final redistricting maps and a proposal for an early learning campus at the former Kaler Elementary.",
+        "Strongly advocated for a grade-banded reconfiguration model in March 2026 as the best path toward achieving equity in resources and opportunities.",
+        "Initially proposed reconfiguration as a method to desegregate schools, improve teacher collaboration, and achieve fiscal savings."
       ],
       "Staff": [
-        "Expressed concerns about the impact of another major change on staff and students, as well as the need to address current staffing shortages.",
-        "Voiced strong opposition to the rushed timeline and process of the initial reconfiguration plan, with many expressing relief when it was delayed.",
-        "While some staff support reconfiguration as a way to improve equity, many have urged a slower, more deliberate process with more community engagement.",
-        "Union leaders have spoken against rushed plans, citing the immense pressure placed on staff and families without a detailed implementation plan."
+        "Teachers raised serious health and safety concerns about using Kaler School as an early learning center due to new data on benzene emissions.",
+        "Teachers from Skillin Elementary detailed significant inequities in the allocation of MTSS staff and resources compared to other schools.",
+        "Expressed a deep tension between those prioritizing equity-driven changes and those advocating for the preservation of neighborhood schools.",
+        "Initially voiced strong opposition to the rushed reconfiguration plan, citing the immense pressure it placed on staff and families."
       ],
       "Citizens": [
-        "Public comment has consistently shown a wide range of views, with concerns raised about the planning process and whether proposals meaningfully address inequity.",
-        "Many parents have advocated for preserving neighborhood schools and expressed anxiety over rushed timelines, logistical challenges, and the impact on children.",
-        "Other parents and community members have consistently argued in favor of reconfiguration as a necessary step to address long-standing socioeconomic and racial segregation.",
-        "Parents from the Kaler Elementary community voiced frustration that delaying a city-wide reconfiguration prolongs inequity and uncertainty for their children."
+        "Community members raised health and safety concerns about reopening Kaler School as an early learning center, citing its proximity to oil tanks.",
+        "Expressed a wide range of views on the proposed maps, with concerns about the process, staffing shortages, and whether the plans meaningfully addressed inequity.",
+        "Voiced frustration that delaying reconfiguration in April 2026 prolonged inequity and unfairly impacted the Kaler Elementary community, which was still slated for closure.",
+        "Overwhelmingly opposed the initial rushed proposals, citing logistical challenges for working families, lack of transparency, and the psychological impact on children."
       ]
     }
   },
@@ -594,28 +593,28 @@
     }
   },
   "Artificial Intelligence Policy": {
-    "current_status": "The AI Advisory Committee is developing policy guidelines due in January 2027. A proposed moratorium on student AI use was recently withdrawn to allow for more community and staff engagement before the board takes action.",
+    "current_status": "The board has rejected a proposed moratorium on AI use in K-8 grades. They are awaiting a comprehensive report and policy recommendations from the administration's AI Steering Committee, which is expected in January.",
     "overview": [
-      "On October 14, 2026, the board discussed and ultimately withdrew a proposed moratorium on K-8 student AI use to allow for more stakeholder engagement.",
-      "On July 14, 2025, the AI Steering Committee presented a plan to educate students and staff using a 'walled garden' software approach and a 'traffic light' system for assignments.",
-      "On July 8, 2024, the district's AI Steering Committee first proposed a controlled 'walled garden' approach using Magic School AI, requiring staff training, and adapting existing policies."
+      "On November 9, 2026, the board voted 4-1 to reject a proposed moratorium on AI use in K-8 grades, choosing to await the AI Steering Committee's report.",
+      "On October 14, 2026, a proposed moratorium on student AI use was discussed but ultimately withdrawn to allow for more community and staff engagement.",
+      "On July 14, 2025, the AI Steering Committee presented its strategy, which included a 'walled garden' software approach with Magic School AI and a 'traffic light' system for teachers.",
+      "On July 8, 2024, the administration first outlined its plan to adopt a controlled 'walled garden' approach, require staff training, and adapt existing policies rather than creating new ones."
     ],
     "perspectives": {
       "Board": [
-        "Engaged in lengthy discussion regarding a potential student AI moratorium.",
-        "Withdrew the proposed moratorium to seek more stakeholder input before enacting policy."
+        "A majority of the board rejected the moratorium, expressing trust in the established committee process and educators.",
+        "A newly elected board member supported the moratorium, citing concerns about AI's impact on cognitive development."
       ],
       "Administration": [
-        "The Director of Technology is leading an AI Advisory Committee to develop guidelines, policies, and educational materials.",
-        "Recommends a 'walled garden' software approach and a 'traffic light' system for assignments.",
-        "Proposes developing student curriculum and requiring staff competency training."
+        "The AI Steering Committee, led by the Director of Technology, is developing comprehensive guidelines and materials due in January.",
+        "The administration's strategy involves a 'walled garden' software approach, curriculum development, and staff training."
       ],
       "Staff": [
-        "The board is seeking more staff engagement before enacting policy.",
-        "Competency training is a required component of the administration's plan."
+        "Teachers and librarians argued against a moratorium, stating it would disrupt established media literacy curriculum.",
+        "Staff representatives requested support and training for educators instead of a ban."
       ],
       "Citizens": [
-        "The board is seeking more community engagement before enacting policy."
+        "Some parents and students supported a pause on AI use, citing concerns about cognitive development and the quality of AI-generated curriculum."
       ]
     }
   },
@@ -1241,18 +1240,22 @@
     }
   },
   "Special Education": {
-    "current_status": "The board has received an overview of the Instructional Support department, which serves 649 students with disabilities. Public comment has been strongly supportive of the department and its programs.",
+    "current_status": "The district is moving forward with an external review of its special education programming. This action was recommended by the superintendent and unanimously approved by the board.",
     "overview": [
-      "On March 25, 2024, Director Kat Cox and her team provided an overview of the Instructional Support department, detailing the Child Find process, IEP development, and services for 649 students.",
-      "During the March 25, 2024 meeting, citizens spoke in strong support of the Special Education department, sharing personal stories about the positive impact of programs like ELO."
+      "On November 9, 2026, the board unanimously approved the superintendent's recommendation to commission an external review of the district's special education programming.",
+      "During the March 25, 2024 meeting, citizens shared personal stories and spoke in strong support of the Special Education department.",
+      "On March 25, 2024, the Instructional Support department provided the board with an overview of its services for 649 students with disabilities, detailing the Child Find process and IEP development."
     ],
     "perspectives": {
+      "Board": [
+        "Unanimously approved commissioning an external review of special education programming on November 9, 2026."
+      ],
       "Administration": [
-        "Provided an overview of the Instructional Support department, emphasizing the collaborative, multi-disciplinary team approach to meeting individual student needs."
+        "Superintendent Dr. Atkinson Duina recommended an external review of special education programming on November 9, 2026.",
+        "On March 25, 2024, Director Kat Cox and her team detailed the department's processes and its collaborative approach to meeting student needs."
       ],
       "Citizens": [
-        "Spoke in strong support of the Special Education department, sharing personal stories of its positive impact.",
-        "Urged the board to maintain the ELO program and its coordinator, citing a graduate's success in finding a career path through the program."
+        "Spoke in strong support of the Special Education department during the March 25, 2024 meeting, sharing positive personal stories about its impact."
       ]
     }
   },
@@ -1271,6 +1274,28 @@
       "Citizens": [
         "Public comment occurred at both meetings where the policy was discussed.",
         "The proposed changes sparked debate during public comment at the September 14, 2026 meeting."
+      ]
+    }
+  },
+  "Differential School Funding": {
+    "current_status": "The SPSD Board has unanimously approved the creation of an ad hoc committee to explore differential funding for schools with higher needs. This decision follows reports of significant resource and staffing inequities between elementary schools like Skillin.",
+    "overview": [
+      "On November 9, 2026, the board unanimously approved the creation of an ad hoc committee to explore differential funding for schools with higher needs.",
+      "On November 9, 2026, Superintendent Dr. Atkinson Duina recommended establishing this committee to address district challenges while avoiding a major elementary reconfiguration.",
+      "On November 9, 2026, staff from Skillin Elementary urged the board to resolve significant inequities in MTSS staff and resource allocations compared to other schools."
+    ],
+    "perspectives": {
+      "Board": [
+        "The board unanimously supported establishing an ad hoc committee to investigate differential funding options."
+      ],
+      "Administration": [
+        "Superintendent Dr. Atkinson Duina recommended exploring differential school funding to address high-needs schools while maintaining overall district stability."
+      ],
+      "Staff": [
+        "Staff from Skillin Elementary detailed significant inequities in MTSS resource allocation and urged the board to address these disparities."
+      ],
+      "Citizens": [
+        "Community members from Protect South Portland raised health and safety concerns about reopening Kaler School as an early learning center due to benzene emissions."
       ]
     }
   }

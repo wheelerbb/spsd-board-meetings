@@ -1,5 +1,50 @@
 [
   {
+    "run_id": "43014221565",
+    "timestamp": "2026-11-11T11:48:07.116432Z",
+    "stage": "post_process",
+    "topics_updated": [
+      {
+        "topic": "Special Education",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Differential School Funding",
+        "model": "gemini-3.5-flash",
+        "reason": "new topic"
+      },
+      {
+        "topic": "Elementary School Reconfiguration",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Artificial Intelligence Policy",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      }
+    ],
+    "topics_skipped": 63,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "43014221565",
+    "timestamp": "2026-11-11T11:46:22.067516Z",
+    "stage": "transcripts",
+    "targeted": [
+      "2026-11-09"
+    ],
+    "results": [
+      {
+        "slug": "2026-11-09",
+        "status": "Success"
+      }
+    ],
+    "rate_limited": []
+  },
+  {
     "run_id": "42814058291",
     "timestamp": "2026-11-10T12:17:13.318707Z",
     "stage": "post_process",
@@ -2167,24 +2212,6 @@
   {
     "run_id": "33760054523",
     "timestamp": "2026-09-03T13:16:08.284409Z",
-    "stage": "post_process",
-    "skipped": true,
-    "topics_updated": [],
-    "topics_skipped": 0,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "33760054523",
-    "timestamp": "2026-09-03T13:16:05.761909Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "33757898493",
-    "timestamp": "2026-09-03T12:54:34.310853Z",
     "stage": "post_process",
     "skipped": true,
     "topics_updated": [],

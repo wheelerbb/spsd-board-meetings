@@ -1,5 +1,108 @@
 [
   {
+    "run_id": "43014221565",
+    "timestamp": "2026-11-11T11:44:57.732921Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1-pjK-UFJ08acyOO5fkn1VDKO0Bk6AkLQ",
+            "label": "Board Slides",
+            "doc_type": "misc",
+            "meeting_slug": "2026-11-09",
+            "change": "modified"
+          },
+          {
+            "file_id": "1g3A1j0-HpsAdXVVVsww494sxQBblquUg",
+            "label": "Pond Family Donation",
+            "doc_type": "misc",
+            "meeting_slug": "2026-11-02",
+            "change": "new"
+          },
+          {
+            "file_id": "10_YuwT_24ISDe5OjAWb-bNW78phvlD_m",
+            "label": "Workshop Presentation 11.2.26",
+            "doc_type": "misc",
+            "meeting_slug": "2026-11-02",
+            "change": "new"
+          },
+          {
+            "file_id": "1w6asfCh0PmpCzyGBElrSRtdPPEylsvcd",
+            "label": "spboe_20261109 - South Portland Board of Education - November 9 2026",
+            "doc_type": "transcript",
+            "meeting_slug": "2026-11-09",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1245479515",
+            "title": "spboe_20261109 - South Portland Board of Education - November 9 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-11-02",
+        "2024-03-17",
+        "2025-01-08",
+        "2026-11-09"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "42906829438",
+    "timestamp": "2026-11-10T21:37:53.564654Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "42814058291",
     "timestamp": "2026-11-10T12:16:35.616915Z",
     "trigger": "schedule",

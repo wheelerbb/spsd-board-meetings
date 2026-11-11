@@ -255,5 +255,14 @@
     ],
     "roles": [],
     "auto_discovered": true
+  },
+  {
+    "name": "Rios-Blas",
+    "seat": "Student Representative",
+    "terms": [
+      { "start": "2026-11-09", "end": "2026-11-09" }
+    ],
+    "roles": [],
+    "auto_discovered": true
   }
 ]
