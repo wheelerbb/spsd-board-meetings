@@ -10,7 +10,7 @@ Technical reference for the three-stage ingestion and synthesis pipeline. All sc
 |---|--------|---------|---------|
 | 1 | `scripts/source_data.py` | Daily CI / manual | Discover meetings from authority sources; create/update `.njk` stubs |
 | 2 | `scripts/process_transcripts.py` | Daily CI / manual | Analyze `.vtt` transcripts with Gemini; populate per-meeting AI fields |
-| 3 | `scripts/post_process.py` | Daily CI / manual | Enforce glossary (`src/_data/glossary.json`); sort topic taxonomy; synthesize cross-meeting topic summaries |
+| 3 | `scripts/post_process.py` | Daily CI / manual | Enforce glossary (`src/_data/glossary.json`); consolidate official-document terms into the Terms Registry and grow the glossary from it; sort topic taxonomy; synthesize cross-meeting topic summaries |
 
 ### LLM Calls
 
@@ -31,7 +31,7 @@ schema for each are in [prompts.md](prompts.md) — "Ref" below is that section.
 |---|------|----------|-------|---------|-----|
 | 1 | Transcript Extraction | `process_transcripts.py::process_single_meeting()` | pro → flash | blurb/votes/summary/timeline/attendance from the meeting's VTT transcript | [prompts.md §1](prompts.md#1-transcript-extraction-process_transcriptspy) |
 | 2 | Votes/Attendance Override | `process_transcripts.py::_extract_votes_attendance_from_doc()` | pro → flash | overrides #1's votes/attendance from an official minutes/summary doc, when one is available | [prompts.md §9](prompts.md#9-votesattendance-override-from-official-document-process_transcriptspy) |
-| 3 | Official Document Term Extraction | `post_process.py::_extract_official_terms()` | pro → flash | canonical proper-noun spellings from agenda/packet/minutes PDFs, fed back into #1's glossary hints | [prompts.md §6](prompts.md#6-official-document-term-extraction-post_processpy) |
+| 3 | Official Document Term Extraction | `post_process.py::_extract_official_terms()` | pro → flash | canonical proper-noun spellings from agenda/packet/minutes PDFs — cached inline on the Drive catalog entry, consolidated into the corpus-wide Terms Registry, and fed back into #1's glossary hints | [prompts.md §6](prompts.md#6-official-document-term-extraction-post_processpy) |
 | 4 | Agenda Text Retrieval (packet-isolation fallback) | `post_process.py::_load_cached_agenda_text()` | pro → flash | isolates agenda items from a packet PDF when no standalone agenda doc exists, cached | [prompts.md §4](prompts.md#4-agenda-text-retrieval-post_processpy) |
 | 5 | Topic Tag Generation — Single Meeting | `post_process.py::generate_tags()` | pro → flash | assigns 3-5 topic tags to one meeting and associates its votes with those tags, incremental daily path | [prompts.md §2](prompts.md#2-topic-tag-generation--single-meeting-post_processpy) |
 | 6 | Topic Tag Generation — Batch | `post_process.py::batch_tag_all_meetings()` | pro → flash | re-tags the entire corpus (and its votes) in one call, `--retag` only | [prompts.md §3](prompts.md#3-topic-tag-generation--batch-post_processpy) |
@@ -45,11 +45,66 @@ Calls 3-10 all live in `post_process.py` and run in this order within one pass (
 `process_transcripts.py`, upstream of all of them. Which model actually served each call is
 recorded per-item in `processing_log.json` — see [Run Log Schema](#run-log-schema).
 
-### Board attendance name canonicalization (`process_transcripts.py`)
+### The Terms Registry (`scripts/terms_registry.py`)
 
-Extracted attendance names (e.g. "Ms. DeAngelis") are resolved to full names (e.g. "Rosemarie DeAngelis") by matching against `src/_data/board_members.json`'s roster active on that specific meeting's date (`scripts/board_members_utils.py::canonicalize_attendance_names()`). This only formats names already extracted from the transcript/official document — it never determines *who* attended.
+A single, corpus-wide, lineage-tracked artifact (`terms_registry.json`, GCS-hosted — see
+[Data Files Reference](#data-files-reference)) consolidating every proper noun ever extracted from
+an official document (agenda/packet/minutes), deduplicated across documents and meetings via the
+shared matcher in `scripts/name_matching.py`. This replaced the former per-document `terms_blob`
+design (one fragment per document, never consolidated) — see
+[todos/019](../todos/019-pending-p2-terms-registry-and-living-glossary.md) for the full reasoning.
 
-Names with no match are recorded back to `board_members.json` as placeholder entries (`"auto_discovered": true`) so the roster converges toward full coverage as more meetings are processed — a later observation of a fuller name (e.g. "Jennifer Kinney") upgrades the matching placeholder. Hand-curated (non-placeholder) entries are never auto-modified; a coverage gap there is for a human to fix. This update happens once per `process_transcripts.py` run, after all meetings finish processing, to avoid concurrent writes.
+Built by `post_process.py::_extract_official_terms()` → `terms_registry.ingest_document_terms()`,
+once per meeting's official documents, folding near-duplicate extractions (e.g. "Kaler" and "Kaler
+Elementary School" from different documents, or "Ishmeel Daniels" and "Mr. Daniels") into one
+entity with accumulated `context` and `sources` lineage.
+
+**Attendance-name canonicalization** (`terms_registry.canonical_person()`, used by
+`process_transcripts.py`) resolves an extracted attendance name (e.g. "Ms. DeAngelis") to its
+registry canonical spelling (e.g. "Rosemarie DeAngelis") via three matchers in increasing order of
+fuzziness — exact anchor, correct-surname-wrong-first-name, misheard-surname — never guessing on
+an ambiguous or absent match. This only formats a name already extracted from the
+transcript/official document; it never determines *who* attended. This replaced
+`board_members.json` and `scripts/board_members_utils.py` entirely, which were retired — see
+todos/019 for why a date-scoped roster file turned out not to be needed for this.
+
+**`glossary.json`'s living growth** (`post_process.py` step 2b, `glossary_utils.discover_term_candidates()`
+/ `apply_discovered_terms()`) also reads from this registry — see
+[Glossary auto-discovery](#glossary-auto-discovery-post_processpy) below.
+
+### Glossary auto-discovery (`post_process.py`)
+
+`src/_data/glossary.json` grows automatically, with **no human-review step** — a candidate
+correction applies immediately, but only to the meeting(s) that produced the evidence, widening to
+every meeting once independently confirmed across `glossary_utils.PROMOTION_THRESHOLD` (2)
+distinct meetings. Two discovery sources, run once per `post_process.py` pass after the Terms
+Registry is updated:
+
+- `discover_term_candidates()` compares a meeting's own generated content (timeline speakers,
+  topic-title attribution, free text) against the *entire* Terms Registry, not just that meeting's
+  own documents — an entity named in one meeting's agenda can correct a mishearing of the same
+  entity in a different meeting's generated content. Dispatches by entity type: surname-anchored
+  matching for people (with a misheard-surname fallback), fuzzy/containment matching for
+  places/organizations/programs (no "surname" to anchor on).
+- `discover_recurring_speaker_candidates()` is the fallback for entities the registry has no
+  record of at all — a recurring public commenter never named in any official document. Groups
+  generated-content names by surname across the whole corpus; a spelling observed less often than
+  a dominant alternate spelling of the same surname is flagged.
+
+Every new or promoted entry is tagged `"auto_discovered": true` — pure provenance metadata, it
+doesn't gate anything. `"scope": [slug, ...]` is what bounds a fresh candidate's blast radius: both
+`render_glossary_hints()` (prompt hints — unaffected by scope, since a pure spelling hint is
+timeless-safe regardless of corroboration) and `glossary_utils.replacements_for_meeting()` (the
+deterministic find/replace pass) only apply a scoped entry to the meeting(s) in its `scope`; an
+entry with no `scope` key — hand-curated from the start, or since promoted — applies everywhere.
+`note` is never rendered into any prompt, on any entry (see
+[LLM Calls](#llm-calls)'s glossary-hint description) — only spelling (`correct`/`aliases`) is
+timeless-safe to assert into every meeting's prompt regardless of date; a role/context note is not,
+which is the exact bug class that originally motivated [todos/013](../todos/013-pending-p2-consolidate-glossary-artifact.md).
+
+No entry, regardless of how it originated, is ever permanently protected from automated merging —
+a later observation can widen or add an alias to a hand-curated entry the same way it would an
+auto-discovered one (see todos/019 "remove the protection, not the data").
 
 ---
 
@@ -133,10 +188,16 @@ Every file discovered in the Drive folder tree gets one entry in a dedicated GCS
     "meeting_slug": "2026-08-17",
     "resolved_via": "content",
     "text_blob": "official_docs/20260813_packet_1aOu6lxoBF9zSLh-d3MG4CbSDPL0SJDgb_20260814_1931.txt",
-    "terms_blob": null
+    "terms": [{"term": "Kaler Elementary School", "type": "place", "context": "closure discussion"}]
   }
 }
 ```
+
+`terms` holds this document's extracted proper nouns inline — no separate GCS read needed to use
+them, since the catalog itself is already loaded once per run (see
+[Official Document Term Extraction](#llm-calls)). An entry may still carry a legacy `terms_blob`
+pointer from before this change; it's hydrated into `terms` once on next touch, then dropped — see
+[GCS text cache](#gcs-text-cache) below.
 
 It is **not** part of `master_material_map.json` — that file is per-run reconciliation
 working-state keyed by meeting date; the catalog is a durable, file-keyed resource serving a
@@ -215,15 +276,23 @@ actually edited, rather than being re-checked every run forever.
 ### GCS text cache
 
 Text extracted during content resolution is cached at a flat (no subfolders) blob name —
-`official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.{ext}` (`drive.cache_text` /
-`drive.cache_terms`, computed by `drive._blob_name`) — and every downstream consumer of an
-official document's text (`post_process.py`'s official-term extraction and agenda-preview
-generation; `process_transcripts.py`'s votes/attendance extraction from minutes) reads it back via
-`entry['text_blob']` / `entry['terms_blob']` on the matching catalog entry (`drive.read_cached_blob`)
-instead of re-downloading or listing the bucket. `doc_type` (agenda/packet/minutes/transcript/misc) is
-safe to bake into the name — it's `categorize_document()`'s deterministic filename-keyword match,
-not a date-resolution output — but the resolved *meeting* date deliberately never appears in a
-blob name.
+`official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.txt` (`drive.cache_text`,
+computed by `drive._blob_name`) — and every downstream consumer of an official document's text
+(`post_process.py`'s official-term extraction and agenda-preview generation; `process_transcripts.py`'s
+votes/attendance extraction from minutes) reads it back via `entry['text_blob']` on the matching
+catalog entry (`drive.read_cached_blob`) instead of re-downloading or listing the bucket. `doc_type`
+(agenda/packet/minutes/transcript/misc) is safe to bake into the name — it's
+`categorize_document()`'s deterministic filename-keyword match, not a date-resolution output — but
+the resolved *meeting* date deliberately never appears in a blob name.
+
+Extracted *terms* are no longer blob-cached the same way (`drive.cache_terms` is deprecated, no
+callers) — they're stored inline on the catalog entry itself (`entry['terms']`), since the catalog
+is already loaded/saved once per run; a separate per-document GCS read added nothing but a second
+network round trip on every cache hit. A `terms_blob` pointer from before this change is hydrated
+into `entry['terms']` once on next touch, then dropped — no backfill script, no active cleanup of
+the now-orphaned old blobs (harmless, just unused). See
+[The Terms Registry](#the-terms-registry-scriptsterms_registrypy) for where consolidated terms end
+up beyond the per-document cache.
 
 `modified_stamp` is `YYYYMMDD_HHMM` for a normal upload, so each rare edit gets its own blob
 (effectively full history) — or `YYYYMMDD` for a Google-native file (Docs/Sheets/Slides), which
@@ -328,10 +397,12 @@ These are set when a meeting moves from `stub: true` → `stub: false`, and upda
 | `src/_data/unmapped_documents.json` | Yes | `source_data.py` | Drive files no source could date; rendered as a table on the homepage |
 | `scripts/topic_hashes.json` | Yes | `post_process.py` | Evidence cache (pipeline state, not rendered) |
 | `master_material_map.json` | GCS bucket | `source_data.py` | Full reconciled source map with `_stub_action` / `_authority` audit fields per date |
-| `drive_catalog.json` | GCS bucket | `source_data.py` (written), `post_process.py` / `process_transcripts.py` (read + amended) | Drive file_id → metadata + `meeting_slug` + cache-blob pointers — see [The Drive catalog](#the-drive-catalog-drive_catalogjson) |
+| `drive_catalog.json` | GCS bucket | `source_data.py` (written), `post_process.py` / `process_transcripts.py` (read + amended) | Drive file_id → metadata + `meeting_slug` + cache-blob pointers + inline extracted `terms` — see [The Drive catalog](#the-drive-catalog-drive_catalogjson) |
+| `terms_registry.json` | GCS bucket | `post_process.py` (written via `terms_registry.py`), `process_transcripts.py` / `post_process.py` (read) | Corpus-wide, deduplicated, lineage-tracked proper nouns from every official document — see [The Terms Registry](#the-terms-registry-scriptsterms_registrypy) |
 | `apptegy_events_raw.json` | GCS bucket | `source_data.py` | Complete unfiltered Apptegy API response (all calendar events, full payload) |
 | `vimeo_master_list.json` | Yes | Manual | Vimeo video ID → meeting date mapping |
-| `official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.{txt,json}` | GCS bucket | `source_data.py` / `post_process.py` (via `drive.cache_text` / `drive.cache_terms`) | Extracted text / proper-noun terms for one Drive file, pointed at by its `drive_catalog.json` entry |
+| `src/_data/glossary.json` | Yes | `post_process.py` (auto-discovery writes), hand-curated otherwise | Proper-noun spelling corrections (alias → correct), consumed as prompt hints and a deterministic find/replace pass by both `process_transcripts.py` and `post_process.py` — see [Glossary auto-discovery](#glossary-auto-discovery-post_processpy) |
+| `official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.txt` | GCS bucket | `source_data.py` / `post_process.py` (via `drive.cache_text`) | Extracted text for one Drive file, pointed at by its `drive_catalog.json` entry. (The sibling `.json` terms blob this directory used to hold is legacy-only — see [GCS text cache](#gcs-text-cache).) |
 | `sourcing_log.json` | GCS bucket, synced to `src/_data/` on gated runs | `source_data.py` | One entry per `source_data.py` invocation — per-source fetched/changed summary, meetings created/updated, `any_changes` (the scheduled-run gate signal); see [Run Log Schema](#run-log-schema) |
 | `processing_log.json` | GCS bucket, synced to `src/_data/` on gated runs | `process_transcripts.py`, `post_process.py` | One entry per script per gated pipeline pass (`stage: "transcripts"` / `"post_process"`), sharing a `run_id` for display grouping — rendered at `/processing-log/`; see [Run Log Schema](#run-log-schema) |
 
@@ -383,7 +454,7 @@ signal, also written to `$GITHUB_OUTPUT` as `changes` — see
   "stage": "transcripts",
   "targeted": ["2026-08-17"],
   "results": [
-    {"slug": "2026-08-17", "status": "Success", "model": "gemini-2.5-pro", "unresolved_attendance": []}
+    {"slug": "2026-08-17", "status": "Success", "model": "gemini-2.5-pro"}
   ],
   "rate_limited": []
 }
@@ -459,6 +530,8 @@ src/meetings/*.njk (all)
   └──► scripts/post_process.py ──► src/_data/all_topics.json
                                 ──► src/_data/topic_summaries.json
                                 ──► scripts/topic_hashes.json
+                                ──► src/_data/glossary.json (auto-discovery growth)
+                                ──► terms_registry.json (GCS; consolidated proper nouns)
                                 ──► processing_log.json (GCS; stage: post_process)
 
 src/meetings/*.njk + src/_data/*.json

@@ -117,8 +117,12 @@ def cache_text(bucket_uri, file_id, entry, text):
     return name if write_blob(bucket_uri, name, text, content_type='text/plain') else None
 
 def cache_terms(bucket_uri, file_id, entry, terms_json_text):
-    """Write extracted proper-noun terms (JSON) to the shared GCS cache. Returns the blob name
-    written, or None if the write failed."""
+    """Deprecated — no callers. Extracted proper-noun terms are now stored inline on the Drive
+    catalog entry itself (`entry['terms']`) instead of a separate per-document GCS blob; a legacy
+    `terms_blob` pointer written by this function is still read once (and then dropped) by
+    post_process.py::_extract_official_terms / process_transcripts.py::_load_official_terms_from_gcs
+    for lazy migration (see todos/019). Left defined, not deleted, since old blobs this wrote are
+    harmless orphans in GCS that nothing needs to clean up."""
     name = _blob_name(file_id, entry, 'json')
     return name if write_blob(bucket_uri, name, terms_json_text, content_type='application/json') else None
 

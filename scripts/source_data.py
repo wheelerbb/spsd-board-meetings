@@ -12,7 +12,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 
 from sourcing import drive, apptegy, spsd_site, vimeo, transcripts
-from board_members_utils import active_members
 import pipeline_log
 
 load_dotenv()
@@ -216,10 +215,6 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
     _backfill_file_types.
     Mutates all_data in place to add '_stub_action' and '_authority' audit fields.
     """
-    board_members_path = os.path.join(BASE_DIR, '..', 'src', '_data', 'board_members.json')
-    with open(board_members_path) as f:
-        board_members = json.load(f)
-
     meeting_dir = 'src/meetings/'
     if not os.path.exists(meeting_dir):
         if not dry_run: os.makedirs(meeting_dir)
@@ -413,7 +408,6 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
             "has_vtt_source": bool(transcript_path) or any(d.get('type') == 'transcript' for d in data.get('drive', [])),
             "has_transcript": bool(transcript_path) or any(d.get('type') == 'transcript' for d in data.get('drive', [])),
             "stub": True,
-            "board_attendance": active_members(board_members, dt.date()),
             "docs": combined_docs
         }
 

@@ -13,8 +13,9 @@ Reference for all Gemini prompt templates used in the pipeline. Code retains the
 
 ### Injected context
 
-- **Static glossary** (`src/_data/glossary.json`) — hand-maintained spelling corrections only (school names, acronyms, name misspellings) that hold true for the entire archive regardless of meeting date. Rendered into prompt-hint text by `scripts/glossary_utils.py::render_glossary_hints()`. Deliberately contains no time-varying facts (roles, roster membership) — see §6 and `src/_data/board_members.json`.
-- **Canonical terms from official docs** — extracted from GCS cache (`official_docs/{slug}/`) when available; appended to the static glossary as "use this exact spelling" hints, per-meeting.
+- **Glossary** (`src/_data/glossary.json`) — spelling corrections (school names, acronyms, person names) that hold true for the entire archive regardless of meeting date. Rendered into prompt-hint text by `scripts/glossary_utils.py::render_glossary_hints()`, which deliberately never includes an entry's `note` — a note can carry time-varying context (a role, a seat) that would otherwise be asserted as fact into every meeting's prompt regardless of date, the exact bug class that originally motivated todos/013. The glossary grows automatically (see §6, `scripts/post_process.py`'s glossary-discovery step, and `docs/pipeline.md#glossary-auto-discovery-post_processpy`) — there's no longer a separate hand-maintained vs. auto-discovered distinction at the hint-rendering level.
+- **Canonical terms from this meeting's own official docs** — read from the Drive catalog's inline `entry['terms']` (no GCS blob read needed) when available; appended to the glossary hints as "use this exact spelling" hints, scoped to this specific meeting's own documents. (The corpus-wide Terms Registry built from the same extractions is used elsewhere — attendance-name canonicalization, glossary auto-discovery — not injected into this prompt, to keep it from growing unboundedly large; see `docs/pipeline.md#the-terms-registry-scriptsterms_registrypy`.)
+- There is no longer a separate board-roster hint — a board member's name is grounded the same way as any other person's, via the mechanisms above. See todos/019 for why a date-scoped roster file turned out not to be the right source for this.
 
 Note: this script does **not** generate topic tags — that moved to `post_process.py`'s `generate_tags()` / `batch_tag_all_meetings()` (§2/§3 below) when tagging became summary-based. Do not reintroduce a `tags`/`allowed_tags` field here; `all_topics.json` is owned by `post_process.py`.
 
@@ -265,13 +266,18 @@ Return ONLY a JSON object with these exact keys — no markdown fences, no comme
 RULES:
 - Omit any perspective key where there is genuinely no evidence in the notes.
 - Use "Staff" (not "Teachers") for the staff/union group.
-- SPELING: Kaler (NOT Caler), Skillin (NOT Skillen).
+Glossary: {glossary_text}
 
 Evidence (Newest First):
 {evidence}
 ```
 
 `overview` and each `perspectives` value are JSON arrays of short bullet strings (not prose blocks) — rendered by `topic.njk` as `<ul class="summary-bullets">`, the same markup meeting pages use for their own summary bullets. `current_status` stays a single short string (1-2 sentences, "card-ready").
+
+The glossary line replaced a hardcoded, independently-drifting `"SPELING: Kaler (NOT Caler), Skillin
+(NOT Skillen)."` rule that duplicated (and had already fallen out of sync with) `src/_data/glossary.json`
+— the same "two places to remember" failure mode [todos/013](../todos/013-pending-p2-consolidate-glossary-artifact.md)
+was written to eliminate, recurring here until todos/019 found it.
 
 ### Evidence format
 
@@ -298,9 +304,18 @@ MD5 hash of the evidence string stored in `scripts/topic_hashes.json`. Synthesis
 
 ### Purpose
 
-Extracts canonical proper noun spellings from agenda/packet/minutes PDFs stored in Drive, caches results in GCS, and injects them into the transcript extraction prompt as authoritative spelling hints.
+Extracts canonical proper noun spellings from agenda/packet/minutes PDFs stored in Drive, caches
+the per-document result inline on the Drive catalog entry (`entry['terms']` — no separate GCS blob
+read needed on a cache hit, see `docs/pipeline.md#gcs-text-cache`), and injects them into the
+transcript extraction prompt (§1) as authoritative, meeting-scoped spelling hints.
 
-This is the dynamic, per-meeting counterpart to the static `src/_data/glossary.json` (§1) — use the static file only for spellings that never change over the archive's lifetime; use this mechanism for anything specific to a given meeting's own documents, including anything role- or date-dependent.
+Beyond that per-meeting hint, every extraction is also consolidated into the corpus-wide Terms
+Registry (`scripts/terms_registry.py::ingest_document_terms()` — see
+`docs/pipeline.md#the-terms-registry-scriptsterms_registrypy`), which is what `glossary.json`'s
+auto-discovery and attendance-name canonicalization read from. Use `src/_data/glossary.json`
+directly only for a spelling correction that should apply regardless of what any official document
+says (todos/013); everything sourced from a specific meeting's own documents, including anything
+role- or date-dependent, belongs here instead.
 
 ### Prompt template
 
@@ -321,15 +336,20 @@ Document text:
 {text}
 ```
 
-### GCS cache paths
+### Caching
 
-Keyed by Drive `file_id` (via `drive_catalog.json`), not by meeting date — see
-[pipeline.md#the-drive-catalog-drive_catalogjson](pipeline.md#the-drive-catalog-drive_catalogjson).
+Raw document text is cached in GCS, keyed by Drive `file_id` (via `drive_catalog.json`), not by
+meeting date — see
+[pipeline.md#the-drive-catalog-drive_catalogjson](pipeline.md#the-drive-catalog-drive_catalogjson):
 
 ```
 gs://{bucket}/official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.txt   ← raw text
-gs://{bucket}/official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.json  ← extracted terms
 ```
+
+Extracted *terms* are no longer written to a sibling `.json` blob — they're cached inline on the
+catalog entry itself (`entry['terms']`) and consolidated into the corpus-wide
+`gs://{bucket}/terms_registry.json` — see
+[pipeline.md#the-terms-registry-scriptsterms_registrypy](pipeline.md#the-terms-registry-scriptsterms_registrypy).
 
 ---
 
@@ -341,13 +361,15 @@ gs://{bucket}/official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}
 
 ### Purpose
 
-Generates a `<ul>` preview of upcoming meeting agenda items for meetings that have a packet or agenda doc but haven't been processed yet (stub meetings).
+Generates a `<ul>` preview of upcoming meeting agenda items for meetings that have a packet or agenda doc but haven't been processed yet (stub meetings). Now receives glossary hints (see §1) — previously the only generation path with none, which meant a misspelling here could only ever be fixed by the post-hoc find/replace pass, never prevented (see todos/019).
 
 ### Prompt template
 
 ```
 You are summarizing a school board meeting agenda for a public web archive.
 Output ONLY valid HTML — no prose, no markdown, no code fences.
+
+Glossary: {glossary_text}
 
 Format:
 <ul class="agenda-preview-list">

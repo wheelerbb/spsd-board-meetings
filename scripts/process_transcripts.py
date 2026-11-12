@@ -45,19 +45,14 @@ CUTOFF_DATE = "2023-08-01"
 SCRIPT_VERSION = '2026-08-20'
 
 from glossary_utils import load_glossary, render_glossary_hints
-from board_members_utils import (
-    load_board_members, save_board_members, active_members,
-    canonicalize_attendance_names, unresolved_attendance, apply_discovered_members,
-)
+import terms_registry
 
 GLOSSARY_PATH = 'src/_data/glossary.json'
 # Single source of truth shared with post_process.py — do not hardcode spelling
-# corrections in either place (see todos/013). Board/role facts are intentionally
-# NOT here; those come from src/_data/board_members.json and per-meeting official-
-# document extraction only (see _load_official_terms_from_gcs below).
+# corrections in either place (see todos/013, todos/019). Role facts are intentionally
+# NOT here; those come from per-meeting official-document extraction only (see
+# _load_official_terms_from_gcs below), never a date-blind static assertion.
 GLOSSARY_HINTS = render_glossary_hints(load_glossary(GLOSSARY_PATH))
-
-BOARD_MEMBERS = load_board_members()
 
 # --- SCHEMA ---
 class Vote(BaseModel):
@@ -102,7 +97,13 @@ class VotesAndAttendance(BaseModel):
 def _load_official_terms_from_gcs(docs, bucket_uri, catalog):
     """Load cached proper nouns extracted from a meeting's official docs, looked up directly by
     each doc's file_id in the shared Drive catalog (no bucket listing — see
-    docs/pipeline.md#the-drive-catalog-drive_catalogjson)."""
+    docs/pipeline.md#the-drive-catalog-drive_catalogjson). Terms are read from the catalog entry's
+    inline `terms` field — a legacy `terms_blob` pointer with no inline terms yet is hydrated once
+    on first touch, then dropped (mirrors post_process.py::_extract_official_terms — see
+    todos/019). This intentionally stays scoped to this meeting's own documents, not the full
+    corpus-wide Terms Registry — a prompt hint needs to stay small and meeting-relevant; the
+    registry's broader reach is used instead for attendance-name canonicalization below, which is
+    a pure lookup, not inserted prompt text."""
     if not bucket_uri:
         return []
     all_terms = []
@@ -111,15 +112,20 @@ def _load_official_terms_from_gcs(docs, bucket_uri, catalog):
         if not m:
             continue
         entry = catalog.get(m.group(1))
-        if not entry or not entry.get('terms_blob'):
+        if not entry:
             continue
-        cached = drive.read_cached_blob(bucket_uri, entry['terms_blob'])
-        if cached is None:
-            continue
-        try:
-            all_terms.extend(json.loads(cached))
-        except Exception:
-            pass
+        terms = entry.get('terms')
+        if terms is None and entry.get('terms_blob'):
+            cached = drive.read_cached_blob(bucket_uri, entry['terms_blob'])
+            if cached is not None:
+                try:
+                    terms = json.loads(cached)
+                    entry['terms'] = terms
+                    entry.pop('terms_blob', None)
+                except Exception:
+                    terms = None
+        if terms:
+            all_terms.extend(terms)
     return all_terms
 
 
@@ -214,10 +220,11 @@ def fetch_vtt_content(path):
 
 # --- PROCESSING ---
 
-def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None):
+def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None, registry=None):
     njk_path = f"src/meetings/{date_slug}.njk"
     if not os.path.exists(njk_path): return None
     catalog = catalog if catalog is not None else {}
+    registry = registry if registry is not None else {}
 
     # A light early read of just `docs` — official-term lookup needs it before the full
     # front-matter read (and the transcript-analysis Gemini call) happens further down.
@@ -344,26 +351,24 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None):
                         data['attendance_source'] = source_label
 
         # Canonicalize attendance names (e.g. "Ms. DeAngelis" -> "Rosemarie DeAngelis") against
-        # whoever was actually active on this meeting's date. This only formats names already
-        # extracted from the transcript/official document — it never adds, removes, or
-        # determines who attended (see src/_data/board_members.json's date-scoped terms).
-        # Names that don't uniquely match are returned as-is here, and surfaced to main() as
-        # "unresolved" so board_members.json can be grown to cover them (see apply_discovered_members).
-        unresolved = []
+        # the corpus-wide Terms Registry (scripts/terms_registry.py) — this only formats names
+        # already extracted from the transcript/official document, it never adds, removes, or
+        # determines who attended. A name with no unique registry match (e.g. before any official
+        # document has named this person yet) is left as-is; the registry converges toward
+        # covering them as more documents are processed. This replaced board_members.json-based
+        # canonicalization and its auto_discovered growth mechanism entirely — see todos/019.
         if data.get('board_attendance'):
             try:
-                meeting_date = date.fromisoformat(date_slug)
-                active = active_members(BOARD_MEMBERS, meeting_date)
-                unresolved = unresolved_attendance(data['board_attendance'], active)
-                for u in unresolved:
-                    u['date'] = meeting_date
-                data['board_attendance'] = canonicalize_attendance_names(data['board_attendance'], active)
+                for member in data['board_attendance']:
+                    match = terms_registry.canonical_person(member.get('name', ''), registry)
+                    if match:
+                        member['name'] = match
             except Exception as e:
                 print(f"    Warning: could not canonicalize attendance names for {date_slug}: {e}")
 
         new_fm = yaml.dump(data, sort_keys=False, default_flow_style=False)
         with open(njk_path, 'w') as f: f.write('---\n' + new_fm + '---\n' + body)
-        return {"slug": date_slug, "status": "Success", "model": model_used, "unresolved_attendance": unresolved}
+        return {"slug": date_slug, "status": "Success", "model": model_used}
 
     except Exception as e:
         return {"slug": date_slug, "status": f"Error: {e}"}
@@ -424,10 +429,10 @@ def main():
         return
     print(f"Targeting {len(to_process)} meetings...", flush=True)
     catalog = drive.load_catalog(bucket)
-    all_unresolved = []
+    registry = terms_registry.load_registry(bucket)
     all_results = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {executor.submit(process_single_meeting, slug, path, bucket, catalog): slug for slug, path in to_process.items()}
+        futures = {executor.submit(process_single_meeting, slug, path, bucket, catalog, registry): slug for slug, path in to_process.items()}
         rate_limited = []
         for future in as_completed(futures):
             slug = futures[future]
@@ -440,17 +445,6 @@ def main():
                 all_results.append(res)
                 if res['status'] == 'RateLimit':
                     rate_limited.append(res['slug'])
-                all_unresolved.extend(res.get('unresolved_attendance') or [])
-
-    # Grow board_members.json toward full coverage: any attendance name that couldn't be
-    # matched to the active roster gets recorded (as a placeholder, or upgrading an existing
-    # placeholder to a fuller name) so future runs canonicalize it correctly. Done once here,
-    # single-threaded, rather than per-worker, to avoid concurrent writes to the shared file.
-    if all_unresolved:
-        board_members = load_board_members()
-        if apply_discovered_members(board_members, all_unresolved):
-            save_board_members(board_members)
-            print(f"Updated board_members.json with {len(all_unresolved)} unresolved attendance observation(s).", flush=True)
 
     drive.save_catalog(bucket, catalog)
 

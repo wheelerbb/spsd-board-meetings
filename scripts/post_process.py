@@ -339,31 +339,36 @@ Omit a topic entirely if none of the votes are substantively about it. Example:
     return evidence
 
 
-from glossary_utils import load_glossary, to_replacement_map
+from glossary_utils import (
+    load_glossary, save_glossary, render_glossary_hints, replacements_for_meeting,
+    discover_term_candidates, discover_recurring_speaker_candidates, apply_discovered_terms,
+)
+import terms_registry
 
 # Single source of truth shared with process_transcripts.py — do not hardcode spelling
-# corrections in either place (see todos/013).
+# corrections in either place (see todos/013, todos/019).
 GLOSSARY_PATH = 'src/_data/glossary.json'
-GLOSSARY_REPLACEMENTS = to_replacement_map(load_glossary(GLOSSARY_PATH)) if os.path.exists(GLOSSARY_PATH) else {}
 
 
-def _enforce_glossary_pass(meeting_dir, replacements=None):
-    """Deterministic find/replace pass over every .njk file's raw content, using
-    alias->correct pairs derived from src/_data/glossary.json. Writes back only
-    changed files; returns parsed meetings_data list."""
-    if replacements is None:
-        replacements = GLOSSARY_REPLACEMENTS
+def _enforce_glossary_pass(meeting_dir, glossary_entries):
+    """Deterministic find/replace pass over every .njk file's raw content, using scope-aware
+    alias->correct pairs derived from src/_data/glossary.json
+    (glossary_utils.replacements_for_meeting) — an entry still carrying unconfirmed evidence
+    (`scope`) only rewrites the meeting(s) that produced it, not every file; a global entry
+    (hand-curated, or already promoted) rewrites everywhere, as before. Writes back only changed
+    files; returns parsed meetings_data list."""
     meetings_data = []
     for filename in sorted(os.listdir(meeting_dir)):
         if not filename.endswith('.njk'):
             continue
+        slug = filename.replace('.njk', '')
         filepath = os.path.join(meeting_dir, filename)
 
         with open(filepath, 'r') as f:
             content = f.read()
 
         orig = content
-        for w, r in replacements.items():
+        for w, r in replacements_for_meeting(glossary_entries, slug).items():
             content = content.replace(w, r)
         if content != orig:
             with open(filepath, 'w') as f:
@@ -373,7 +378,7 @@ def _enforce_glossary_pass(meeting_dir, replacements=None):
         if m:
             try:
                 data = yaml.safe_load(m.group(1)) or {}
-                data['slug'] = filename.replace('.njk', '')
+                data['slug'] = slug
                 meetings_data.append(data)
             except Exception as e:
                 print(f"  Warning: could not parse {filename}: {e}")
@@ -395,10 +400,14 @@ def _write_njk(path, data, body):
         f.write(f'---\n{fm}---\n{body}')
 
 
-def _extract_official_terms(meeting_data, bucket_uri, catalog):
-    """Extract canonical proper nouns from agenda/packet/minutes docs; raw text and terms cached
-    in GCS via the shared Drive catalog (file_id-keyed, not slug-keyed — see
-    docs/pipeline.md#the-drive-catalog-drive_catalogjson)."""
+def _extract_official_terms(meeting_data, bucket_uri, catalog, registry):
+    """Extract canonical proper nouns from agenda/packet/minutes docs, consolidating them into
+    the corpus-wide Terms Registry (scripts/terms_registry.py — see todos/019). Per-document terms
+    are cached inline on the shared Drive catalog entry (`entry['terms']`), not a separate GCS
+    blob pointer — the catalog is already loaded/saved once per run, so this removes a second
+    network round trip (the old `terms_blob` read) on every cache hit. A legacy `terms_blob`
+    pointer with no inline `terms` yet is hydrated once on first touch, then dropped — no backfill
+    script needed."""
     docs = meeting_data.get('docs') or []
     qualifying = [d for d in docs if d.get('type') in ('agenda', 'packet', 'minutes')]
     if not qualifying:
@@ -430,16 +439,24 @@ def _extract_official_terms(meeting_data, bucket_uri, catalog):
         entry.setdefault('mime_type', meta.get('mimeType'))
         entry.setdefault('created_time', meta.get('createdTime'))
 
-        if entry.get('terms_blob') and entry.get('modified_time') == current_modified:
-            cached = drive_mod.read_cached_blob(bucket_uri, entry['terms_blob'])
-            if cached is not None:
-                try:
-                    terms = json.loads(cached)
-                    all_terms.extend(terms)
-                    print(f"    Loaded {len(terms)} terms for {slug}/{doc_type} from cache.", flush=True)
-                    continue
-                except Exception:
-                    pass
+        terms = None
+        if entry.get('modified_time') == current_modified:
+            terms = entry.get('terms')
+            if terms is None and entry.get('terms_blob'):
+                cached = drive_mod.read_cached_blob(bucket_uri, entry['terms_blob'])
+                if cached is not None:
+                    try:
+                        terms = json.loads(cached)
+                        entry['terms'] = terms
+                        entry.pop('terms_blob', None)
+                    except Exception:
+                        terms = None
+
+        if terms is not None:
+            print(f"    Loaded {len(terms)} terms for {slug}/{doc_type} from cache.", flush=True)
+            all_terms.extend(terms)
+            terms_registry.ingest_document_terms(registry, file_id, slug, doc_type, terms)
+            continue
 
         print(f"    Extracting terms for {slug}/{doc_type} (not in cache)...", flush=True)
         text, updates = drive_mod.get_or_extract_text(bucket_uri, svc, catalog, file_id)
@@ -464,10 +481,11 @@ def _extract_official_terms(meeting_data, bucket_uri, catalog):
         try:
             response_text, _model = call_llm(_make_client, prompt, json_output=True, label=f"{slug}/{doc_type}")
             terms = json.loads(response_text)
-            entry['terms_blob'] = drive_mod.cache_terms(bucket_uri, file_id, entry, json.dumps(terms))
+            entry['terms'] = terms
             entry['modified_time'] = current_modified
             print(f"    Extracted and cached {len(terms)} terms for {slug}/{doc_type}.", flush=True)
             all_terms.extend(terms)
+            terms_registry.ingest_document_terms(registry, file_id, slug, doc_type, terms)
         except Exception as e:
             print(f"    Warning: could not extract terms for {slug}/{doc_type}: {e}", flush=True)
 
@@ -533,7 +551,7 @@ def _load_cached_agenda_text(docs, bucket_uri, catalog, max_chars=2500):
         return None
 
 
-def generate_agenda_preview(meeting_data, meeting_dir, bucket_uri, catalog):
+def generate_agenda_preview(meeting_data, meeting_dir, bucket_uri, catalog, glossary_text=''):
     """Generate and write a topic-structured agenda_preview for an upcoming stub."""
     docs = meeting_data.get('docs') or []
     agenda_doc = next((d for d in docs if d.get('type') in ('agenda', 'packet')), None)
@@ -548,6 +566,7 @@ def generate_agenda_preview(meeting_data, meeting_dir, bucket_uri, catalog):
     prompt = (
         'You are summarizing a school board meeting agenda for a public web archive.\n'
         'Output ONLY valid HTML — no prose, no markdown, no code fences.\n\n'
+        f'Glossary: {glossary_text}\n\n'
         'Format:\n'
         '<ul class="agenda-preview-list">\n'
         '<li><strong>Descriptive label:</strong> Brief detail (one sentence).</li>\n'
@@ -596,7 +615,7 @@ def generate_blurb(local, meeting_dir):
         return local['slug'], None, None
 
 
-def synthesize_topic(topic, evidence, display_date):
+def synthesize_topic(topic, evidence, display_date, glossary_text=''):
     print(f"  Synthesizing: {topic}...")
     prompt = f"""
     You are a policy analyst for the SPSD Board Meeting Archive.
@@ -617,7 +636,7 @@ def synthesize_topic(topic, evidence, display_date):
     RULES:
     - Omit any perspective key where there is genuinely no evidence in the notes.
     - Use "Staff" (not "Teachers") for the staff/union group.
-    - SPELING: Kaler (NOT Caler), Skillin (NOT Skillen).
+    Glossary: {glossary_text}
 
     Evidence (Newest First):
     {evidence}
@@ -826,6 +845,7 @@ def post_process():
             bucket_uri = sys.argv[idx + 1]
     bucket_uri = bucket_uri or os.getenv('GCS_BUCKET_URI') or None
     catalog = drive_mod.load_catalog(bucket_uri)
+    registry = terms_registry.load_registry(bucket_uri)
 
     if '--dry-run-tag' in sys.argv:
         idx = sys.argv.index('--dry-run-tag')
@@ -881,7 +901,9 @@ def post_process():
 
     # 1. Enforce Glossary & Extract Data
     print("Enforcing Glossary and scanning meetings...", flush=True)
-    meetings_data = _enforce_glossary_pass(meeting_dir)
+    glossary_entries = load_glossary(GLOSSARY_PATH) if os.path.exists(GLOSSARY_PATH) else []
+    meetings_data = _enforce_glossary_pass(meeting_dir, glossary_entries)
+    glossary_text = render_glossary_hints(glossary_entries)
 
     if retag:
         # Topics are about to be fully recomputed below; clear any existing vote_evidence too so
@@ -896,7 +918,8 @@ def post_process():
         if stale_ve:
             print(f"Retag mode: cleared vote_evidence for {len(stale_ve)} meeting(s)", flush=True)
 
-    # 2. Extract canonical names from official docs (agenda/packet/minutes) → cache in GCS
+    # 2. Extract canonical names from official docs (agenda/packet/minutes), consolidating them
+    # into the corpus-wide Terms Registry (scripts/terms_registry.py — see todos/019).
     if bucket_uri:
         print("Extracting canonical names from official meeting documents...", flush=True)
         term_targets = [
@@ -905,13 +928,28 @@ def post_process():
         ]
         def _extract_terms_task(m):
             try:
-                _extract_official_terms(m, bucket_uri, catalog)
+                _extract_official_terms(m, bucket_uri, catalog, registry)
             except Exception as e:
                 print(f"  Warning: term extraction failed for {m.get('slug')}: {e}", flush=True)
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = [executor.submit(_extract_terms_task, m) for m in term_targets]
             for future in as_completed(futures):
                 future.result()
+
+        # 2b. Discover glossary candidates from the registry + each meeting's own generated
+        # content, plus a cross-meeting recurring-speaker pass for entities the registry has no
+        # record of at all — pure in-memory, no network calls, now that step 2 above has the
+        # registry populated. Evidence-scoped, no human review step (see todos/019 "no manual-
+        # review gate, anywhere" and "remove the protection, not the data").
+        print("Discovering glossary candidates...", flush=True)
+        observations = []
+        for m in meetings_data:
+            observations.extend(discover_term_candidates(m, registry))
+        observations.extend(discover_recurring_speaker_candidates(meetings_data))
+        if apply_discovered_terms(glossary_entries, observations):
+            save_glossary(glossary_entries, GLOSSARY_PATH)
+            glossary_text = render_glossary_hints(glossary_entries)
+            print(f"Updated glossary.json from {len(observations)} discovery observation(s).", flush=True)
 
     # 3. Generate topic tags from summary bullets — and, in the same call, associate each
     # meeting's votes with whichever tags they're substantively about (see generate_tags'
@@ -1000,7 +1038,7 @@ def post_process():
     ]
     preview_results = []
     for m in preview_tasks:
-        result = generate_agenda_preview(m, meeting_dir, bucket_uri, catalog)
+        result = generate_agenda_preview(m, meeting_dir, bucket_uri, catalog, glossary_text)
         if result:
             preview_results.append(result)
 
@@ -1092,7 +1130,7 @@ def post_process():
     updated_topics = []
     if topic_tasks:
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            futures = {executor.submit(synthesize_topic, t[0], t[1], t[2]): t for t in topic_tasks}
+            futures = {executor.submit(synthesize_topic, t[0], t[1], t[2], glossary_text): t for t in topic_tasks}
             for future in as_completed(futures):
                 topic, result_text, model = future.result()
                 if result_text:
@@ -1106,6 +1144,7 @@ def post_process():
         json.dump(hashes, f, indent=2)
 
     drive_mod.save_catalog(bucket_uri, catalog)
+    terms_registry.save_registry(bucket_uri, registry)
 
     import datetime as _dt
     pipeline_log.append_entry(bucket_uri, 'processing_log', {
