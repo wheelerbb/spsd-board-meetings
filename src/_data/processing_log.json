@@ -1,5 +1,43 @@
 [
   {
+    "run_id": "43246837126",
+    "timestamp": "2026-11-12T15:21:38.807131Z",
+    "stage": "post_process",
+    "skipped": true,
+    "topics_updated": [],
+    "topics_skipped": 0,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "43246837126",
+    "timestamp": "2026-11-12T15:21:37.125151Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
+    "run_id": "2026-11-12T15:20:52.515047",
+    "timestamp": "2026-11-12T15:20:52.515074Z",
+    "stage": "post_process",
+    "topics_updated": [
+      {
+        "topic": "Student Demographics",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Immigration Enforcement",
+        "model": "gemini-2.5-pro",
+        "reason": "new topic"
+      }
+    ],
+    "topics_skipped": 66,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
     "run_id": "43216464017",
     "timestamp": "2026-11-12T12:19:31.660049Z",
     "stage": "post_process",
@@ -1885,31 +1923,5 @@
     "topics_skipped": 0,
     "blurbs_generated": [],
     "previews_generated": []
-  },
-  {
-    "run_id": "33873851146",
-    "timestamp": "2026-09-04T12:41:03.846531Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "33766486425",
-    "timestamp": "2026-09-03T14:23:34.326681Z",
-    "stage": "post_process",
-    "skipped": true,
-    "topics_updated": [],
-    "topics_skipped": 0,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "33766486425",
-    "timestamp": "2026-09-03T14:23:32.390198Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
   }
 ]
