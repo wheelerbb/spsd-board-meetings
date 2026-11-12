@@ -914,27 +914,16 @@
     }
   },
   "Student Demographics": {
-    "current_status": "The SPSD Board has unanimously recommended that the City Council include the School Department in a city-wide ordinance to protect vulnerable student populations, building on years of addressing rapid demographic shifts. This decision aligns with ongoing district initiatives to support immigrant families and establish clear protective protocols.",
+    "current_status": "Students of color now represent 37% of the student body, a significant increase since 2019. While chronic absenteeism has decreased to 18% district-wide, disparities remain for students with IEPs.",
     "overview": [
-      "On October 26, 2026, the board voted unanimously to formally recommend that the City Council include the School Department within the scope of a city-wide ordinance protecting vulnerable families, choosing the ordinance over a standalone school policy.",
-      "On January 12, 2026, the board, staff, and public discussed the district's belonging initiative, with calls for accelerated training and clearer protocols to protect vulnerable families from federal immigration enforcement.",
-      "On January 27, 2025, the Superintendent reaffirmed the district's commitment to diversity and outlined support plans for immigrant families, while the State of the Schools report revealed that students of color had grown to comprise 37 percent of the student body.",
-      "On January 22, 2024, the State of the Schools presentation highlighted profound demographic shifts since 2017, including a 55 percent increase in students of color, a 143 percent increase in multilingual learners, and an 869 percent increase in housing-vulnerable students."
+      "On January 27, 2025, the State of the Schools presentation revealed that students of color comprise 37% of the student body and chronic absenteeism has fallen to 18%.",
+      "The State of the Schools report on January 22, 2024, highlighted profound demographic shifts since the 2017-18 school year, including a 55% increase in students of color and a 143% increase in multilingual learners."
     ],
     "perspectives": {
-      "Board": [
-        "Supported inclusion in the city ordinance, citing its superior legal strength and symbolic message of unity over potential jurisdictional risks."
-      ],
       "Administration": [
-        "Superintendent Atkinson Duina noted the development of school policy KLGC to comply with state law but presented differing legal opinions regarding inclusion in the city ordinance.",
-        "The Superintendent reaffirmed that schools are places of learning, not immigration enforcement, and outlined plans to support immigrant families."
-      ],
-      "Staff": [
-        "Staff called for accelerated training and clearer protocols to protect vulnerable families from ICE activity."
-      ],
-      "Citizens": [
-        "Parents, community activists, and legal advocates strongly urged the board to recommend inclusion in the city ordinance to provide stronger legal protections.",
-        "Citizens called for accelerated training and clearer protocols to protect vulnerable families from ICE activity."
+        "Presented data showing students of color now make up 37% of the student body (Jan 2025).",
+        "Reported a positive trend in attendance, with chronic absenteeism dropping from 26% in 2022-23 to 18% in the current year (Jan 2025).",
+        "Previously highlighted a 143% increase in multilingual learners and an 869% increase in housing-vulnerable students since 2017-18 (Jan 2024)."
       ]
     }
   },
@@ -1296,6 +1285,31 @@
       ],
       "Citizens": [
         "Community members from Protect South Portland raised health and safety concerns about reopening Kaler School as an early learning center due to benzene emissions."
+      ]
+    }
+  },
+  "Immigration Enforcement": {
+    "current_status": "The board has unanimously voted to recommend that the City Council include the School Department in a city-wide ordinance regarding immigration enforcement. This decision prioritizes the stronger legal protection of an ordinance over a standalone school policy.",
+    "overview": [
+      "On October 26, 2026, the board voted unanimously to recommend the City Council include the school department in a city-wide ordinance to provide stronger legal protections for students and families.",
+      "On January 12, 2026, citizens and staff called for the district to accelerate training and create clearer protocols to protect vulnerable families from federal immigration enforcement activity.",
+      "On January 27, 2025, the Superintendent addressed federal policy changes by reaffirming schools as safe learning environments and outlining plans to support immigrant families with resources and legal consultation."
+    ],
+    "perspectives": {
+      "Board": [
+        "Unanimously supported inclusion in the city ordinance, reasoning that it provides more legal strength than a policy.",
+        "Believed the symbolic message of unity and protection was crucial and outweighed minor jurisdictional risks."
+      ],
+      "Administration": [
+        "The Superintendent explained on October 26, 2026, that the district was developing its own policy (KLGC) to comply with state law.",
+        "School Department counsel advised against inclusion in the city ordinance, citing the board's exclusive authority over school matters."
+      ],
+      "Staff": [
+        "On January 12, 2026, staff called for accelerated training and clearer protocols to protect vulnerable families."
+      ],
+      "Citizens": [
+        "Public commenters on October 26, 2026, unanimously and strongly urged the board to recommend inclusion in the city ordinance, arguing it offers far greater protection.",
+        "Speakers argued the moral imperative to act outweighed potential jurisdictional risks."
       ]
     }
   }

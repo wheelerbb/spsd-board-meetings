@@ -172,6 +172,21 @@ _RULE_EVIDENCE_RELEVANCE = (
     "topic genuinely has no bullet substantially about it, don't tag it at all."
 )
 
+# A tag's synthesized description is rewritten mostly from its newest evidence, so one misfiled
+# bullet can drag the description off-subject — and if the tagger trusts the description over the
+# name, that drift recruits more misfiled meetings. Confirmed live: "Student Demographics" absorbed
+# two immigration-enforcement bullets in a retag, its description became purely about ICE, and the
+# 2026-10-26 immigration-ordinance special meeting was then tagged "Student Demographics" outright.
+_RULE_NAME_MUST_FIT = (
+    "**The tag's name must itself describe the subject.** Before reusing an existing tag, check the "
+    "NAME alone, ignoring its description: would someone who clicked a tag with that name expect "
+    "to find this content? Existing descriptions are auto-generated and may have drifted to cover "
+    "material that was misfiled under the tag — a description matching this meeting is NOT evidence "
+    "the tag fits if its name doesn't. Topical adjacency isn't fit either: a debate about a policy "
+    "affecting a group of students belongs under a tag naming that policy, not under a tag about "
+    "the group's size or makeup. If the name fails this check, create a new tag instead."
+)
+
 
 def generate_tags(slug, summary_bullets, allowed_tags, topic_context=None, recent_topics=None,
                    agenda_text=None, votes=None):
@@ -229,10 +244,10 @@ about — a vote may belong to more than one tag, or to none.
 {allowed_text}
 
 **Topics discussed at the board's most recent prior meeting:** {recent_text}
-If this meeting's content continues one of those threads, that's a strong signal to reuse the same tag rather than coin a new one — even if the wording of this meeting's bullets doesn't closely match the tag's name. Use the "what it currently covers" descriptions above, not just name-matching, to judge whether an existing tag fits.
+If this meeting's content continues one of those threads, that's a strong signal to reuse the same tag rather than coin a new one — even if the wording of this meeting's bullets doesn't closely match the tag's name. Use the "what it currently covers" descriptions above, not just name-matching, to judge whether an existing tag fits — subject to rule 1 below.
 {agenda_section}
 **Tag selection rules, in priority order:**
-1. **Reuse an existing tag** when it accurately describes the topic — judge this by what the tag covers (its description above and the recent-meeting context), not by superficial wording overlap with the tag's name.
+1. **Reuse an existing tag** when it accurately describes the topic — use its description and the recent-meeting context to recognize a continuing thread, not superficial wording overlap. {_RULE_NAME_MUST_FIT}
 2. {_RULE_TIME_BINDING}
 3. {_RULE_SUBJECT_NOT_PROCESS}
 4. **Create a new specific tag** when no existing tag fits. Name the specific issue, not a category — "SPESPA Contract 2025" not "Union Contracts"; "FY26 Staff Reductions" not "Property Taxes". {_RULE_GENERIC_NOUN}
@@ -681,7 +696,7 @@ For EACH meeting below, identify 3-5 topic tags for the PRIMARY issues discussed
 **Consistency is the whole point of tagging everything at once:** if the same underlying story spans multiple meetings (e.g. a school closure that gets recommended, voted on, and then has its logistics worked out over several later meetings), use the SAME tag across all of them, even if the specific wording of each meeting's summary differs. You are the single source of truth for the entire tag set here — there is no external tag list to consult, decide it directly from the evidence across the whole corpus.
 
 **Tag selection rules:**
-1. **Reuse the same tag** for the same underlying story wherever it recurs across meetings — this is the most important rule for this pass.
+1. **Reuse the same tag** for the same underlying story wherever it recurs across meetings — this is the most important rule for this pass. But never fold a different story into a tag just because it appears alongside it in the same meeting — {_RULE_NAME_MUST_FIT}
 2. {_RULE_TIME_BINDING} This rule is the one most often violated when tagging many meetings at once — before finalizing, scan your own output for every budget-adjacent tag (including ones without an FY prefix that should have one) and collapse any that share a fiscal year and theme into one.
 3. {_RULE_SUBJECT_NOT_PROCESS}
 4. **Name the specific issue, not a category** — "SPESPA Contract 2025" not "Union Contracts". {_RULE_GENERIC_NOUN}
