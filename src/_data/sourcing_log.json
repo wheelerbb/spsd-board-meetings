@@ -1,5 +1,92 @@
 [
   {
+    "run_id": "43420890317",
+    "timestamp": "2026-11-13T11:57:10.095466Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-11-17",
+            "title": "SoPo Unite Support Circle for Parents",
+            "change": "new"
+          },
+          {
+            "date": "2026-11-23",
+            "title": "Board Workshop and Special Meeting",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-11-09",
+            "label": "November Meeting Packet",
+            "doc_type": "minutes",
+            "change": "new"
+          }
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [
+        "2026-11-23"
+      ],
+      "updated": [
+        "2024-03-17",
+        "2025-01-08"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "43315900491",
+    "timestamp": "2026-11-12T22:01:52.165464Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "43291475926",
     "timestamp": "2026-11-12T19:34:38.582335Z",
     "trigger": "push",
