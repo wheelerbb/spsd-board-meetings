@@ -90,6 +90,18 @@ class DiscoverTermCandidatesTests(unittest.TestCase):
         obs = discover_term_candidates(meeting, registry)
         self.assertTrue(any(o["correct"] == "Kaler Elementary School" for o in obs))
 
+    def test_generic_trailing_phrase_does_not_false_match(self):
+        # Regression test for the 2026-11-13 glossary.json corruption: whole-string fuzzy ratio
+        # between "for elementary school" and "kaler elementary school" is 0.86 (>= the 0.8
+        # threshold) purely because of the shared generic tail — the leading-token anchor must
+        # reject this before fuzzy_match ever runs, or every generic "...elementary school(s)"
+        # phrase in the corpus becomes a false "Kaler" alias. See todos/019 work log.
+        registry = {"place:Kaler Elementary School": {"term": "Kaler Elementary School", "type": "place"}}
+        meeting = self._meeting("2026-09-14", [
+            {"topic": "Budget", "desc": "We discussed closing an elementary school this year.", "children": []},
+        ])
+        self.assertEqual(discover_term_candidates(meeting, registry), [])
+
 
 class DiscoverRecurringSpeakerCandidatesTests(unittest.TestCase):
     def _meeting(self, slug, speakers):
@@ -164,6 +176,26 @@ class ApplyDiscoveredTermsTests(unittest.TestCase):
         self.assertTrue(mutated)
         self.assertEqual(set(entries[0]["aliases"]), {"Caler", "Kayler"})
         self.assertNotIn("scope", entries[0])
+
+    def test_garbled_concatenated_correct_is_rejected(self):
+        # Regression test for the 2026-11-13 corruption: a missing-space PDF-text-extraction
+        # artifact ("SouthPortlandWineCompany") must never become a glossary `correct` value —
+        # render_glossary_hints would then tell Gemini that garbled spelling IS correct.
+        entries = []
+        mutated = apply_discovered_terms(entries, [
+            {"correct": "SouthPortlandWineCompany", "alias": "South Portland Wine Company",
+             "type": "organization", "slug": "2026-09-14"},
+        ])
+        self.assertFalse(mutated)
+        self.assertEqual(entries, [])
+
+    def test_normal_single_word_correct_is_not_rejected(self):
+        entries = []
+        mutated = apply_discovered_terms(entries, [
+            {"correct": "Forecaster", "alias": "The Forecaster", "type": "organization", "slug": "2026-09-14"},
+        ])
+        self.assertTrue(mutated)
+        self.assertEqual(len(entries), 1)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 import json
+import threading
 
 from sourcing import drive as drive_mod
 import name_matching
@@ -7,6 +8,13 @@ import name_matching
 # legacy terms_blob pointers were. Not git-tracked: generated, corpus-wide, and too large for a
 # useful diff, same reasoning as drive_catalog.json (see docs/pipeline.md).
 REGISTRY_BLOB_NAME = 'terms_registry.json'
+
+# post_process.py ingests terms for many meetings concurrently via a ThreadPoolExecutor, all
+# mutating the same in-memory registry dict — without this, concurrent ingest_document_terms
+# calls race on the same dict (observed in production as "dictionary changed size during
+# iteration", see todos/019 work log). Owned here rather than by each caller, since this module is
+# the one place that mutates the registry.
+_registry_lock = threading.Lock()
 
 
 def load_registry(bucket_uri):
@@ -75,7 +83,12 @@ def ingest_document_terms(registry, file_id, meeting_slug, doc_type, extracted_t
     else in the pipeline to fold near-duplicate extractions (e.g. "Kaler" and "Kaler Elementary
     School" from different documents, or "Ishmeel Daniels" vs. "Mr. Daniels") into one entity
     instead of leaving them as disconnected fragments. Mutates `registry` in place; returns True
-    if anything changed."""
+    if anything changed. Thread-safe: callers may invoke this concurrently across meetings."""
+    with _registry_lock:
+        return _ingest_document_terms_locked(registry, file_id, meeting_slug, doc_type, extracted_terms)
+
+
+def _ingest_document_terms_locked(registry, file_id, meeting_slug, doc_type, extracted_terms):
     mutated = False
     for t in extracted_terms or []:
         term = (t.get('term') or '').strip()

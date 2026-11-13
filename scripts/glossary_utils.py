@@ -1,3 +1,4 @@
+import difflib
 import json
 import re
 
@@ -130,9 +131,28 @@ def discover_term_candidates(meeting_data, registry):
     for text in _text_fields(meeting_data):
         words = text.split()
         for entity in other:
-            n = len(entity['term'].split())
+            entity_tokens = entity['term'].split()
+            if not entity_tokens:
+                continue
+            n = len(entity_tokens)
+            anchor = entity_tokens[0].strip('.,()—-:;').lower()
             for i in range(len(words) - n + 1):
-                candidate = ' '.join(words[i:i + n]).strip('.,()—-:;')
+                window = words[i:i + n]
+                first_word = window[0].strip('.,()—-:;').lower()
+                # Cheap pre-filter anchored on the entity's LEADING token (the distinctive proper
+                # noun — "Kaler" in "Kaler Elementary School") before running the expensive
+                # whole-string fuzzy_match below. Without this, whole-string SequenceMatcher.ratio()
+                # is dominated by a shared generic trailing phrase ("...elementary school") and
+                # scores >=0.8 for almost any window sharing it, regardless of the leading word —
+                # e.g. "for elementary school" vs "kaler elementary school" scores 0.86. This is
+                # the root cause of the 2026-11-13 glossary.json corruption (see todos/019 work
+                # log) and the anchor restores the same intent as person matching's surname anchor,
+                # mirrored to the leading token since these entities are proper-noun-first.
+                if not first_word:
+                    continue
+                if first_word != anchor and difflib.SequenceMatcher(None, first_word, anchor).ratio() < 0.6:
+                    continue
+                candidate = ' '.join(window).strip('.,()—-:;')
                 match = name_matching.fuzzy_match(candidate, [entity], name_key='term')
                 if match:
                     observations.append({
@@ -181,6 +201,15 @@ def _collision_candidates(glossary_entries, obs_type):
     return [e for e in glossary_entries if not obs_type or not e.get('type') or e.get('type') == obs_type]
 
 
+def _plausible_correct_spelling(text):
+    """Reject text that is almost certainly a missing-space text-extraction artifact (e.g.
+    "SouthPortlandWineCompany" from a PDF that lost its spaces) rather than a genuine single-word
+    proper noun ("Kaler", "Forecaster") — such artifacts must never become a glossary `correct`
+    value, since render_glossary_hints would then tell Gemini that garbled spelling IS correct.
+    A normal single word is short; a long run with no spaces anywhere is not."""
+    return ' ' in text or len(text) <= 15
+
+
 def apply_discovered_terms(glossary_entries, observations):
     """Mutates glossary_entries in place using {'correct','alias','note','type','slug'}
     observations:
@@ -196,6 +225,8 @@ def apply_discovered_terms(glossary_entries, observations):
     mutated = False
     for obs in observations:
         correct = obs['correct']
+        if not _plausible_correct_spelling(correct):
+            continue
         alias = obs['alias']
         slug = obs.get('slug')
         obs_type = obs.get('type')

@@ -340,3 +340,46 @@ exists in `deploy.yml` today; out of scope here, matches existing state).
   build/consolidation quality against the real corpus, the actual network-call reduction, a live
   roster-hint-removal regression check) — needs a real `--bucket` pipeline run, see the now-partially-
   checked Acceptance Criteria above.
+- 2026-11-13: the first full live `--bucket` pipeline run (the verification gap noted above)
+  surfaced two real production bugs, both now fixed:
+  1. **Thread-unsafe registry mutation.** `post_process.py`'s term-extraction step runs
+     `ingest_document_terms` for many meetings concurrently via a `ThreadPoolExecutor`, all
+     mutating the same in-memory `registry` dict with no lock. The run log showed 8 meetings
+     silently losing their extracted terms to `"dictionary changed size during iteration"`
+     (`entities_of_type`'s list comprehension over `registry.values()` racing another thread's
+     `registry.pop()`/write), caught and swallowed by `post_process.py`'s broad `except`. Fixed by
+     giving `terms_registry.py` its own `threading.Lock()` around the mutating path — the module
+     that owns the registry's mutation now owns its own thread-safety, callers don't need to know.
+     Regression test: `test_terms_registry.py::test_concurrent_ingestion_does_not_race` (verified it
+     fails reliably without the lock before confirming it passes with it).
+  2. **Runaway false-match corruption of `glossary.json` (the serious one).** The same run grew
+     `glossary.json` from 7 hand-curated entries to 626, many garbage, and took 34 minutes just for
+     the discovery step. Root cause: `discover_term_candidates`'s place/organization/program
+     matcher slides an n-gram window across every word of every meeting's free text and
+     fuzzy-matches the whole window against each multi-word registry term via whole-string
+     `SequenceMatcher.ratio()`. For a term with a generic trailing phrase (e.g. "Kaler Elementary
+     School"), *any* window sharing that tail scores above the 0.8 threshold regardless of the
+     leading word — confirmed `"for elementary school"` vs `"kaler elementary school"` scores 0.86.
+     Those false matches then collided into the pre-existing `"Kaler"` entry via containment in
+     `apply_discovered_terms`, because legacy entries have no `type` field and are therefore never
+     excluded as collision candidates (a deliberate earlier decision — see 2026-11-12 above —
+     whose blast radius this bug exposed). Separately, some registry terms are themselves
+     missing-space text-extraction artifacts (e.g. `SouthPortlandWineCompany`, likely a PDF
+     text-extraction defect, not new to this change) and were being promoted straight into
+     `glossary.json`'s `correct` field with no sanity check — meaning `render_glossary_hints`
+     would have told Gemini the garbled run-together spelling IS correct.
+     Fixed both: (a) `discover_term_candidates` now pre-filters each n-gram window on a cheap
+     fuzzy match between the window's *leading* word and the registry term's leading token before
+     running the expensive whole-string `fuzzy_match` — mirrors the surname-anchor already used
+     for persons, just anchored on the leading token instead of the trailing one, since these
+     entities are proper-noun-first/generic-tail-last; (b) `apply_discovered_terms` now rejects any
+     `correct` candidate that has no spaces and is longer than 15 characters
+     (`_plausible_correct_spelling`) before ever adding or merging it. Also reverted the committed
+     `glossary.json` back to the known-good 7-entry state (`git show 0056f75:src/_data/glossary.json`)
+     — the corruption had already landed on `main` via the deploy workflow's auto-commit, actively
+     feeding bad hints into every subsequent Gemini call until reverted.
+     Regression tests: `test_glossary_utils.py::test_generic_trailing_phrase_does_not_false_match`,
+     `::test_garbled_concatenated_correct_is_rejected`, `::test_normal_single_word_correct_is_not_rejected`.
+     Still not verified: a second live `--bucket` run to confirm the fixed discovery step produces
+     sane, bounded output against the real corpus (not just that it no longer reproduces this
+     specific failure mode in unit tests).

@@ -1,4 +1,6 @@
 import unittest
+import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from terms_registry import ingest_document_terms, canonical_person, persons, entities_of_type
 
@@ -70,6 +72,31 @@ class IngestDocumentTermsTests(unittest.TestCase):
         registry = {}
         self.assertFalse(ingest_document_terms(registry, "file1", "2026-01-08", "agenda", []))
         self.assertEqual(registry, {})
+
+    def test_concurrent_ingestion_does_not_race(self):
+        # Regression test for the 2026-11-13 production bug: post_process.py's ThreadPoolExecutor
+        # calls ingest_document_terms for many meetings concurrently against the same registry
+        # dict. Before the lock, this intermittently raised "dictionary changed size during
+        # iteration" from entities_of_type's list comprehension over registry.values() racing
+        # another thread's registry.pop()/registry[key]=... — silently dropping that meeting's
+        # terms (caught by post_process.py's broad except). Run many distinct new entities
+        # concurrently; with the lock, every one must land with no exception.
+        registry = {}
+        # Genuinely-distinct surnames (random hex, not sequential numbers) so none is a substring
+        # or near-fuzzy-match of another — otherwise ingest_document_terms's own (correct)
+        # consolidation logic would legitimately merge them, which isn't what this test checks.
+        names = [f"Person {uuid.uuid4().hex}" for _ in range(200)]
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            futures = [
+                executor.submit(
+                    ingest_document_terms, registry, f"file{i}", f"2026-01-{i % 28 + 1:02d}", "agenda",
+                    [{"term": name, "type": "person", "context": "c"}],
+                )
+                for i, name in enumerate(names)
+            ]
+            for future in as_completed(futures):
+                future.result()  # re-raises if the worker hit an exception
+        self.assertEqual(len(registry), 200)
 
 
 class CanonicalPersonTests(unittest.TestCase):
