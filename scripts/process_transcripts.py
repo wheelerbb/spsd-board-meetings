@@ -313,7 +313,7 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None, r
                 _vimeo_map.update(get_vimeo_mapping())
             if date_slug in _vimeo_map:
                 data['has_video'] = True
-                data['video_url'] = _vimeo_map[date_slug]
+                data['video_url'] = _vimeo_map[date_slug]['url']
 
         data['stub'] = False
         data['has_transcript'] = True

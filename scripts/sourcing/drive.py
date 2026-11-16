@@ -48,9 +48,26 @@ def read_file_text(service, file_id, max_chars=CACHE_MAX_CHARS, max_pages=CACHE_
         while not done:
             _, done = dl.next_chunk()
         if 'pdf' in mime:
-            import pypdf
-            fh.seek(0)
-            text = '\n'.join(p.extract_text() or '' for p in pypdf.PdfReader(fh).pages[:max_pages])
+            # pymupdf, not pypdf: verified against 5 real documents spanning this archive's full
+            # 2023-2026 date range that pypdf's default (plain-mode) extraction drops the space
+            # between adjacent words for a meaningful share of these PDFs (3 of 5 sampled years),
+            # e.g. "BOARDOFEDUCATIONMEETINGAGENDA" — which was the root cause of the 2026-11-13
+            # terms_registry.json/glossary.json corruption (see todos/019 work log): every
+            # downstream consumer was faithfully processing already-corrupted text. pypdf's
+            # `extraction_mode="layout"` and pdfplumber were both tried and rejected: layout mode
+            # fixes some spots but glues others that plain mode got right (e.g. "Call to Order" ->
+            # "CalltoOrder"); pdfplumber was uniformly worse than pypdf's current plain mode.
+            # pymupdf had zero glued-word artifacts across all 5 samples.
+            import pymupdf
+            doc = pymupdf.open(stream=fh.getvalue(), filetype='pdf')
+            text = ''.join(p.get_text() for p in doc.pages(0, min(max_pages, doc.page_count)))
+            if not text.strip():
+                # Extraction ran cleanly but found nothing — almost always a scanned/image-only
+                # PDF with no embedded text layer, distinct from every other no-text case below
+                # (download failure, size cap). Empty string (not None) lets the one caller that
+                # cares (build_meeting_map) tell this apart; every other caller already treats
+                # '' the same as None since both are falsy.
+                return ''
         else:
             text = fh.getvalue().decode('utf-8', errors='replace')
         return text[:max_chars] if text.strip() else None
@@ -433,9 +450,14 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
     """
     Resolves each Drive file to a meeting date and document type, updating `catalog` in place —
     file_id -> {label, url, mime_type, doc_type, file_type, created_time, modified_time, meeting_slug,
-    resolved_via, text_blob}. `meeting_slug`/`resolved_via` are `None` for a file nothing could
-    date; the caller (source_data.py) attempts a website-based fallback afterward and updates
-    those same catalog entries directly rather than tracking a separate unresolved list.
+    resolved_via, text_blob, no_extractable_text}. `meeting_slug`/`resolved_via` are `None` for a
+    file nothing could date; the caller (source_data.py) attempts a website-based fallback
+    afterward and updates those same catalog entries directly rather than tracking a separate
+    unresolved list. `no_extractable_text` is only ever set `True` (never written `False` — absent
+    means "not applicable or not yet known"), for an agenda/packet/minutes PDF that extracted
+    cleanly but had no embedded text layer (a scanned/image-only PDF) — a file can still resolve a
+    meeting_slug via filename in this case; the flag is purely "nobody should expect term/date
+    extraction to have seen this file's content."
 
     Two independent concerns, easy to conflate but kept strictly separate:
 
@@ -500,7 +522,11 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
 
         if service and doc_type in ('agenda', 'packet', 'minutes'):
             text = read_file_text(service, file_id)
-            if text:
+            if text == '':
+                entry['no_extractable_text'] = True
+                print(f"    No extractable text in {filename} (likely a scanned/image PDF)")
+            elif text:
+                entry.pop('no_extractable_text', None)
                 date_slug = extract_date_from_content(text)
                 if date_slug:
                     resolved_via = 'content'

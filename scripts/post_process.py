@@ -341,7 +341,8 @@ Omit a topic entirely if none of the votes are substantively about it. Example:
 
 from glossary_utils import (
     load_glossary, save_glossary, render_glossary_hints, replacements_for_meeting,
-    discover_term_candidates, discover_recurring_speaker_candidates, apply_discovered_terms,
+    discover_term_candidates, discover_recurring_speaker_candidates, dedupe_observations,
+    apply_discovered_terms,
 )
 import terms_registry
 
@@ -474,6 +475,10 @@ def _extract_official_terms(meeting_data, bucket_uri, catalog, registry):
             "Return ONLY a JSON array: "
             "[{\"term\": \"...\", \"type\": \"person|place|organization|program\", "
             "\"context\": \"short description or role\"}]\n"
+            "State context as a stable fact about the term (e.g. \"Board Member\", \"State agency\") - "
+            "never meeting-attendance phrasing (\"present at the meeting\") or hedged/speculative "
+            "phrasing (\"likely\", \"probably\", \"appears to be\"). Omit context entirely rather than "
+            "guessing if you're not sure.\n"
             "Use the exact spelling from the document. Return [] if nothing qualifies.\n\n"
             f"Document type: {doc_type}\n"
             f"Document text:\n{text}"
@@ -946,6 +951,7 @@ def post_process():
         for m in meetings_data:
             observations.extend(discover_term_candidates(m, registry))
         observations.extend(discover_recurring_speaker_candidates(meetings_data))
+        observations = dedupe_observations(observations)
         if apply_discovered_terms(glossary_entries, observations):
             save_glossary(glossary_entries, GLOSSARY_PATH)
             glossary_text = render_glossary_hints(glossary_entries)

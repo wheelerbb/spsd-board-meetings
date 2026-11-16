@@ -52,6 +52,96 @@ class IngestDocumentTermsTests(unittest.TestCase):
         self.assertIn("person:Rosemarie DeAngelis", registry)
         self.assertEqual(registry["person:Rosemarie DeAngelis"]["term"], "Rosemarie DeAngelis")
 
+    def test_complete_name_wins_over_longer_titled_fragment(self):
+        # "Ms. Holman" (title+surname) is longer in characters than "Claire Holman", but the
+        # complete first+last form must still win as canonical — a document stating only
+        # "Ms. Holman" never asserted there's no first name. See todos/019.
+        registry = {}
+        ingest_document_terms(registry, "file1", "2026-01-08", "agenda",
+                               [{"term": "Ms. Holman", "type": "person"}])
+        ingest_document_terms(registry, "file2", "2026-02-12", "minutes",
+                               [{"term": "Claire Holman", "type": "person"}])
+        self.assertEqual(len(registry), 1)
+        self.assertIn("person:Claire Holman", registry)
+        self.assertEqual(registry["person:Claire Holman"]["term"], "Claire Holman")
+
+    def test_titled_surname_merges_with_titled_full_name(self):
+        # Regression: _person_match used to strip the title only off the incoming term, never
+        # off an already-registered candidate — so "Mr. Feller" and "Mr. Daniel Feller" (both
+        # still carrying "Mr.") split into two disconnected entities instead of merging. Found
+        # via a live trailing-5-meetings iteration, see todos/019.
+        registry = {}
+        ingest_document_terms(registry, "file1", "2026-10-14", "minutes",
+                               [{"term": "Mr. Feller", "type": "person"}])
+        ingest_document_terms(registry, "file2", "2026-10-01", "minutes",
+                               [{"term": "Mr. Daniel Feller", "type": "person"}])
+        self.assertEqual(len(registry), 1)
+        entity = registry["person:Mr. Daniel Feller"]
+        self.assertEqual(len(entity["sources"]), 2)
+
+    def test_titled_nickname_merges_via_fuzzy_fallback(self):
+        # Same asymmetry one layer down: the leftover "Mr. " prefix dragged the fuzzy-match
+        # ratio for "Mr. Mitchell Ouellet" vs. "Mitch Ouellet" to 0.79 (just under the 0.8 bar);
+        # stripping the title before the fallback call brings it to 0.90.
+        registry = {}
+        ingest_document_terms(registry, "file1", "2026-10-14", "minutes",
+                               [{"term": "Mitch Ouellet", "type": "person"}])
+        ingest_document_terms(registry, "file2", "2026-10-01", "minutes",
+                               [{"term": "Mr. Mitchell Ouellet", "type": "person"}])
+        self.assertEqual(len(registry), 1)
+
+    def test_hyphenated_surname_merges_with_spaced_form(self):
+        # Regression: "Atkinson-Duina" tokenized as one token via plain .split(), so it never
+        # trailing-matched "Atkinson Duina" (two tokens) even after the title-stripping fix
+        # above. Found in the same live iteration as the Feller/Risch cases, see todos/019.
+        registry = {}
+        ingest_document_terms(registry, "file1", "2026-10-01", "minutes",
+                               [{"term": "Dr. Atkinson Duina", "type": "person"}])
+        ingest_document_terms(registry, "file2", "2026-10-14", "minutes",
+                               [{"term": "Ms. Angela Atkinson-Duina", "type": "person"}])
+        self.assertEqual(len(registry), 1)
+
+    def test_cross_type_exact_string_reconciles_to_first_type(self):
+        # Regression: Gemini's own type classification isn't perfectly consistent call-to-call —
+        # the exact same literal string extracted as a different `type` in a later document used
+        # to fork into a second, disconnected entity (registry key is `type:term`). "Taj" was
+        # genuinely a person in the source text but got typed "organization" in one document.
+        registry = {}
+        ingest_document_terms(registry, "file1", "2026-11-09", "packet",
+                               [{"term": "Taj", "type": "person", "context": "thanked for hosting"}])
+        ingest_document_terms(registry, "file2", "2026-10-14", "minutes",
+                               [{"term": "Taj", "type": "organization"}])
+        self.assertEqual(len(registry), 1)
+        self.assertEqual(registry["person:Taj"]["type"], "person")
+        self.assertEqual(len(registry["person:Taj"]["sources"]), 2)
+
+    def test_cross_type_ambiguous_match_stays_separate(self):
+        # Safe-degrade: if two entities under the same string but different types already
+        # coexist (only possible from registry state built before this reconciliation existed —
+        # ingest_document_terms itself always collapses a new cross-type duplicate into the one
+        # prior match before a second can accumulate), a third mention under yet another type
+        # can't tell which of the two it corroborates, so it becomes its own entity rather than
+        # guessing.
+        registry = {
+            "person:Taj": {"term": "Taj", "type": "person", "context": "", "sources": [],
+                           "first_seen": "2026-10-01", "last_seen": "2026-10-01"},
+            "place:Taj": {"term": "Taj", "type": "place", "context": "", "sources": [],
+                          "first_seen": "2026-10-14", "last_seen": "2026-10-14"},
+        }
+        ingest_document_terms(registry, "file3", "2026-11-09", "packet", [{"term": "Taj", "type": "organization"}])
+        self.assertEqual(len(registry), 3)
+
+    def test_hedge_phrased_context_is_not_accumulated(self):
+        # Gemini's own uncertainty about itself ("likely a board member") isn't a role fact and
+        # shouldn't accumulate into context the way a real distinct fact does. See todos/019.
+        registry = {}
+        ingest_document_terms(registry, "file1", "2026-10-14", "minutes",
+                               [{"term": "Patti Smith", "type": "person",
+                                 "context": "Listed under Call to Order, likely a board member"}])
+        ingest_document_terms(registry, "file2", "2026-10-01", "minutes",
+                               [{"term": "Patti Smith", "type": "person", "context": "Board Member"}])
+        self.assertEqual(registry["person:Patti Smith"]["context"], "Board Member")
+
     def test_place_fragments_consolidate_via_containment(self):
         registry = {}
         ingest_document_terms(registry, "file1", "2026-01-08", "agenda",

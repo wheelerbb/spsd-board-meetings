@@ -208,7 +208,7 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
         'events': [...],
         'site': {...},
         'drive': [...],
-        'video': url,
+        'video': {'url': url, 'label': title},
         'transcript': path
     }
     `catalog` (optional) backfills `file_type` on docs sourced without it — see
@@ -287,7 +287,8 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
         # Gather all docs for this date (Priority: Drive > Site) — precomputed above.
         combined_docs = combined_docs_by_slug.get(date_slug, [])
 
-        video_url = data.get('video')
+        video_info = data.get('video')
+        video_url = video_info.get('url') if isinstance(video_info, dict) else video_info
         transcript_path = data.get('transcript')
 
         if exists:
@@ -660,12 +661,17 @@ def main():
         if not slug or slug < CUTOFF_DATE:
             continue
         if slug not in all_data: all_data[slug] = {}
-        all_data[slug].setdefault('drive', []).append({
+        doc_entry = {
             'type': entry.get('doc_type', 'misc'),
             'label': entry.get('label'),
             'url': entry.get('url'),
             'file_type': entry.get('file_type'),
-        })
+        }
+        if entry.get('no_extractable_text'):
+            # Surfaced here rather than on the internal status dashboard — just needs to be
+            # discoverable per-file, not a dedicated review page. See drive.build_meeting_map.
+            doc_entry['no_extractable_text'] = True
+        all_data[slug].setdefault('drive', []).append(doc_entry)
 
     # Files nothing could date. build_meeting_map already excludes anything out of cutoff scope
     # from the catalog entirely, so every entry here is already something worth a human's look.
@@ -692,10 +698,10 @@ def main():
     else:
         print("  Using cached Vimeo data.")
     vimeo_mapping = vimeo.get_vimeo_mapping()
-    for date_slug, url in vimeo_mapping.items():
+    for date_slug, video_info in vimeo_mapping.items():
         if date_slug < CUTOFF_DATE: continue
         if date_slug not in all_data: all_data[date_slug] = {}
-        all_data[date_slug]['video'] = url
+        all_data[date_slug]['video'] = video_info
 
     # 5. Fetch Transcripts (GCS bucket only)
     print("Step 5: Fetching Transcripts...")

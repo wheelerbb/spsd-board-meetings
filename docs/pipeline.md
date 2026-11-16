@@ -59,6 +59,16 @@ once per meeting's official documents, folding near-duplicate extractions (e.g. 
 Elementary School" from different documents, or "Ishmeel Daniels" and "Mr. Daniels") into one
 entity with accumulated `context` and `sources` lineage.
 
+**Source scope: official documents only, never the `.vtt` transcript.** `_extract_official_terms()`
+only reads `docs` of type `agenda`/`packet`/`minutes`; there is no path anywhere in the pipeline
+that extracts registry terms from a meeting's transcript. This is intentional, not an oversight —
+a transcript is auto-captioned, ASR-derived text ([lowest-priority source](#field-level-data-priority)
+for exactly that reason), while an official document is vetted, human-authored text, so adding a
+VTT-derived extraction path would mean folding a lossy, lower-confidence source into the registry's
+canonical-spelling ground truth. If a meeting has no qualifying official documents, it simply
+contributes no terms to the registry for that run. Not implemented; revisit only if official-doc
+coverage proves insufficient in practice.
+
 **Attendance-name canonicalization** (`terms_registry.canonical_person()`, used by
 `process_transcripts.py`) resolves an extracted attendance name (e.g. "Ms. DeAngelis") to its
 registry canonical spelling (e.g. "Rosemarie DeAngelis") via three matchers in increasing order of
@@ -91,12 +101,13 @@ Registry is updated:
   generated-content names by surname across the whole corpus; a spelling observed less often than
   a dominant alternate spelling of the same surname is flagged.
 
-Every new or promoted entry is tagged `"auto_discovered": true` — pure provenance metadata, it
-doesn't gate anything. `"scope": [slug, ...]` is what bounds a fresh candidate's blast radius: both
+Every entry is discovered the same way — there's no hand-curated-vs-auto-discovered distinction to
+tag. `"scope": [slug, ...]` is what bounds a fresh candidate's blast radius: both
 `render_glossary_hints()` (prompt hints — unaffected by scope, since a pure spelling hint is
 timeless-safe regardless of corroboration) and `glossary_utils.replacements_for_meeting()` (the
 deterministic find/replace pass) only apply a scoped entry to the meeting(s) in its `scope`; an
-entry with no `scope` key — hand-curated from the start, or since promoted — applies everywhere.
+entry with no `scope` key — promoted past `PROMOTION_THRESHOLD` distinct meetings — applies
+everywhere.
 `note` is never rendered into any prompt, on any entry (see
 [LLM Calls](#llm-calls)'s glossary-hint description) — only spelling (`correct`/`aliases`) is
 timeless-safe to assert into every meeting's prompt regardless of date; a role/context note is not,

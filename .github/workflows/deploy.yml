@@ -49,7 +49,11 @@ jobs:
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 google-genai pydantic pyyaml python-dotenv google-api-python-client google-cloud-storage pypdf
+          # pymupdf pinned <1.25: 1.25+ pulls in pymupdf-layout/pymupdf4llm/onnxruntime/numpy as
+          # unconditional transitive deps (~110MB) for features this pipeline never uses — plain
+          # get_text() only needs the lean, dependency-free 1.24.x line. See scripts/sourcing/
+          # drive.py's read_file_text for why pypdf was replaced with pymupdf in the first place.
+          pip install requests beautifulsoup4 google-genai pydantic pyyaml python-dotenv google-api-python-client google-cloud-storage "pymupdf<1.25"
 
       - name: Setup Node
         uses: actions/setup-node@v6

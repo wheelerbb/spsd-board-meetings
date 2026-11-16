@@ -1,9 +1,13 @@
 [
-  { "correct": "Kaler", "aliases": ["Caler"], "note": "Kaler Elementary School" },
-  { "correct": "Skillin", "aliases": ["Skillen"], "note": "Skillin Elementary School" },
-  { "correct": "Skillins", "aliases": ["Skillens"] },
-  { "correct": "Atkinson Duina", "aliases": ["Atkinson-Dena", "Atkinson Dena"] },
-  { "correct": "Claire Holman", "aliases": ["Elyse Holman"], "note": "At-Large board member" },
-  { "correct": "Eleni Richardson", "aliases": ["Heather Richardson"], "note": "At-Large board member" },
-  { "correct": "Ishmeel Daniels", "aliases": ["Judd Daniels"], "note": "recurring public commenter" }
+  { "correct": "Claire Holman", "aliases": ["Ms. Holman"], "note": "Board of Education member", "type": "person" },
+  { "correct": "Ms. Angela Atkinson-Duina", "aliases": ["Dr. Atkinson Duina", "Superintendent Atkinson Duina"], "note": "Superintendent", "type": "person" },
+  { "correct": "Ms. DeAngelis", "aliases": ["Chair DeAngelis"], "note": "Board of Education Chair", "type": "person" },
+  { "correct": "Dr. Jo Prince", "aliases": ["Johanna Prince"], "note": "Assistant Superintendent", "type": "person", "scope": ["2026-11-02"] },
+  { "correct": "Chelsie Kazmierski", "misspellings": ["Chelsea Kazmierski"], "note": "parent", "type": "person", "scope": ["2026-11-02"] },
+  { "correct": "Patti Smith", "aliases": ["Member Smith"], "note": "Community member who provided public comment", "type": "person", "misspellings": ["Patty Smith"] },
+  { "correct": "Mr. Daniel Feller", "aliases": ["Member Feller"], "note": "Board of Education, B&G Committee Chairman", "type": "person", "scope": ["2026-10-26"] },
+  { "correct": "Lizeth Rios Blas", "aliases": ["Student Rep Rios Blas"], "note": "Student Representative", "type": "person", "scope": ["2026-10-26"] },
+  { "correct": "Rebecca Stern", "aliases": ["Dr. Rebecca Stern"], "note": "South Portland Middle School Principal", "type": "person", "scope": ["2026-10-14"] },
+  { "correct": "Connie DiSanto", "misspellings": ["Connie DeSanto"], "note": "Staff member and SPESPA President", "type": "person", "scope": ["2026-10-14"] },
+  { "correct": "Aiden Renaghan", "misspellings": ["Aiden Renehan"], "note": "Parent who provided public comment", "type": "person", "scope": ["2026-10-14"] }
 ]
