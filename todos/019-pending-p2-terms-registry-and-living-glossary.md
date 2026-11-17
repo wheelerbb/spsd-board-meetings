@@ -1010,3 +1010,115 @@ tracked here only because they came up in the same session — and shouldn't blo
     `build_meeting_map`, `post_process.py::_extract_official_terms`) — uploaded files are
     unaffected, since their `modified_time` only changes on a genuine re-upload.
   - 8 new unit tests added (`test_drive.py`); full suite (151 tests) passing.
+- 2026-11-17: **Stage 3 run, local/isolated, pure in-memory logic (no LLM calls)** — full-corpus
+  glossary rebuild dry run using Stage 2's candidate registry (`rebuild_scratch/stage2_registry.json`,
+  1684 entities) as the match target. Confirmed glossary growth (`discover_term_candidates`,
+  `discover_recurring_speaker_candidates`, `apply_discovered_terms`) is pure logic with zero
+  network/LLM cost, unlike Stage 2 — this run took seconds once past `post_process.py`'s own
+  module-level eager Gemini-client init at import.
+  - Read every real `.njk` file read-only (`post_process._read_njk`, never
+    `_enforce_glossary_pass`, which writes files back) across all 99 meetings; glossary started
+    empty, not seeded from the live (possibly-affected) `glossary.json` — same posture as Stage
+    1/2's catalog/registry, same reason.
+  - **Result**: 351 observations (169 alias, 182 misspelling; 34 from the cross-meeting
+    recurring-speaker fallback) → 89 candidate glossary entries (person: 73, place: 6,
+    organization: 5, program: 5). A simulated next-enforcement-pass preview (replacements_for_meeting
+    against each file's real raw content, nothing written) found 1781 total replacement
+    occurrences across 63 of 99 meetings.
+  - **Found two real, previously-unknown bugs in `glossary_utils.py`'s discovery logic**, first
+    exposed at full-corpus scale against a comprehensive registry (neither is related to this
+    session's Drive-extraction work): (1) a severe common-word fuzzy-collision class — short
+    registry entities that are also ordinary English words (`State`, `Board`, `District`,
+    `Maine`, `Brown`, `Small`) fuzzy-match unrelated common words (`start`, `broad`, `distinct`,
+    `machine`, `grown`, `smell`, ...), confirmed to account for 326 of the 1781 preview
+    occurrences across 58 meetings — dangerous because `_enforce_glossary_pass`'s replace is a
+    raw, non-word-boundary substring replace; (2) a smaller multi-person-alias conflation (8
+    occurrences, 7 meetings) where a joined co-presenter string in a timeline child's `speaker`
+    field becomes the alias for just one of the named people. Reported, not fixed — full writeup,
+    proposed directions, and the deliberate stop-and-ask posture: **todos/024**.
+  - Outputs: `rebuild_scratch/stage3_glossary.json` (candidate glossary, in `save_glossary`'s
+    hand-authored compact-line format) and `rebuild_scratch/stage3_enforcement_preview.json`
+    (per-meeting replacement preview, nothing applied) — both gitignored, in-repo, durable pending
+    review and pending the todos/024 decision.
+  - **Still not done:** todos/024's fix decision; Stage 4 (28-meeting votes/attendance targeted
+    check); live cutover. Live `terms_registry.json`/`drive_catalog.json`/`glossary.json` still
+    untouched, branch still unmerged.
+- 2026-11-17: **todos/024 fixed, on explicit user go-ahead.** Root-caused and fixed both bug
+  classes found during Stage 3: added `name_matching.is_dictionary_word` (bundled
+  `scripts/common_words.txt`, filtered from the macOS/BSD `words(5)` list — no new pip
+  dependency, portable to CI) with a suffix-stripping fallback for inflected forms, wired into
+  `glossary_utils._tokens_match` only (deliberately not into person-name matching, where an
+  obscure dictionary-word collision is itself a legitimate mishearing — e.g. "Holeman"); added
+  `glossary_utils.apply_replacements`, a word-boundary-safe (`\b`-anchored) replacement, replacing
+  `_enforce_glossary_pass`'s raw `content.replace()`, used for both production enforcement and
+  Stage 3's own preview counting; fixed `_split_speaker_list` to also split on `&` (previously
+  comma-only) and applied it to a timeline child's `speaker` field (previously only the topic
+  parenthetical). Re-ran Stage 3 end to end: confirmed 0 of the originally-flagged 334 bad
+  occurrences remain, all 6 place-type and 2 of 5 organization-type bad entries are gone
+  entirely, the 5 person-entries that existed only because of the multi-person conflation are
+  gone, and one new legitimate entry ("Coach Kahill") surfaced as a side effect of the split fix.
+  13 new unit tests added; full suite (166 tests) passing.
+  - **Live-exposure check (read-only, no writes)**: confirmed both bugs are clean in production —
+    the live `glossary.json` (11 entries) is 100% `type: person`, so the place/org/program code
+    path these bugs lived in has never had a registry entity to misfire against live; no
+    multi-person joined aliases present either. Also directly ruled out the Nov 13 "626-entry
+    garbage glossary" incident (`3a88b2c`) as a vector for either bug — that was a *different*,
+    already-fixed bug (shared-trailing-word ratio matching), and git history confirms it was
+    never actually enforced against any existing meeting content before being reverted ~2 hours
+    later (the only file touched in that commit was a brand-new, content-free meeting stub).
+  - **Incidental finding, unrelated, not fixed**: live-exposure scanning turned up glued-together
+    proper nouns (`SOUTHPORTLANDHIGHSCHOOL`, `SouthPortlandMiddleSchool`, etc.) embedded directly
+    in 6 meetings' generated timeline/summary text — traced via `git log -S` to July–August 2026
+    commits, months before this project and unrelated to either bug just fixed. Spun off to
+    **todos/025** (p3), not investigated further.
+  - **Still not done:** Stage 4 (28-meeting votes/attendance targeted check); live cutover; the
+    native-Google-Doc regex bug's deferred downstream votes/attendance assessment (todos/023);
+    todos/025's glued-word investigation. Live `terms_registry.json`/`drive_catalog.json`/
+    `glossary.json` still untouched, branch still unmerged.
+- 2026-11-17: **Stage 4, read-only, no live writes** — targeted check of whether the two bugs
+  fixed this session (pypdf→pymupdf text extraction; the native-Google-Doc `extract_file_id`
+  regex fix, todos/023) actually corrupted or blocked real votes/attendance data, as opposed to
+  being theoretical risks. Called the real production functions directly
+  (`_find_priority_source_doc` → `_read_doc_text` → `_extract_votes_attendance_from_doc`), never
+  the full `process_single_meeting()` (which writes the `.njk` back to disk) — kept this entirely
+  read-only, same posture as Stages 1-3.
+  - **Re-scoped the "~36 no-`votes_source`" population first.** All 36 turned out to be currently
+    unprocessed stubs (`stub: true`, `has_transcript: false`) — `process_single_meeting` has
+    never run for any of them, for any reason, regardless of either bug. Of the 36, only
+    `2024-12-02` actually has a native-Google-Doc Minutes file; the rest are either normal
+    uploaded-file Minutes docs nobody's processed yet (22), blocked by a separate newly-found
+    dead-code bug in `_find_priority_source_doc` (4 — **todos/027**, new, not fixed), or have no
+    written record at all yet. Full impact assessment written up in **todos/023**.
+  - **The 28 "`votes_source: Minutes`" meetings** — fresh-re-extracted every one (bypassing the
+    GCS text cache, forcing genuinely fresh pymupdf extraction) and diffed against live. **2 of
+    28 (`2024-01-08`, `2024-05-30`) show confirmed real glued-word corruption** in currently-live
+    vote/policy-name text (e.g. live: `"UseandPossessionof TobaccoandElectronicSmokingDevices"`;
+    fresh: `"Use and Possession of Tobacco and Electronic Smoking Devices"`) — concrete proof the
+    old pypdf bug corrupted real, already-published content, not just a theoretical risk. One
+    more (`2024-06-10`) carries a duplicate phantom attendance entry in live data (`"Ms. Holeman"`
+    alongside the real `"Claire Holman"`) that fresh extraction doesn't reproduce — a real data
+    quality issue, but an LLM name-mishearing/dedup artifact, not caused by either of the two
+    known bugs. The other 25/28 matched on vote/attendance counts with no corruption signature;
+    remaining text-level differences were non-deterministic LLM phrasing (trailing periods, vote
+    count detail, full-name vs. title+surname) rather than data errors — the latter is also an
+    artifact of testing `_extract_votes_attendance_from_doc` in isolation, since the full pipeline's
+    registry-based name canonicalization step (which I didn't replicate here) would resolve most
+    of that in a real run.
+  - **The native-Doc check (`2024-12-02`)** — confirmed the pre-fix regex would never have matched
+    its Minutes doc's URL, confirmed the current fix resolves it, and confirmed real extraction
+    against it now produces 3 real votes and 5 real attendance records — concrete value, not just
+    an unblocked parse.
+  - Outputs: `rebuild_scratch/stage4_minutes_diff.json` (all 28 meetings, live vs. fresh, full
+    vote/attendance detail), `rebuild_scratch/stage4_native_doc_check.json` (`2024-12-02`'s
+    before/after) — both gitignored, in-repo, durable pending review.
+  - **Recommendation**: the 2 confirmed-corrupted meetings (`2024-01-08`, `2024-05-30`) are good
+    candidates for a targeted, explicit re-extraction once the user approves a live write (not
+    done here) — small, well-understood blast radius. `2024-12-02` similarly, once todos/023's
+    go-ahead is given. The other 34 "no `votes_source`" stubs don't need any bug-driven fix at
+    all — they just need their first real processing pass, on whatever normal schedule that
+    happens; todos/027 should land first so that pass picks up their Meeting Summary docs
+    correctly where applicable.
+  - **Still not done:** live cutover; todos/025's glued-word investigation; todos/027 (new, the
+    dead-code Meeting Summary source-selection bug). Live
+    `terms_registry.json`/`drive_catalog.json`/`glossary.json` still untouched, branch still
+    unmerged.

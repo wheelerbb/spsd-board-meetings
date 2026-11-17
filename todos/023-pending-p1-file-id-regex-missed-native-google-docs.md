@@ -56,22 +56,45 @@ code paths for as long as they've existed.
 
 ## Proposed Solutions
 
-Already implemented: the shared `extract_file_id` helper (see Findings). Remaining work is
-entirely about the *downstream* consequence, not the parsing bug itself:
+Already implemented: the shared `extract_file_id` helper (see Findings). The downstream
+votes/attendance impact has now been assessed (Stage 4, see below) — all that's left is deciding
+when to act on it:
 
-- [ ] Identify every meeting whose `votes`/`board_attendance` may be affected (Minutes/Summary doc
-  is a native Google Doc) — start from the ~36 meetings with no `votes_source` line
-  (todos/019, 2026-11-16 risk discussion) and cross-reference against frontmatter URL shapes.
-- [ ] Decide whether to re-run `process_transcripts.py` for those specific meetings (narrow,
-  targeted) vs. let it happen naturally on their next regular reprocessing pass.
+- [x] Identify every meeting whose `votes`/`board_attendance` may be affected (Minutes/Summary doc
+  is a native Google Doc) — done, Stage 4: only `2024-12-02`, among all 36 "no `votes_source`"
+  meetings, actually has a native-Doc Minutes file. The other 35 are unrelated to this bug (see
+  Findings below).
+- [ ] Decide whether to re-run `process_transcripts.py` for `2024-12-02` specifically (narrow,
+  targeted) vs. let it happen naturally whenever this meeting's stub is next processed (it has
+  never been processed at all yet — see Findings).
 - [ ] Confirm no other doc-URL-keyed behavior (dedup, agenda-location, VTT sync) was silently
   affected in a way that changed a meeting's resolved data, not just skipped a nice-to-have.
+
+## Findings — Stage 4 downstream-impact assessment (2026-11-17)
+
+Re-scoped the "~36 meetings with no `votes_source`" population named above: **all 36 are
+currently unprocessed stubs** (`stub: true`, `has_transcript: false`) — `process_single_meeting`,
+the function that ever sets `votes_source` at all, has never run for any of them, regardless of
+either known bug. Of the 36, only **`2024-12-02`** actually has a native-Google-Doc Minutes file;
+the other 35 either have a normal uploaded-file Minutes doc (22 of them — simply not processed
+yet, nothing to do with this bug) or no Minutes/Summary doc readable at all under the current
+`_find_priority_source_doc` logic (4 of those are blocked by a *different*, newly-found dead-code
+bug — see todos/027 — and the rest genuinely have no written record yet).
+
+For `2024-12-02` specifically: confirmed the pre-fix regex (`r'/file/d/([^/?]+)'`) does not match
+its Minutes doc's URL (`docs.google.com/document/d/...`), so the override branch could never have
+fired under the old code. Confirmed the current `drive.extract_file_id` *does* resolve it, and
+running the real extraction functions directly (read-only, no file written) against it produced 3
+real votes and 5 real attendance records — concrete evidence of what this meeting would gain once
+it's actually (re)processed, not just a parsing fix with unconfirmed value.
 
 ## Acceptance Criteria
 
 - [x] Root cause identified and confirmed against real data (`2024-12-02`)
 - [x] Single shared fix applied across all 7 call sites; regression-tested
-- [ ] Downstream votes/attendance impact assessed and addressed for affected meetings
+- [x] Downstream votes/attendance impact assessed — see Stage 4 Findings above. Only `2024-12-02`
+  is actually affected by this specific bug; re-running it live is still pending explicit
+  go-ahead, same as before.
 
 ## Work Log
 
@@ -79,3 +102,7 @@ entirely about the *downstream* consequence, not the parsing bug itself:
   terms-registry-rebuild validation plan (todos/019). Root-caused, fixed (shared
   `drive.extract_file_id` helper), tests re-passed. Live votes/attendance re-extraction explicitly
   deferred per user decision — tracked here as the open remainder.
+- 2026-11-17: Stage 4 (todos/019) assessed the downstream impact — see Findings above. Only one
+  meeting (`2024-12-02`) is actually explained by this bug; the other 35 "no votes_source"
+  meetings are unprocessed stubs, unrelated. Live re-extraction for `2024-12-02` still needs
+  explicit go-ahead before it happens.
