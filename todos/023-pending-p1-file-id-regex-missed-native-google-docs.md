@@ -1,6 +1,6 @@
 ---
 name: file-id-regex-missed-native-google-docs
-status: pending
+status: complete
 priority: p1
 issue_id: "023"
 tags: [data-integrity, pipeline, bugfix]
@@ -93,8 +93,8 @@ it's actually (re)processed, not just a parsing fix with unconfirmed value.
 - [x] Root cause identified and confirmed against real data (`2024-12-02`)
 - [x] Single shared fix applied across all 7 call sites; regression-tested
 - [x] Downstream votes/attendance impact assessed — see Stage 4 Findings above. Only `2024-12-02`
-  is actually affected by this specific bug; re-running it live is still pending explicit
-  go-ahead, same as before.
+  is actually affected by this specific bug.
+- [x] Live re-extraction applied to `2024-12-02` — see Work Log.
 
 ## Work Log
 
@@ -106,3 +106,19 @@ it's actually (re)processed, not just a parsing fix with unconfirmed value.
   meeting (`2024-12-02`) is actually explained by this bug; the other 35 "no votes_source"
   meetings are unprocessed stubs, unrelated. Live re-extraction for `2024-12-02` still needs
   explicit go-ahead before it happens.
+- 2026-11-17: User approved the live re-extraction. Ran the real override functions
+  (`_find_priority_source_doc`/`_read_doc_text`/`_extract_votes_attendance_from_doc`) directly
+  against `2024-12-02`'s now-resolvable native-Doc Minutes record, narrowly updating only
+  `votes`/`votes_source`/`board_attendance`/`attendance_source` (not the full
+  `process_single_meeting` path, which would also regenerate blurb/summary/timeline from a fresh
+  transcript read — this meeting has none, `has_vtt_source: false`). Added 3 real votes (officer
+  elections + adjournment) and replaced the 8-person roster-stub attendance with the document's
+  actual stated roll call (4 present + 1 explicitly absent) — a real completeness tradeoff the
+  user explicitly accepted after it was flagged (the official record names fewer people than the
+  roster stub did). Live Drive catalog updated with the fresh text extraction. Build verified
+  clean (172 files, no errors); 166 tests still passing. Also found and fixed, in the one-off
+  script only (not production), a missing `allow_unicode=True` on the `yaml.dump` call that would
+  have corrupted unrelated unicode fields (em-dashes, middot) into escape sequences — the same
+  omission exists in `process_transcripts.py`'s own `process_single_meeting`, currently masked
+  there because a later pipeline stage's write (which does pass `allow_unicode=True`) overwrites
+  it; worth a follow-up fix in production but not done here (cosmetic, not a content bug).

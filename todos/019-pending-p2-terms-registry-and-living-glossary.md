@@ -1122,3 +1122,23 @@ tracked here only because they came up in the same session — and shouldn't blo
     dead-code Meeting Summary source-selection bug). Live
     `terms_registry.json`/`drive_catalog.json`/`glossary.json` still untouched, branch still
     unmerged.
+- 2026-11-17: user approved the targeted live fix for the 3 meetings Stage 4 flagged as having
+  real, confirmed data problems (`2024-01-08`, `2024-05-30`, `2024-12-02`). Ran the real
+  `_find_priority_source_doc`/`_read_doc_text`/`_extract_votes_attendance_from_doc` functions
+  directly (not the full `process_single_meeting` reprocessing path) to narrowly update only
+  `votes`/`votes_source`/`board_attendance`/`attendance_source` on each meeting; full detail and
+  before/after diffs logged in **todos/023**'s Work Log. User explicitly chose "votes +
+  attendance everywhere" over a narrower votes-only recommendation after the
+  attendance-canonicalization regression risk was surfaced (re-running `canonical_person`
+  against the live registry can downgrade an already-correct full name to a weaker form when
+  registry coverage for that person is thin, and can make an official roll call look less
+  complete than a hand-maintained roster stub) — a real, accepted tradeoff, not an oversight.
+  Live Drive catalog updated with the fresh text extraction for the 3 re-read docs. Build (172
+  files) and full test suite (166 tests) verified clean afterward. Also found (and fixed in the
+  one-off script, not yet in production) a missing `allow_unicode=True` on a `yaml.dump` call
+  that would otherwise have escaped unrelated unicode characters in untouched fields — the same
+  gap exists in `process_transcripts.py`'s own `process_single_meeting`, currently masked by a
+  later pipeline write that does pass `allow_unicode=True`; flagged as a follow-up, not fixed
+  here. Stage 5 (live cutover of the reviewed registry/glossary rebuild itself) remains not
+  started — this was a narrow, separate, explicitly-scoped fix to real votes/attendance content,
+  not the registry cutover.
