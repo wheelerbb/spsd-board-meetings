@@ -293,7 +293,13 @@ updated for this run:
     token position to independently agree (not just a leading anchor) — the fix for a 2026-11-13
     production incident where a shared generic trailing phrase ("...Elementary School") let an
     unrelated leading word slip through a whole-string ratio check and corrupted `glossary.json`
-    with hundreds of false entries.
+    with hundreds of false entries. `_tokens_match` also rejects a candidate token outright when
+    it's an ordinary dictionary word (`name_matching.is_dictionary_word`, backed by a checked-in
+    filtered copy of the macOS/BSD `words(5)` list, `scripts/common_words.txt`) — closing a second,
+    related false-positive class where a registry entity that's also a short common word ("State",
+    "Board", "Maine") fuzzy-matched unrelated real words ("start", "broad", "machine") via the same
+    ratio fallback; confirmed live at 326 of 1,781 preview replacement occurrences before the fix
+    (see [todos/024](../todos/024-complete-p1-glossary-discovery-false-positive-aliases.md)).
 - **`discover_recurring_speaker_candidates(meetings_data)`** is the fallback of last resort, for
   entities the registry has no record of at all (a recurring public commenter never named in any
   official document). Groups generated-content names by surname across the whole corpus; a
@@ -321,7 +327,10 @@ originally motivated [todos/013](../todos/013-pending-p2-consolidate-glossary-ar
 is also why `render_glossary_hints()` is **unaffected by `scope`** — a spelling correction doesn't
 need corroboration to be timeless-safe — while the deterministic find/replace pass
 (`_enforce_glossary_pass` / `replacements_for_meeting`) *is* scope-aware, applying a
-not-yet-promoted entry only to the meeting(s) that produced its evidence.
+not-yet-promoted entry only to the meeting(s) that produced its evidence. That pass substitutes via
+`glossary_utils.apply_replacements`, a `\b`-anchored word-boundary-safe replace — not a raw
+`content.replace()` — so a short correct-spelling substring can't clobber an unrelated word that
+happens to contain it.
 
 ### Spelling priority
 
@@ -359,14 +368,36 @@ but not yet closed:
 - **A stylistic (not false-positive) ambiguity remains open**: which of two equally-complete forms
   of the same name ("Rebecca Stern" vs. "Dr. Rebecca Stern") should be `correct` is a
   context/role-template question, not a matching bug — deliberately left untouched.
-- **Full-corpus live verification is still in progress.** Everything above is implemented and
-  passes locally (143 unit tests as of this branch's last work-log entry; a trailing-5-meeting
-  local snapshot converges to a clean, hand-reviewed registry and glossary with no known
-  false-positive classes remaining), but the live `terms_registry.json`/`glossary.json` in GCS have
-  not yet been rebuilt from the fixed extraction pipeline, and the GitHub Actions deploy workflow
-  was manually disabled to prevent further corruption while this is in progress. See
-  [todos/019](../todos/019-pending-p2-terms-registry-and-living-glossary.md)'s work log for the
-  staged validation plan before any live cutover.
+- **A registry entity's canonical `term` never gets revised after it's first set**, even once
+  dozens of later, cleaner corroborating observations accumulate under the same entity — e.g.
+  `person:Molly. Schen` (a stray-period artifact from its very first 2023-08-21 extraction) is the
+  most-corroborated person entity in the live registry (70 sources) and still won the `correct`
+  slot in `glossary.json` over the clean `"Molly Schen"` spelling that also appears among its
+  mentions. Shipped live as a known, accepted defect rather than fixed pre-cutover; see
+  [todos/028](../todos/028-pending-p2-registry-never-revises-bad-first-seen-term.md).
+- **Live cutover and full pipeline-run verification are both complete.** The staged validation
+  plan ([todos/019](../todos/019-pending-p2-terms-registry-and-living-glossary.md)'s work log)
+  finished through Stage 5 on 2026-11-17: the reviewed registry rebuild (1,684 entities) and
+  glossary rebuild (73 entries — up from the original 7 hand-typed ones, now spanning `person`,
+  `program`, and `organization` types) were written directly to production (`terms_registry.json`
+  in GCS, `src/_data/glossary.json`), `terms-registry-rebuild` merged to `main`, and the merge push
+  triggered a real `--bucket` deploy run against that live state. That run itself succeeded, but
+  surfaced one real, previously-latent bug the rebuild work hadn't exercised against a full real
+  corpus before: `apply_replacements` could double a title when an alias is a literal substring of
+  its own `correct` value (e.g. alias "Jo Prince" inside correct "Dr. Jo Prince" matched and
+  rewrote already-correct text into "Dr. Dr. Jo Prince") — confirmed on 42 occurrences across 14
+  live meeting pages, root-caused, fixed, and the affected pages corrected in the same pass; see
+  [todos/029](../todos/029-complete-p1-glossary-replacement-doubles-title-when-alias-is-suffix-of-correct.md).
+- **A pre-existing, unrelated glued-word content issue** (mid-2026 commits, months before this
+  branch) affects a small number of already-published meeting pages independent of the
+  `TEXT_EXTRACTOR_VERSION` fix; tracked separately as
+  [todos/025](../todos/025-pending-p3-legacy-glued-word-content-artifacts.md) (p3).
+- **Proposed, not yet implemented**: moving official-term extraction into its own pipeline stage
+  (ahead of `process_transcripts.py`, closing the same-run staleness gap) and replacing the
+  registry's accumulate-only ingestion with a deterministic rebuild from `drive_catalog.json`'s
+  current cached terms (so a term a re-extraction no longer produces actually drops out, instead
+  of persisting forever); see
+  [todos/026](../todos/026-pending-p2-dedicated-term-extraction-and-derived-registry-rebuild.md).
 
 ---
 

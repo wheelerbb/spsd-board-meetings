@@ -81,9 +81,31 @@ def apply_replacements(content, replacements):
     `"UMaine"` alias rewriting `domain`/`remain`/`maintenance` along with it). `\\b` is anchored on
     regex word-char boundaries, which covers every alias on file today — single words and
     multi-word phrases alike, since the boundary only needs to hold at the two outer edges. See
-    todos/024 for the real, confirmed exposure this closes."""
+    todos/024 for the real, confirmed exposure this closes.
+
+    Also guards against an alias that is itself a substring of its own `correct` value (e.g.
+    alias "Jo Prince" under correct "Dr. Jo Prince") — a text that already reads "Dr. Jo Prince"
+    still matches the bare `\\bJo Prince\\b` pattern, and blindly substituting would double the
+    title into "Dr. Dr. Jo Prince". Before replacing a match, check whether `correct` is already
+    present at the position the match implies; if so, that occurrence is already correct and is
+    left untouched. Found live on 14 meeting pages (`todos/029`) the first time this function ran
+    against the full real corpus."""
     for alias, correct in replacements.items():
-        content = re.sub(r'\b' + re.escape(alias) + r'\b', correct, content)
+        if alias == correct:
+            continue
+        pattern = re.compile(r'\b' + re.escape(alias) + r'\b')
+        offset = correct.find(alias)
+        if offset == -1:
+            content = pattern.sub(correct, content)
+            continue
+
+        def _replace(m, offset=offset, correct=correct, content=content):
+            start = m.start() - offset
+            if start >= 0 and content[start:start + len(correct)] == correct:
+                return m.group(0)
+            return correct
+
+        content = pattern.sub(_replace, content)
     return content
 
 

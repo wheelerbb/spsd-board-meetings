@@ -78,6 +78,19 @@ class ApplyReplacementsTests(unittest.TestCase):
     def test_no_replacements_is_a_noop(self):
         self.assertEqual(apply_replacements("Unchanged content.", {}), "Unchanged content.")
 
+    def test_alias_already_covered_by_correct_is_not_doubled(self):
+        # Regression for todos/029: alias "Jo Prince" is a suffix of correct "Dr. Jo Prince".
+        # Content already reading "Dr. Jo Prince" still matches \bJo Prince\b — a naive
+        # substitution would double the title into "Dr. Dr. Jo Prince".
+        content = "Dr. Jo Prince provides a budget update."
+        self.assertEqual(apply_replacements(content, {"Jo Prince": "Dr. Jo Prince"}), content)
+
+    def test_alias_not_yet_titled_is_still_corrected(self):
+        # The same alias/correct pair must still fire when the title genuinely isn't there yet.
+        content = "Jo Prince provides a budget update."
+        self.assertEqual(apply_replacements(content, {"Jo Prince": "Dr. Jo Prince"}),
+                          "Dr. Jo Prince provides a budget update.")
+
 
 class SaveGlossaryTests(unittest.TestCase):
     def test_round_trips_through_load_glossary(self):
