@@ -1,5 +1,167 @@
 [
   {
+    "run_id": "44200882781",
+    "timestamp": "2026-11-17T23:54:21.369403Z",
+    "stage": "post_process",
+    "topics_updated": [
+      {
+        "topic": "Immigration Enforcement",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Special Education",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "SPESPA Collective Bargaining",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Differential School Funding",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Elementary School Reconfiguration",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Superintendent Appointment 2026",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Student Enrollment and Class Size",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "FY26 Budget",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "SPHS Athletic Complex",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Assistant Superintendent Compensation",
+        "model": "gemini-3.5-flash",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Kaler Elementary Student Placement",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Education Foundation",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Board Leadership Change",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "SPTA Contract 2025-2028",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Superintendent Transition 2025",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "FY27 Budget",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Superintendent Resignation 2025",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Facilities Bond Referendum 2024",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Academic Performance",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Federal Title Funding",
+        "model": "gemini-3.5-flash",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Diversity Equity and Inclusion",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Student Mental Health",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Adult Education",
+        "model": "gemini-3.5-flash",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Pre-Kindergarten Expansion",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "DEI Coordinator Resignation",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "FY25 Budget",
+        "model": "gemini-3.5-flash",
+        "reason": "evidence changed"
+      }
+    ],
+    "topics_skipped": 42,
+    "blurbs_generated": [],
+    "previews_generated": [
+      {
+        "slug": "2026-11-23",
+        "model": "gemini-2.5-pro"
+      }
+    ]
+  },
+  {
+    "run_id": "44200882781",
+    "timestamp": "2026-11-17T23:43:41.510781Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
+    "run_id": "2026-11-13T14:44:10.064464",
+    "timestamp": "2026-11-13T14:44:10.064483Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 68,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
     "run_id": "43442260053",
     "timestamp": "2026-11-13T14:24:08.718380Z",
     "stage": "post_process",
@@ -1894,33 +2056,5 @@
     "targeted": [],
     "results": [],
     "rate_limited": []
-  },
-  {
-    "run_id": "34228151850",
-    "timestamp": "2026-09-08T12:50:43.971482Z",
-    "stage": "post_process",
-    "skipped": true,
-    "topics_updated": [],
-    "topics_skipped": 0,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "34228151850",
-    "timestamp": "2026-09-08T12:50:40.536143Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "34131471084",
-    "timestamp": "2026-09-07T14:12:32.235317Z",
-    "stage": "post_process",
-    "skipped": true,
-    "topics_updated": [],
-    "topics_skipped": 0,
-    "blurbs_generated": [],
-    "previews_generated": []
   }
 ]

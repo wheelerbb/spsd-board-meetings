@@ -1,5 +1,70 @@
 [
   {
+    "run_id": "44200882781",
+    "timestamp": "2026-11-17T23:43:37.409382Z",
+    "trigger": "push",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-12-07",
+            "title": "City Council & School Board Inauguration",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1ysSxQFyQbqe0EmFWHivBWdK-ykm7wBou",
+            "label": "SPMS Donation Hannaford Helps Schools",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1bkdSkYyVYJn9G8cCHb4WaKfHV4lZMtte",
+            "label": "SCHOOL BOARD AGENDA",
+            "doc_type": "agenda",
+            "meeting_slug": "2026-11-23",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1246623763",
+            "title": "spcc_20261112 - South Portland City Council - November 12 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [
+        "2026-12-07"
+      ],
+      "updated": [
+        "2026-11-23",
+        "2024-03-17",
+        "2025-01-08",
+        "2024-05-30"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "43442260053",
     "timestamp": "2026-11-13T14:24:03.011507Z",
     "trigger": "push",

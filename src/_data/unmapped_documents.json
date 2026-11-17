@@ -495,11 +495,6 @@
     "url": "https://drive.google.com/file/d/1J6sY-hars7AJF_Ly7deBXMeIQDjtobfA/view"
   },
   {
-    "type": "agenda",
-    "label": "SPECIAL MEETING AGENDA 5_30_24",
-    "url": "https://drive.google.com/file/d/1cJ3j2A_5fWVum7f8nz76htvXhJw5f6h6/view"
-  },
-  {
     "type": "misc",
     "label": "Enrollment 2023-24  - 23-24 Board Summary (11)",
     "url": "https://drive.google.com/file/d/1wKBiNVUtseFhdBBr2Fb3d4IAxA67RsIH/view"
@@ -598,5 +593,15 @@
     "type": "misc",
     "label": "Donors Choose - SPMS PW Donation",
     "url": "https://drive.google.com/file/d/160szKsZ0vN7M47ZSwL5D2BEfOVO4N3p8/view"
+  },
+  {
+    "type": "minutes",
+    "label": null,
+    "url": null
+  },
+  {
+    "type": "misc",
+    "label": "SPMS Donation Hannaford Helps Schools",
+    "url": "https://drive.google.com/file/d/1ysSxQFyQbqe0EmFWHivBWdK-ykm7wBou/view"
   }
 ]
