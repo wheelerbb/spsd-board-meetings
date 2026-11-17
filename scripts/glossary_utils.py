@@ -74,16 +74,32 @@ def replacements_for_meeting(entries, slug):
     return to_replacement_map(applicable)
 
 
+def apply_replacements(content, replacements):
+    """Applies alias->correct find/replace pairs (from replacements_for_meeting) to raw file
+    content, word-boundary-safe (`\\b`) rather than a raw substring `content.replace()` — a short
+    alias must never corrupt a substring inside an unrelated longer word (e.g. a `"main"` ->
+    `"UMaine"` alias rewriting `domain`/`remain`/`maintenance` along with it). `\\b` is anchored on
+    regex word-char boundaries, which covers every alias on file today — single words and
+    multi-word phrases alike, since the boundary only needs to hold at the two outer edges. See
+    todos/024 for the real, confirmed exposure this closes."""
+    for alias, correct in replacements.items():
+        content = re.sub(r'\b' + re.escape(alias) + r'\b', correct, content)
+    return content
+
+
 def _split_speaker_list(raw):
-    """A topic's trailing parenthetical can jointly attribute the item to more than one person
-    when they co-presented ("Sarah Lupien, Lizeth Rios Blas") — split those apart instead of
-    treating the whole comma-joined blob as one person's name. Left unsplit, a multi-name string
-    like that has more tokens than any single registry candidate, so match_unique can never fire;
-    surname_match falls through instead, anchoring purely on the LAST token and silently absorbing
-    every other name packed in front of it as if it were part of the same person's name — the
-    2026-11-16 "Sarah Lupien, Lizeth Rios Blas" conflation. See todos/019."""
+    """A topic's trailing parenthetical, or a timeline child's own `speaker` field, can jointly
+    attribute the item to more than one person when they co-presented ("Sarah Lupien, Lizeth Rios
+    Blas", "Gretchen McCloy & Bryna Latham") — split those apart instead of treating the whole
+    joined blob as one person's name. Left unsplit, a multi-name string like that has more tokens
+    than any single registry candidate, so match_unique can never fire; surname_match falls
+    through instead, anchoring purely on the LAST token and silently absorbing every other name
+    packed in front of it as if it were part of the same person's name — the 2026-11-16 "Sarah
+    Lupien, Lizeth Rios Blas" conflation, and the same-shaped "&"-joined conflation found during
+    Stage 3 of the registry-rebuild validation plan (todos/024). Splits on both "," and "&" since
+    either shows up as the joiner depending on the source phrasing."""
     names = []
-    for piece in raw.split(','):
+    for piece in re.split(r',|&', raw):
         piece = re.sub(r'^\s*and\s+', '', piece.strip(), flags=re.IGNORECASE).strip()
         if piece:
             names.append(piece)
@@ -93,7 +109,9 @@ def _split_speaker_list(raw):
 def _speaker_names_in_meeting(meeting_data):
     """Raw person names in this meeting's own generated content: timeline child speakers, and
     topic titles' trailing parenthetical attribution (the "Description (Speaker)" convention from
-    process_transcripts.py's extraction prompt)."""
+    process_transcripts.py's extraction prompt). Both go through `_split_speaker_list` — a
+    `speaker` field is just as capable of holding a joined co-presenter string as the
+    parenthetical is."""
     names = []
     for item in meeting_data.get('timeline') or []:
         m = re.search(r'\(([^()]+)\)\s*$', item.get('topic') or '')
@@ -101,7 +119,7 @@ def _speaker_names_in_meeting(meeting_data):
             names.extend(_split_speaker_list(m.group(1)))
         for child in item.get('children') or []:
             if child.get('speaker'):
-                names.append(child['speaker'].strip())
+                names.extend(_split_speaker_list(child['speaker']))
     return names
 
 
@@ -154,13 +172,25 @@ def _tokens_match(window_tok, entity_tok):
     boundary-variant pair (`name_matching.is_boundary_variant` — one token an exact prefix/suffix
     of the other, e.g. "main"/"maine", "August"/"Augusta") regardless of length, since that shape
     scores high via ratio for an unrelated word's own derivational form, not a mishearing — the
-    2026-11-16 false aliases this caused on the real `glossary.json`, see todos/019."""
+    2026-11-16 false aliases this caused on the real `glossary.json`, see todos/019.
+
+    Also rejects a window token that's itself a recognized standalone English word
+    (`name_matching.is_dictionary_word`) — the boundary-variant guard above only catches an exact
+    prefix/suffix relationship ("main"/"maine"), not a same-length-ish edit-distance coincidence
+    between two otherwise-unrelated real words ("State" vs "start"/"stage"/"taste"/"slate",
+    "Maine" vs "machine"/"marine", "Brown" vs "grown"/"blown"). Confirmed at full-corpus scale
+    during Stage 3 of the registry-rebuild validation plan: 326 of 1781 preview replacement
+    occurrences, across 58 of 99 meetings, traced to exactly this gap — see todos/024. Checking
+    only the window token (not the entity token) is deliberate: a registry entity that happens to
+    also be an ordinary word (a U.S. state, "State") can still be legitimately corrected from a
+    genuine OCR/mishearing artifact, which is essentially never itself a different real word."""
     entity_norm = _norm_token(entity_tok)
     window_norm = _norm_token(window_tok)
     if window_norm == entity_norm:
         return True
     if (name_matching.is_acronym(entity_tok.strip(_STRIP_CHARS))
             or name_matching.is_boundary_variant(window_norm, entity_norm)
+            or name_matching.is_dictionary_word(window_norm)
             or len(window_norm) < 4 or len(entity_norm) < 4):
         return False
     ratio = difflib.SequenceMatcher(None, window_norm, entity_norm).ratio()

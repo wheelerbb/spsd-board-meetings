@@ -341,8 +341,8 @@ Omit a topic entirely if none of the votes are substantively about it. Example:
 
 from glossary_utils import (
     load_glossary, save_glossary, render_glossary_hints, replacements_for_meeting,
-    discover_term_candidates, discover_recurring_speaker_candidates, dedupe_observations,
-    apply_discovered_terms,
+    apply_replacements, discover_term_candidates, discover_recurring_speaker_candidates,
+    dedupe_observations, apply_discovered_terms,
 )
 import terms_registry
 
@@ -369,8 +369,7 @@ def _enforce_glossary_pass(meeting_dir, glossary_entries):
             content = f.read()
 
         orig = content
-        for w, r in replacements_for_meeting(glossary_entries, slug).items():
-            content = content.replace(w, r)
+        content = apply_replacements(content, replacements_for_meeting(glossary_entries, slug))
         if content != orig:
             with open(filepath, 'w') as f:
                 f.write(content)

@@ -3,7 +3,7 @@ import unittest
 from name_matching import (
     strip_title, surname, match_unique, surname_match, fuzzy_match, fuzzy_surname_match,
     is_complete_person_name, is_subset_name, is_bare_surname, is_nickname_variant,
-    is_boundary_variant,
+    is_boundary_variant, is_dictionary_word,
 )
 
 
@@ -258,6 +258,43 @@ class IsBoundaryVariantTests(unittest.TestCase):
 
     def test_empty_is_not_a_variant(self):
         self.assertFalse(is_boundary_variant("", "maine"))
+
+
+class IsDictionaryWordTests(unittest.TestCase):
+    def test_common_words_recognized(self):
+        for w in ["state", "start", "stage", "taste", "slate", "broad", "distinct",
+                   "machine", "marine", "main", "grown", "blown", "smell", "shall"]:
+            self.assertTrue(is_dictionary_word(w), f"{w!r} should be recognized as a word")
+
+    def test_case_insensitive(self):
+        self.assertTrue(is_dictionary_word("State"))
+        self.assertTrue(is_dictionary_word("MAIN"))
+
+    def test_proper_noun_variant_not_a_dictionary_word(self):
+        # Real mishearings/OCR artifacts of a proper noun — must stay correctable.
+        for w in ["caler", "umaine", "highset", "readathon"]:
+            self.assertFalse(is_dictionary_word(w))
+
+    def test_empty_and_none(self):
+        self.assertFalse(is_dictionary_word(""))
+        self.assertFalse(is_dictionary_word(None))
+
+    def test_surname_level_mishearing_can_still_be_a_dictionary_word(self):
+        # "Holeman" (for "Holman") is itself a real, if obscure, dictionary entry -- this is
+        # exactly why is_dictionary_word is never applied to person-name fuzzy matching (see its
+        # own docstring): it would otherwise reject this already-real, already-tested correction.
+        self.assertTrue(is_dictionary_word("holeman"))
+
+    def test_inflected_form_recognized_via_suffix_stripping(self):
+        # "started" is not its own dictionary headword (only "start" is) -- the Stage 3 full-run
+        # (todos/024) initially missed this and "State"/"started" survived the first fix pass.
+        self.assertTrue(is_dictionary_word("started"))
+        self.assertTrue(is_dictionary_word("tastes"))
+        self.assertTrue(is_dictionary_word("staging"))
+
+    def test_short_stem_after_stripping_is_not_treated_as_a_word(self):
+        # Guard against the suffix-strip itself producing a spurious match on a too-short stem.
+        self.assertFalse(is_dictionary_word("ed"))
 
 
 if __name__ == "__main__":

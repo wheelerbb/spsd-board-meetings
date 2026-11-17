@@ -4,8 +4,8 @@ import tempfile
 import unittest
 
 from glossary_utils import (
-    render_glossary_hints, to_replacement_map, replacements_for_meeting, save_glossary,
-    load_glossary, discover_term_candidates, discover_recurring_speaker_candidates,
+    render_glossary_hints, to_replacement_map, replacements_for_meeting, apply_replacements,
+    save_glossary, load_glossary, discover_term_candidates, discover_recurring_speaker_candidates,
     dedupe_observations, apply_discovered_terms,
 )
 
@@ -51,6 +51,32 @@ class ReplacementsForMeetingTests(unittest.TestCase):
         # is for readability in the file, not a difference in whether it's enforced.
         entries = [{"correct": "Kaler", "aliases": ["Ms. Kaler"], "misspellings": ["Caler"]}]
         self.assertEqual(to_replacement_map(entries), {"Ms. Kaler": "Kaler", "Caler": "Kaler"})
+
+
+class ApplyReplacementsTests(unittest.TestCase):
+    def test_standalone_word_is_replaced(self):
+        self.assertEqual(apply_replacements("The main item tonight.", {"main": "UMaine"}),
+                          "The UMaine item tonight.")
+
+    def test_substring_inside_longer_word_is_not_corrupted(self):
+        # Regression for todos/024: a raw content.replace() would also rewrite "domain" and
+        # "maintenance" when "main" is an alias — word-boundary-safe replacement must not.
+        content = "The domain stays the same; routine maintenance continues."
+        self.assertEqual(apply_replacements(content, {"main": "UMaine"}), content)
+
+    def test_multi_word_alias_still_replaced(self):
+        self.assertEqual(
+            apply_replacements("Report from Maine Construction Academy today.",
+                                {"Maine Construction Academy": "Maine Constriction Academy"}),
+            "Report from Maine Constriction Academy today.")
+
+    def test_multiple_occurrences_all_replaced(self):
+        content = "main item, the main concern, and another main point."
+        self.assertEqual(apply_replacements(content, {"main": "UMaine"}),
+                          "UMaine item, the UMaine concern, and another UMaine point.")
+
+    def test_no_replacements_is_a_noop(self):
+        self.assertEqual(apply_replacements("Unchanged content.", {}), "Unchanged content.")
 
 
 class SaveGlossaryTests(unittest.TestCase):
@@ -141,6 +167,22 @@ class DiscoverTermCandidatesTests(unittest.TestCase):
         self.assertEqual(len(obs), 1)
         self.assertEqual(obs[0]["correct"], "Sarah Lupien")
         self.assertEqual(obs[0]["alias"], "Sara Lupien")
+
+    def test_ampersand_joined_speaker_field_does_not_conflate_two_people(self):
+        # Regression found during Stage 3 (todos/024): a timeline child's own `speaker` field,
+        # unlike the topic parenthetical above, held a joined co-presenter string
+        # ("Gretchen McCloy & Bryna Latham") that went unsplit, becoming a false alias for
+        # whichever one person surname_match happened to anchor on.
+        registry = {"person:Bryna Latham": {"term": "Bryna Latham", "type": "person"}}
+        meeting = self._meeting("2026-06-10", [
+            {"topic": "Community Partnerships Update", "desc": "", "children": [
+                {"speaker": "Gretchen McCloy & Bryna Latham", "text": ""},
+            ]},
+        ])
+        # Exact match for "Bryna Latham" produces nothing; "Gretchen McCloy" has no registry
+        # match. Conflated, this used to produce a false alias on "Bryna Latham" for the whole
+        # joined string.
+        self.assertEqual(discover_term_candidates(meeting, registry), [])
 
     def test_complete_name_promoted_over_title_only_registry_term(self):
         # The registry's own term is title+surname only — it never asserted there's no first
@@ -253,6 +295,33 @@ class DiscoverTermCandidatesTests(unittest.TestCase):
             {"topic": "Agenda", "desc": "This is the main item on tonight's agenda.", "children": []},
         ])
         self.assertEqual(discover_term_candidates(meeting, registry), [])
+
+    def test_common_english_word_is_not_treated_as_misspelled_entity(self):
+        # Regression for the Stage 3 full-corpus run (todos/024): a registry entity that happens
+        # to also be an ordinary short word ("State") fuzzy-matched unrelated real words that
+        # merely sit a short edit-distance away ("start"/"stage"/"taste"/"slate") -- distinct from
+        # the boundary-variant case above, since none of these is an exact prefix/suffix of
+        # "state". Confirmed real impact: 326 of 1781 preview replacement occurrences across 58 of
+        # 99 meetings traced to exactly this gap.
+        registry = {"organization:State": {"term": "State", "type": "organization"}}
+        for word in ["start", "stage", "taste", "slate"]:
+            meeting = self._meeting("2026-09-14", [
+                {"topic": "Budget", "desc": f"The committee will {word} the review next week.", "children": []},
+            ])
+            self.assertEqual(discover_term_candidates(meeting, registry), [],
+                              f"{word!r} should not be flagged as a misspelling of 'State'")
+
+    def test_place_name_still_matches_genuine_non_word_misspelling(self):
+        # The dictionary-word guard must not swallow legitimate corrections -- "machine" is a
+        # real word and correctly rejected, but a genuine OCR/mishearing artifact that ISN'T a
+        # real word (same shape as the existing "Caler"/"Kaler" case) must still match.
+        registry = {"place:Maine": {"term": "Maine", "type": "place"}}
+        meeting = self._meeting("2026-09-14", [
+            {"topic": "Budget", "desc": "This is a machine problem, not a Mayne issue.", "children": []},
+        ])
+        obs = discover_term_candidates(meeting, registry)
+        self.assertEqual(len(obs), 1)
+        self.assertEqual(obs[0]["alias"], "Mayne")
 
     def test_repeated_mention_in_one_meeting_is_deduped(self):
         registry = {

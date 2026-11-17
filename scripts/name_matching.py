@@ -1,5 +1,52 @@
+import os
 import re
 import difflib
+
+# Backs is_dictionary_word below — derived once from the macOS/BSD words(5) list
+# (/usr/share/dict/words), filtered to lowercase-alphabetic entries, and checked into the repo so
+# the check is dependency-free and portable (no new pip package, works identically in CI). Loaded
+# lazily, not at import time, since most processes that import this module never call
+# is_dictionary_word.
+_DICTIONARY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'common_words.txt')
+_dictionary = None
+
+
+def is_dictionary_word(token):
+    """True if `token` (case-insensitively) is an ordinary standalone English word, per the
+    bundled dictionary — not a name or a proper noun. Scoped deliberately narrow: used only to
+    reject a *place/organization/program* fuzzy-match candidate that's merely an unrelated real
+    word a short edit-distance away from a registry entity's own spelling (see
+    glossary_utils.py::_tokens_match) — a genuine OCR slip or transcription mishearing of such a
+    term essentially never happens to also be a different, valid English word (`start`/`stage`/
+    `slate` are not mishearings of `State`; they're just other words).
+
+    Deliberately NOT used to guard person-name fuzzy matching (`fuzzy_match`/
+    `fuzzy_surname_match` below) — unlike a place/org/program name, a misheard *surname* commonly
+    does collide with an ordinary dictionary word (e.g. "Holeman" for "Holman" is itself a real,
+    if obscure, dictionary entry) without being any less of a genuine mishearing. Applying this
+    guard there would silently break that real, already-tested case.
+
+    Falls back to stripping a common inflectional suffix (-s, -ed, -ing) and checking the stem —
+    a dictionary headword list records base forms, not every inflection, so "started" alone
+    (confirmed: not a headword, unlike "start") would otherwise slip past this guard and still
+    fuzzy-match "State". See todos/024."""
+    global _dictionary
+    if _dictionary is None:
+        try:
+            with open(_DICTIONARY_PATH) as f:
+                _dictionary = frozenset(line.strip() for line in f if line.strip())
+        except FileNotFoundError:
+            _dictionary = frozenset()
+    t = (token or '').strip().lower()
+    if not t:
+        return False
+    if t in _dictionary:
+        return True
+    for suffix in ('ing', 'ed', 's'):
+        if t.endswith(suffix) and len(t) - len(suffix) >= 3 and t[:-len(suffix)] in _dictionary:
+            return True
+    return False
+
 
 # Attendance/timeline names come from transcript roll calls or official documents, which state a
 # role/office instead of (or alongside) an honorific — "board member Feller", "Chair DeAngelos",
