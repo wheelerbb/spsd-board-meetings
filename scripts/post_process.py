@@ -420,10 +420,9 @@ def _extract_official_terms(meeting_data, bucket_uri, catalog, registry):
     all_terms = []
     for doc in qualifying:
         url = doc.get('url', '')
-        fid_match = re.search(r'/file/d/([^/?]+)', url)
-        if not fid_match:
+        file_id = drive_mod.extract_file_id(url)
+        if not file_id:
             continue
-        file_id = fid_match.group(1)
         doc_type = doc.get('type', 'doc')
 
         try:
@@ -441,7 +440,14 @@ def _extract_official_terms(meeting_data, bucket_uri, catalog, registry):
         entry.setdefault('created_time', meta.get('createdTime'))
 
         terms = None
-        if entry.get('modified_time') == current_modified:
+        # Terms are derived from extracted text, so they're only as fresh as the text that
+        # produced them — a modified_time match alone would keep serving terms pulled from
+        # pre-fix, glued-word text forever (see sourcing/drive.py::TEXT_EXTRACTOR_VERSION),
+        # since this cache hit short-circuits before ever reaching get_or_extract_text's own
+        # version check below. Shares drive.text_cache_fresh with get_or_extract_text and
+        # build_meeting_map so the same native-Doc once/day grace applies here too — otherwise a
+        # Minutes doc still being drafted would re-trigger a real, paid Gemini call on every run.
+        if drive_mod.text_cache_fresh(entry, entry.get('mime_type'), current_modified):
             terms = entry.get('terms')
             if terms is None and entry.get('terms_blob'):
                 cached = drive_mod.read_cached_blob(bucket_uri, entry['terms_blob'])
@@ -507,13 +513,9 @@ def _load_cached_agenda_text(docs, bucket_uri, catalog, max_chars=2500):
     if not bucket_uri:
         return None
 
-    def _file_id(url):
-        m = re.search(r'/file/d/([^/?]+)', url or '')
-        return m.group(1) if m else None
-
     def _cached_entries(doc_type):
         return [
-            catalog[fid] for fid in (_file_id(d.get('url')) for d in (docs or []) if d.get('type') == doc_type)
+            catalog[fid] for fid in (drive_mod.extract_file_id(d.get('url')) for d in (docs or []) if d.get('type') == doc_type)
             if fid and catalog.get(fid, {}).get('text_blob')
         ]
 

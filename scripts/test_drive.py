@@ -1,6 +1,12 @@
 import unittest
+from datetime import datetime, timedelta
 
-from sourcing.drive import extract_date_from_content
+from sourcing.drive import extract_date_from_content, text_cache_fresh, get_or_extract_text, TEXT_EXTRACTOR_VERSION
+
+TODAY = datetime.utcnow().strftime('%Y-%m-%d')
+YESTERDAY = (datetime.utcnow() - timedelta(days=1)).strftime('%Y-%m-%d')
+DOC_MIME = 'application/vnd.google-apps.document'
+PDF_MIME = 'application/pdf'
 
 
 class ExtractDateFromContentTests(unittest.TestCase):
@@ -39,6 +45,50 @@ class ExtractDateFromContentTests(unittest.TestCase):
     def test_empty_text_returns_none(self):
         self.assertIsNone(extract_date_from_content(""))
         self.assertIsNone(extract_date_from_content(None))
+
+
+class TextCacheFreshTests(unittest.TestCase):
+    def test_exact_modified_time_match_is_fresh(self):
+        entry = {'modified_time': 'v1', 'extractor_version': TEXT_EXTRACTOR_VERSION}
+        self.assertTrue(text_cache_fresh(entry, PDF_MIME, 'v1'))
+
+    def test_changed_modified_time_on_uploaded_file_is_not_fresh(self):
+        entry = {'modified_time': 'v1', 'extractor_version': TEXT_EXTRACTOR_VERSION}
+        self.assertFalse(text_cache_fresh(entry, PDF_MIME, 'v2'))
+
+    def test_native_doc_edited_today_still_fresh(self):
+        # Native Doc modifiedTime bumped by an autosave mid-draft -- today's extraction should
+        # still be trusted rather than re-running (and, for terms, re-billing) on every pipeline
+        # run while someone is mid-edit.
+        entry = {'modified_time': 'v1', 'extractor_version': TEXT_EXTRACTOR_VERSION, 'extracted_at': TODAY}
+        self.assertTrue(text_cache_fresh(entry, DOC_MIME, 'v2'))
+
+    def test_native_doc_edited_yesterday_is_stale(self):
+        entry = {'modified_time': 'v1', 'extractor_version': TEXT_EXTRACTOR_VERSION, 'extracted_at': YESTERDAY}
+        self.assertFalse(text_cache_fresh(entry, DOC_MIME, 'v2'))
+
+    def test_native_doc_grace_does_not_apply_to_uploaded_files(self):
+        entry = {'modified_time': 'v1', 'extractor_version': TEXT_EXTRACTOR_VERSION, 'extracted_at': TODAY}
+        self.assertFalse(text_cache_fresh(entry, PDF_MIME, 'v2'))
+
+    def test_stale_extractor_version_is_never_fresh(self):
+        entry = {'modified_time': 'v1', 'extractor_version': TEXT_EXTRACTOR_VERSION - 1, 'extracted_at': TODAY}
+        self.assertFalse(text_cache_fresh(entry, PDF_MIME, 'v1'))
+        self.assertFalse(text_cache_fresh(entry, DOC_MIME, 'v1'))
+
+
+class GetOrExtractTextUnsupportedMimeTests(unittest.TestCase):
+    def test_slides_file_never_attempts_extraction(self):
+        catalog = {'f1': {'mime_type': 'application/vnd.google-apps.presentation'}}
+        text, updates = get_or_extract_text('gs://bucket', object(), catalog, 'f1')
+        self.assertIsNone(text)
+        self.assertIsNone(updates)
+
+    def test_sheets_file_never_attempts_extraction(self):
+        catalog = {'f1': {'mime_type': 'application/vnd.google-apps.spreadsheet'}}
+        text, updates = get_or_extract_text(None, None, catalog, 'f1')
+        self.assertIsNone(text)
+        self.assertIsNone(updates)
 
 
 if __name__ == "__main__":

@@ -922,3 +922,91 @@ tracked here only because they came up in the same session — and shouldn't blo
     deliberately untouched); widening past the trailing-5-meeting local snapshot; any live
     GCS/Gemini verification. Live `terms_registry.json` still untouched, branch still unmerged,
     deploy workflow still disabled.
+- 2026-11-16: before a from-scratch registry rebuild (reset + full-corpus re-extraction), agreed a
+  staged, confidence-building validation plan rather than jumping straight to a live run: (1)
+  full-corpus fresh-extraction sanity check (cheap, no LLM cost), (2) full-corpus registry rebuild
+  dry run (local/isolated, real Gemini calls, throwaway registry), (3) full-corpus glossary rebuild
+  dry run (local/isolated), (4) targeted diff of the 28/99 meetings whose `votes`/`board_attendance`
+  came from a `Minutes`-labeled PDF (`votes_source: Minutes`) — the same old pypdf-exposed path,
+  separate from and smaller than a full 99-meeting transcript reprocess — against fresh extraction,
+  (5) live cutover (write the already-reviewed local result directly to GCS, not a second live
+  run). Noted explicitly: regenerating all 99 meetings' VTT-derived content is **not** required by
+  a registry rebuild (the registry only ever reads official docs, never VTTs — see docs/pipeline.md)
+  and should stay a separate decision, not get bundled in by default.
+  - Also added `extractor_version`/`extracted_at` to the Drive catalog schema
+    (`sourcing/drive.py::TEXT_EXTRACTOR_VERSION`), stamped on every fresh `text_blob` write and
+    checked by both `get_or_extract_text` and `build_meeting_map` before trusting a cache hit — so
+    a stale cache entry from before an extraction-logic change (like this session's pypdf->pymupdf
+    fix, version 1->2) is force-refreshed automatically on the next run, without the kind of
+    manual before/after comparison this fix itself required to find which entries predated it.
+  - **Stage 1 run, live, read-only** (full Drive catalog enumeration + fresh `read_file_text` call
+    per qualifying doc, zero GCS writes): **188** qualifying agenda/packet/minutes documents found
+    (not 174 — prior count was a partial scan), **zero** glued-word artifacts detected (longest
+    word-run anywhere: 17 chars, vs. the old bug's 23-30 char runs) — confirms the pymupdf fix holds
+    at full-corpus scale. Side findings, not blockers: several dates carry two documents of the
+    *same* doc_type (logged to todos/022, sharpens its file_id tie-break question); one
+    `SPECIAL MEETING AGENDA 5_30_24` file has never resolved a `meeting_slug` despite a
+    filename-parseable date, predates `extractor_version` entirely, and should get a fresh
+    resolution attempt automatically next real `build_meeting_map` run via the staleness fix above
+    — worth confirming then rather than hand-fixing now.
+  - **Still not done:** Stage 2 (registry rebuild dry run) onward; the 28-meeting votes/attendance
+    targeted check; live cutover. Live `terms_registry.json` still untouched, branch still unmerged.
+- 2026-11-17: **Stage 2 run, live, real Gemini calls, local/isolated** — full-corpus registry
+  rebuild dry run via the real production function (`post_process._extract_official_terms`),
+  called per-meeting against each `.njk`'s actual frontmatter `docs` list (read via the read-only
+  `_read_njk`, not the write-triggering `_enforce_glossary_pass`), forced through fresh
+  pymupdf-based extraction (`bucket_uri=""` bypasses the GCS cache entirely) into a fresh, unseeded
+  local registry and a catalog-shaped per-file_id patch — both checkpointed to the gitignored
+  `rebuild_scratch/` after every meeting (not just at the end), since a run across 93 meetings/174
+  documents realistically gets interrupted (it did, twice, hitting the background time limit) and
+  each real Gemini call is not cheap to redo.
+  - **Found and fixed a real, previously-unknown production bug along the way** (not related to
+    the pypdf fix): the file_id-parsing regex used at 7 call sites across `post_process.py`,
+    `process_transcripts.py`, and `source_data.py` only matched Drive's uploaded-file URL shape,
+    silently skipping any official document authored as a native Google Doc instead (no error, no
+    log line). Confirmed real impact: `2024-12-02`'s Minutes doc is a native Doc and that meeting
+    has no `votes_source` at all. Fixed with one shared helper
+    (`sourcing/drive.py::extract_file_id`), all 7 call sites updated, 143 tests re-passing. Full
+    writeup, remaining downstream-impact assessment, and the user's explicit decision not to
+    re-run votes/attendance extraction live yet: **todos/023**.
+  - **Final result: 170/174 documents captured, 1684 registry entities** (person: 671, place: 196,
+    program: 513, organization: 304). The remaining 4 gaps: 2 were the orchestration script's own
+    stale copy of the pre-fix regex wrongly marking a meeting "already done" (fixed in the scratch
+    script, not production); the final 2 (`2025-01-08`'s "Workshop Speakers & Agenda" and
+    `2025-01-13`'s agenda, both native Docs) consistently return a 404 from the Drive API on a
+    direct, isolated test — confirmed non-transient, genuinely inaccessible to current credentials
+    (most other native Docs in the corpus succeeded fine, so this isn't the regex bug recurring).
+    Accepted as a small, documented, permanent gap rather than something more retrying can fix.
+  - Outputs: `rebuild_scratch/stage2_terms_by_file_id.json` (catalog-shaped patch, ready for
+    `entry.update(...)` into the live `drive_catalog.json`) and `rebuild_scratch/stage2_registry.json`
+    (the candidate fresh registry) — both gitignored, in-repo, durable pending review.
+  - **Still not done:** Stage 3 (glossary rebuild dry run) onward; the 28-meeting votes/attendance
+    targeted check; live cutover. Live `terms_registry.json`/`drive_catalog.json` still untouched,
+    branch still unmerged.
+- 2026-11-17: Two follow-up design fixes raised while reviewing Stage 2, both local/isolated
+  code changes only (no live state touched):
+  - **Never source content from native Google Slides/Sheets.** `read_file_text`'s `get_media()`
+    fallback (used for anything that isn't a `google-apps.document`) doesn't actually work
+    against those — no binary content to download, no plain-text export path the way Docs have —
+    so it was silently failing (caught exception, `None`) for any agenda/packet/minutes doc that
+    happened to be a Slides deck or Sheet. Fixed at the one shared point both `build_meeting_map`
+    and `get_or_extract_text` go through: a new `_UNSUPPORTED_NATIVE_MIMES` set, checked before
+    any download is even attempted. Catalog entries for these now get
+    `processing: "unsupported_format"` instead of a confusing warning log.
+  - **Added a `processing` field to every catalog entry**, replacing the old boolean
+    `no_extractable_text`: `text_extracted`, `no_text_layer` (scanned/image PDF),
+    `unsupported_format` (Slides/Sheets), `error`, or `none` (doc_type has no extractable content
+    at all — misc/transcript). Surfaced into each meeting's `docs[]` frontmatter via
+    `source_data.py` the same way `no_extractable_text` was, for any non-`text_extracted` value.
+  - **Throttled native-Doc re-extraction to once/day.** A native Google Doc's `modifiedTime` bumps
+    on every edit, including autosave — without a throttle, a Minutes doc still being actively
+    drafted would re-trigger extraction, and for terms a real paid Gemini call, on every single
+    pipeline run while someone's mid-edit. New shared helper
+    `drive.text_cache_fresh(entry, mime_type, current_modified)` requires the current
+    `extractor_version` plus either an exact `modified_time` match, or — for a native Doc only —
+    an extraction already made today (`extracted_at`); further same-day edits don't invalidate it,
+    the next day's run picks up the latest version. One helper, used at all three cache-hit
+    checks that previously inlined the same condition independently (`get_or_extract_text`,
+    `build_meeting_map`, `post_process.py::_extract_official_terms`) — uploaded files are
+    unaffected, since their `modified_time` only changes on a genuine re-upload.
+  - 8 new unit tests added (`test_drive.py`); full suite (151 tests) passing.
