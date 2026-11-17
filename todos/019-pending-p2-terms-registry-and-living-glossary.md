@@ -1142,3 +1142,24 @@ tracked here only because they came up in the same session — and shouldn't blo
   here. Stage 5 (live cutover of the reviewed registry/glossary rebuild itself) remains not
   started — this was a narrow, separate, explicitly-scoped fix to real votes/attendance content,
   not the registry cutover.
+- 2026-11-17: **Stage 5, live cutover.** User gave explicit go-ahead. Backed up the live
+  `terms_registry.json` (2094 entities, the pre-rebuild state) to
+  `rebuild_scratch/live_terms_registry_backup_*.json` and the live `src/_data/glossary.json`
+  (11 entries) via `git show HEAD:...` before writing. Wrote `rebuild_scratch/stage2_registry.json`
+  (1684 entities) as the new live `terms_registry.json` in GCS — read back and confirmed the
+  count matches. Wrote `rebuild_scratch/stage3_glossary.json` (73 entries, the post-todos/024-fix
+  rebuild) into `src/_data/glossary.json` via `glossary_utils.save_glossary` — read back and
+  confirmed the count matches. `drive_catalog.json` untouched (out of scope for this stage);
+  branch not merged; deploy workflow still disabled.
+  - **Known defect shipped as-is, by explicit user decision**: the registry's highest-sourced
+    person entity (`Molly. Schen`, 70 sources, Board Vice Chair) carries a stray-period canonical
+    `term` frozen from its first 2023-08-21 extraction, which propagated into the glossary's
+    `correct` field (the clean `"Molly Schen"` demoted to an alias). User chose to ship as-is
+    rather than block cutover; root cause and fix direction tracked in new **todos/028**.
+  - Full test suite and `npm run build` re-verified clean after the `glossary.json` rewrite.
+  - **Still not done**: the "Live-verified against the real corpus" Acceptance Criteria item
+    below remains unchecked on purpose — that specifically requires a real `--bucket` pipeline
+    run against this newly-cut-over registry/glossary (discovery quality at a second real pass,
+    actual Gemini-call-reduction behavior, roster-hint-removal regression), which is blocked on
+    the deploy workflow still being disabled and is a distinct next step from this data cutover.
+    Branch remains unmerged.
