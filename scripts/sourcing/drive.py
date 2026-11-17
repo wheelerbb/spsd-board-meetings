@@ -11,6 +11,25 @@ def get_drive_service():
     credentials, _ = get_credentials()
     return build('drive', 'v3', credentials=credentials)
 
+# Matches an uploaded file's URL (drive.google.com/file/d/<id>/view) and a native Google
+# Doc/Sheet/Slides URL (docs.google.com/<document|spreadsheets|presentation>/d/<id>/edit) — both
+# carry the file_id as the path segment right after /d/. Seven call sites across post_process.py,
+# process_transcripts.py, and source_data.py used to each inline their own `/file/d/` -only
+# regex, which silently matched nothing (no error, just `if not match: continue`) for any
+# official document authored as a native Google Doc rather than uploaded as a PDF — confirmed
+# live: 7 agenda/minutes documents across 7 meetings were silently excluded from Terms Registry
+# extraction this way, and 2024-12-02's Minutes doc (a native Doc) has no `votes_source` at all
+# in its frontmatter, consistent with process_transcripts.py's own copy of this same gap (see
+# todos/019, 2026-11-17). One shared, correct pattern here instead of seven independently
+# drifting ones.
+_FILE_ID_RE = re.compile(r'(?:file|document|spreadsheets|presentation)/d/([^/?]+)')
+
+def extract_file_id(url):
+    """The Drive file_id embedded in any Drive/Docs/Sheets/Slides URL shape, or None if the URL
+    doesn't carry one."""
+    m = _FILE_ID_RE.search(url or '')
+    return m.group(1) if m else None
+
 def download_file(file_id):
     """Download a Drive file's text content."""
     import io
@@ -31,6 +50,44 @@ def download_file(file_id):
 CACHE_MAX_CHARS = 15000
 CACHE_MAX_PAGES = 10
 
+# Bumped whenever read_file_text's extraction logic meaningfully changes (1 = pypdf, 2 = pymupdf,
+# see the 2026-11-16 fix in todos/019). A cached text_blob's modified_time matching the live
+# Drive file only proves the *file* hasn't changed — it says nothing about whether the *code that
+# extracted it* has. Stamping this version alongside the cache pointer lets a stale entry be
+# detected and force-refreshed the same way a changed file would be, without needing a one-off
+# manual comparison (as this fix itself required) to find out which cached entries predate it.
+TEXT_EXTRACTOR_VERSION = 2
+
+# Native Slides/Sheets have no plain-text export path the way Docs do (export_media's
+# 'text/plain' target only works for google-apps.document) and no binary content get_media() can
+# fall back to either — content is deliberately never sourced from them, not just left to fail.
+_UNSUPPORTED_NATIVE_MIMES = {
+    'application/vnd.google-apps.spreadsheet',
+    'application/vnd.google-apps.presentation',
+}
+
+
+def text_cache_fresh(entry, mime_type, current_modified):
+    """Whether a catalog entry's cached text/terms extraction is still trustworthy right now,
+    without redoing the (real, sometimes paid) extraction work. Requires the current extractor
+    code (`extractor_version`) and either an exact `modified_time` match, or — for a native
+    Google Doc only — an extraction already made today (`extracted_at`).
+
+    The day-based grace exists because a native Doc's `modifiedTime` bumps on every edit,
+    including autosave, so without it a doc still being actively drafted would re-trigger
+    extraction — and, for terms, a real paid Gemini call — on every single pipeline run while
+    someone is mid-edit. Capped at once/day: today's extraction stands no matter how many more
+    edits land, and the latest version is picked up on the next day's run. Uploaded files have no
+    such problem (their `modified_time` only changes on a genuine re-upload) and get no such
+    grace — they always require the exact match.
+    """
+    if entry.get('extractor_version') != TEXT_EXTRACTOR_VERSION:
+        return False
+    if entry.get('modified_time') == current_modified:
+        return True
+    return (mime_type == 'application/vnd.google-apps.document'
+            and entry.get('extracted_at') == datetime.utcnow().strftime('%Y-%m-%d'))
+
 def read_file_text(service, file_id, max_chars=CACHE_MAX_CHARS, max_pages=CACHE_MAX_PAGES):
     """Download and extract readable text from a Drive file (PDF, Google Doc, or plain text).
     Returns None on failure, if the file is >10MB, or if extraction yields nothing."""
@@ -48,9 +105,26 @@ def read_file_text(service, file_id, max_chars=CACHE_MAX_CHARS, max_pages=CACHE_
         while not done:
             _, done = dl.next_chunk()
         if 'pdf' in mime:
-            import pypdf
-            fh.seek(0)
-            text = '\n'.join(p.extract_text() or '' for p in pypdf.PdfReader(fh).pages[:max_pages])
+            # pymupdf, not pypdf: verified against 5 real documents spanning this archive's full
+            # 2023-2026 date range that pypdf's default (plain-mode) extraction drops the space
+            # between adjacent words for a meaningful share of these PDFs (3 of 5 sampled years),
+            # e.g. "BOARDOFEDUCATIONMEETINGAGENDA" — which was the root cause of the 2026-11-13
+            # terms_registry.json/glossary.json corruption (see todos/019 work log): every
+            # downstream consumer was faithfully processing already-corrupted text. pypdf's
+            # `extraction_mode="layout"` and pdfplumber were both tried and rejected: layout mode
+            # fixes some spots but glues others that plain mode got right (e.g. "Call to Order" ->
+            # "CalltoOrder"); pdfplumber was uniformly worse than pypdf's current plain mode.
+            # pymupdf had zero glued-word artifacts across all 5 samples.
+            import pymupdf
+            doc = pymupdf.open(stream=fh.getvalue(), filetype='pdf')
+            text = ''.join(p.get_text() for p in doc.pages(0, min(max_pages, doc.page_count)))
+            if not text.strip():
+                # Extraction ran cleanly but found nothing — almost always a scanned/image-only
+                # PDF with no embedded text layer, distinct from every other no-text case below
+                # (download failure, size cap). Empty string (not None) lets the one caller that
+                # cares (build_meeting_map) tell this apart; every other caller already treats
+                # '' the same as None since both are falsy.
+                return ''
         else:
             text = fh.getvalue().decode('utf-8', errors='replace')
         return text[:max_chars] if text.strip() else None
@@ -160,9 +234,15 @@ def get_or_extract_text(bucket_uri, service, catalog, file_id, max_chars=CACHE_M
     aren't starved.
 
     Returns (text, updates): `updates` is None on a cache hit (nothing changed) or a dict of
-    fields (`modified_time`, `text_blob`) for the caller to merge into `catalog[file_id]` after a
-    fresh extraction — this function reads the catalog but never mutates it itself."""
+    fields (`modified_time`, `text_blob`, `extractor_version`, `extracted_at`) for the caller to
+    merge into `catalog[file_id]` after a fresh extraction — this function reads the catalog but
+    never mutates it itself. Content is never sourced from a native Slides/Sheets file (see
+    `_UNSUPPORTED_NATIVE_MIMES`) — returns `(None, None)` immediately for one, same as any other
+    file nothing could be extracted from."""
     entry = catalog.get(file_id) or {}
+    mime_type = entry.get('mime_type')
+    if mime_type in _UNSUPPORTED_NATIVE_MIMES:
+        return None, None
     if not bucket_uri or not service:
         text = read_file_text(service, file_id, max_chars=max_chars) if service else None
         return text, None
@@ -173,7 +253,7 @@ def get_or_extract_text(bucket_uri, service, catalog, file_id, max_chars=CACHE_M
         print(f"    Warning: could not check Drive metadata for {file_id}: {e}")
         current_modified = entry.get('modified_time')
 
-    if entry.get('text_blob') and entry.get('modified_time') == current_modified:
+    if entry.get('text_blob') and text_cache_fresh(entry, mime_type, current_modified):
         cached = read_cached_blob(bucket_uri, entry['text_blob'], max_chars=max_chars)
         if cached is not None:
             return cached, None
@@ -182,7 +262,11 @@ def get_or_extract_text(bucket_uri, service, catalog, file_id, max_chars=CACHE_M
     if not text:
         return None, None
     blob_name = cache_text(bucket_uri, file_id, {**entry, 'modified_time': current_modified}, text)
-    return text[:max_chars], {'modified_time': current_modified, 'text_blob': blob_name}
+    return text[:max_chars], {
+        'modified_time': current_modified, 'text_blob': blob_name,
+        'extractor_version': TEXT_EXTRACTOR_VERSION,
+        'extracted_at': datetime.utcnow().strftime('%Y-%m-%d'),
+    }
 
 def list_files_in_folder(service, folder_id):
     """Recursively list all files in the folder and its subfolders."""
@@ -433,9 +517,22 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
     """
     Resolves each Drive file to a meeting date and document type, updating `catalog` in place —
     file_id -> {label, url, mime_type, doc_type, file_type, created_time, modified_time, meeting_slug,
-    resolved_via, text_blob}. `meeting_slug`/`resolved_via` are `None` for a file nothing could
-    date; the caller (source_data.py) attempts a website-based fallback afterward and updates
-    those same catalog entries directly rather than tracking a separate unresolved list.
+    resolved_via, text_blob, extractor_version, extracted_at, processing}. `meeting_slug`/`resolved_via`
+    are `None` for a file nothing could date; the caller (source_data.py) attempts a website-based
+    fallback afterward and updates those same catalog entries directly rather than tracking a
+    separate unresolved list.
+
+    `processing` records what happened (or didn't) with content extraction for every file
+    encountered, not just ones that resolved cleanly:
+    - `'text_extracted'` — extraction ran and produced text.
+    - `'no_text_layer'` — an agenda/packet/minutes PDF extracted cleanly but had no embedded text
+      layer (a scanned/image-only PDF); the file can still resolve a meeting_slug via filename.
+    - `'unsupported_format'` — the doc is agenda/packet/minutes-typed but is a native Google
+      Slides or Sheets file; content is deliberately never sourced from those (no plain-text
+      export path exists the way it does for Docs).
+    - `'error'` — extraction was attempted and failed.
+    - `'none'` — not applicable; the doc_type has no meaningful content to extract (misc,
+      transcript — those are sourced as VTT/SRT separately, not via this path).
 
     Two independent concerns, easy to conflate but kept strictly separate:
 
@@ -458,10 +555,14 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
     "August 2026 Board Meeting Packet.pdf"), only the document's own text reliably says which
     meeting it belongs to; (2) date parsed from the filename (only if day-specific).
 
-    Content resolution requires downloading and parsing the file — a catalog entry whose
-    `modified_time` matches the file's current `modifiedTime` is trusted as-is and resolution is
-    skipped entirely for it (this also means a file that resolves to no date stays that way until
-    it's actually edited, rather than being re-checked every run forever).
+    Content resolution requires downloading and parsing the file — a catalog entry whose cached
+    extraction is still fresh per `text_cache_fresh` (exact `modified_time` match, or, for a
+    native Google Doc, one already made today) is trusted as-is and resolution is skipped
+    entirely for it (this also means a file that resolves to no date stays that way until it's
+    actually edited, rather than being re-checked every run forever) — UNLESS its
+    `extractor_version` predates `TEXT_EXTRACTOR_VERSION`, in which case it's re-extracted anyway
+    even though the file itself hasn't changed, since what's stale here is the extraction code,
+    not the source file.
 
     When a file resolves via a fresh content read and a GCS bucket is configured, its
     already-extracted text is cached (`cache_text`) and the catalog's `text_blob` is updated so
@@ -491,19 +592,35 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
         entry.update({'label': label, 'url': url, 'mime_type': mime_type,
                       'created_time': created_time, 'doc_type': doc_type, 'file_type': file_type})
 
-        if entry.get('modified_time') == modified_time and 'meeting_slug' in entry:
-            continue  # already resolved for this exact version — nothing to redo
+        text_eligible = doc_type in ('agenda', 'packet', 'minutes')
+        if not text_eligible:
+            entry['processing'] = 'none'
+        elif mime_type in _UNSUPPORTED_NATIVE_MIMES:
+            entry['processing'] = 'unsupported_format'
+        extractable = text_eligible and mime_type not in _UNSUPPORTED_NATIVE_MIMES
+
+        if 'meeting_slug' in entry:
+            if extractable and text_cache_fresh(entry, mime_type, modified_time):
+                continue  # cached extraction (or today's native-doc grace) still good — nothing to redo
+            if not extractable and entry.get('modified_time') == modified_time:
+                continue  # nothing extractable here, and nothing else about the file changed
 
         date_slug = None
         resolved_via = None
         text = None
 
-        if service and doc_type in ('agenda', 'packet', 'minutes'):
+        if service and extractable:
             text = read_file_text(service, file_id)
-            if text:
+            if text == '':
+                entry['processing'] = 'no_text_layer'
+                print(f"    No extractable text in {filename} (likely a scanned/image PDF)")
+            elif text:
+                entry['processing'] = 'text_extracted'
                 date_slug = extract_date_from_content(text)
                 if date_slug:
                     resolved_via = 'content'
+            else:
+                entry['processing'] = 'error'
 
         if not date_slug:
             date_slug = parse_meeting_date(filename)
@@ -521,5 +638,7 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
 
         if bucket_uri and text:
             entry['text_blob'] = cache_text(bucket_uri, file_id, entry, text)
+            entry['extractor_version'] = TEXT_EXTRACTOR_VERSION
+            entry['extracted_at'] = datetime.utcnow().strftime('%Y-%m-%d')
 
     return catalog

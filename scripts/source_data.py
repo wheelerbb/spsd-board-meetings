@@ -118,10 +118,10 @@ def _dedupe_identical_content(docs, catalog, bucket_uri):
             continue
         seen_texts = {}
         for i in idxs:
-            m = re.search(r'/file/d/([^/?]+)', docs[i].get('url') or '')
-            if not m:
+            file_id = drive.extract_file_id(docs[i].get('url'))
+            if not file_id:
                 continue
-            entry = catalog.get(m.group(1)) if catalog else None
+            entry = catalog.get(file_id) if catalog else None
             if not entry or not entry.get('text_blob'):
                 continue
             text = drive.read_cached_blob(bucket_uri, entry['text_blob'])
@@ -187,8 +187,8 @@ def _agenda_location(docs, catalog, bucket_uri):
         for d in docs or []:
             if d.get('type') != doc_type:
                 continue
-            m = re.search(r'/file/d/([^/?]+)', d.get('url') or '')
-            entry = catalog.get(m.group(1)) if m else None
+            file_id = drive.extract_file_id(d.get('url'))
+            entry = catalog.get(file_id) if file_id else None
             if not entry or not entry.get('text_blob'):
                 continue
             location = drive.extract_location_from_content(drive.read_cached_blob(bucket_uri, entry['text_blob']))
@@ -208,7 +208,7 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
         'events': [...],
         'site': {...},
         'drive': [...],
-        'video': url,
+        'video': {'url': url, 'label': title},
         'transcript': path
     }
     `catalog` (optional) backfills `file_type` on docs sourced without it — see
@@ -287,7 +287,8 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
         # Gather all docs for this date (Priority: Drive > Site) — precomputed above.
         combined_docs = combined_docs_by_slug.get(date_slug, [])
 
-        video_url = data.get('video')
+        video_info = data.get('video')
+        video_url = video_info.get('url') if isinstance(video_info, dict) else video_info
         transcript_path = data.get('transcript')
 
         if exists:
@@ -463,15 +464,15 @@ def sync_drive_vtts_to_bucket(bucket_uri, all_data, existing_bucket_slugs, cutof
         for doc in (data.get('drive') or []):
             if doc.get('type') != 'transcript':
                 continue
-            fid = re.search(r'/file/d/([^/?]+)', doc.get('url', ''))
-            if not fid:
+            file_id = drive.extract_file_id(doc.get('url', ''))
+            if not file_id:
                 continue
             blob_name = f"{prefix}transcripts/{date_slug}.vtt"
             blob = bucket.blob(blob_name)
             if blob.exists():
                 break
             try:
-                content = transcripts.to_webvtt(drive.download_file(fid.group(1)))
+                content = transcripts.to_webvtt(drive.download_file(file_id))
                 blob.upload_from_string(content.encode('utf-8'), content_type='text/vtt')
                 print(f"  Synced Drive VTT {date_slug} → gs://{bucket_name}/{blob_name}")
                 uploaded += 1
@@ -660,12 +661,17 @@ def main():
         if not slug or slug < CUTOFF_DATE:
             continue
         if slug not in all_data: all_data[slug] = {}
-        all_data[slug].setdefault('drive', []).append({
+        doc_entry = {
             'type': entry.get('doc_type', 'misc'),
             'label': entry.get('label'),
             'url': entry.get('url'),
             'file_type': entry.get('file_type'),
-        })
+        }
+        if entry.get('processing') in ('no_text_layer', 'unsupported_format', 'error'):
+            # Surfaced here rather than on the internal status dashboard — just needs to be
+            # discoverable per-file, not a dedicated review page. See drive.build_meeting_map.
+            doc_entry['processing'] = entry['processing']
+        all_data[slug].setdefault('drive', []).append(doc_entry)
 
     # Files nothing could date. build_meeting_map already excludes anything out of cutoff scope
     # from the catalog entirely, so every entry here is already something worth a human's look.
@@ -692,10 +698,10 @@ def main():
     else:
         print("  Using cached Vimeo data.")
     vimeo_mapping = vimeo.get_vimeo_mapping()
-    for date_slug, url in vimeo_mapping.items():
+    for date_slug, video_info in vimeo_mapping.items():
         if date_slug < CUTOFF_DATE: continue
         if date_slug not in all_data: all_data[date_slug] = {}
-        all_data[date_slug]['video'] = url
+        all_data[date_slug]['video'] = video_info
 
     # 5. Fetch Transcripts (GCS bucket only)
     print("Step 5: Fetching Transcripts...")

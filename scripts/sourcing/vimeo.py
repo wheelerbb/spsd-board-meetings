@@ -17,7 +17,10 @@ _MONTHS = ["January", "February", "March", "April", "May", "June",
 
 
 def get_vimeo_mapping(file_path='vimeo_master_list.json'):
-    """Parses the vimeo master list and returns a mapping of date_slug to video_url."""
+    """Parses the vimeo master list and returns a mapping of date_slug to
+    {'url': video_url, 'label': title} — the title is carried through so a mismatch (wrong
+    video matched to a date, or a title the school-board filter should have rejected) is
+    reviewable per-meeting, the same way a Drive doc's label already is."""
     try:
         with open(file_path, 'r') as f:
             vimeo_data = json.load(f)
@@ -26,12 +29,13 @@ def get_vimeo_mapping(file_path='vimeo_master_list.json'):
         for video_id, title in vimeo_data.items():
             if not _SCHOOL_BOARD_TITLE.search(title):
                 continue
+            entry = {'url': f"https://vimeo.com/{video_id}", 'label': title}
             # Match YYYYMMDD
             match = re.search(r'(\d{4})(\d{2})(\d{2})', title)
             if match:
                 y, m, d = match.groups()
                 date_slug = f"{y}-{m}-{d}"
-                mapping[date_slug] = f"https://vimeo.com/{video_id}"
+                mapping[date_slug] = entry
             else:
                 # Try Month Day Year
                 match = re.search(rf'({"|".join(_MONTHS)})\s+(\d{{1,2}})(?:,)?\s+(\d{{4}})', title, re.I)
@@ -40,7 +44,7 @@ def get_vimeo_mapping(file_path='vimeo_master_list.json'):
                         from datetime import datetime
                         dt = datetime.strptime(f"{match.group(1).capitalize()} {match.group(2)} {match.group(3)}", "%B %d %Y")
                         date_slug = dt.strftime("%Y-%m-%d")
-                        mapping[date_slug] = f"https://vimeo.com/{video_id}"
+                        mapping[date_slug] = entry
                     except Exception:
                         pass
 
@@ -143,7 +147,7 @@ if __name__ == "__main__":
     if "--verbose" in sys.argv:
         print(json.dumps(mapping, indent=2))
     else:
-        for slug, url in list(mapping.items())[:5]:
-            print(f"  {slug} → {url}")
+        for slug, entry in list(mapping.items())[:5]:
+            print(f"  {slug} → {entry['url']} ({entry['label']})")
         if len(mapping) > 5:
             print(f"  ... ({len(mapping)} total)")

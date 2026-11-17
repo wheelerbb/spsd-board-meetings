@@ -108,10 +108,10 @@ def _load_official_terms_from_gcs(docs, bucket_uri, catalog):
         return []
     all_terms = []
     for doc in (docs or []):
-        m = re.search(r'/file/d/([^/?]+)', doc.get('url', ''))
-        if not m:
+        file_id = drive.extract_file_id(doc.get('url', ''))
+        if not file_id:
             continue
-        entry = catalog.get(m.group(1))
+        entry = catalog.get(file_id)
         if not entry:
             continue
         terms = entry.get('terms')
@@ -152,10 +152,9 @@ def _find_priority_source_doc(docs):
 
 def _read_doc_text(url, doc_type, bucket_uri, catalog, max_chars=15000):
     """Read (cached, or extract + cache) text for a Drive doc URL belonging to a meeting. Returns None on failure."""
-    fid_match = re.search(r'/file/d/([^/?]+)', url)
-    if not fid_match:
+    file_id = drive.extract_file_id(url)
+    if not file_id:
         return None
-    file_id = fid_match.group(1)
     try:
         svc = drive.get_drive_service()
         entry = catalog.setdefault(file_id, {})
@@ -313,7 +312,7 @@ def process_single_meeting(date_slug, vtt_path, bucket_uri=None, catalog=None, r
                 _vimeo_map.update(get_vimeo_mapping())
             if date_slug in _vimeo_map:
                 data['has_video'] = True
-                data['video_url'] = _vimeo_map[date_slug]
+                data['video_url'] = _vimeo_map[date_slug]['url']
 
         data['stub'] = False
         data['has_transcript'] = True
