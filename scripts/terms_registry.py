@@ -23,6 +23,34 @@ _HEDGE_RE = re.compile(
 def _is_hedge_fragment(fragment):
     return bool(_HEDGE_RE.search(fragment))
 
+
+def _clean_chars(text):
+    """Alphanumeric-only, lowercased content of `text`, discarding whitespace/punctuation — used
+    to detect when two spellings of the same term differ only by incidental formatting noise (an
+    extra period, comma, or space), not genuinely different content."""
+    return re.sub(r'[^0-9a-z]', '', text.lower())
+
+
+def _prefer_as_canonical(candidate, current, strip=lambda s: s):
+    """True if `candidate` should replace `current` as an entity's canonical `term` once they're
+    judged equally complete/qualified by the caller. Raw character length is the fallback signal
+    (a genuinely fuller form, like an added middle name, is both longer and has different
+    alphanumeric content) — but when the two reduce to the exact same alphanumeric content once
+    incidental punctuation/whitespace is stripped out, the *shorter* (less incidentally-punctuated)
+    form wins instead, since the extra characters are noise, not information.
+
+    Without this distinction, a stray-punctuation artifact (e.g. "Molly." for "Molly") is
+    spuriously *longer* than the clean spelling and wins the plain length tiebreak every single
+    time a clean corroborating mention is compared against it — no accumulation of correct
+    mentions ever overturns it, since each is only ever compared one-on-one against whatever is
+    currently canonical. See todos/028 (`person:Molly. Schen`, 70 corroborating sources over two
+    years, never corrected). `strip` lets a caller normalize both sides first (e.g. person-name
+    title-stripping) before the comparison."""
+    a, b = strip(candidate), strip(current)
+    if _clean_chars(a) == _clean_chars(b):
+        return len(candidate) < len(current)
+    return len(candidate) > len(current)
+
 # A single, well-known GCS object — not fragmented across hundreds of per-document blobs like the
 # legacy terms_blob pointers were. Not git-tracked: generated, corpus-wide, and too large for a
 # useful diff, same reasoning as drive_catalog.json (see docs/pipeline.md).
@@ -173,10 +201,12 @@ def _ingest_document_terms_locked(registry, file_id, meeting_slug, doc_type, ext
                     existing_complete = name_matching.is_complete_person_name(existing['term'])
                     if term_complete and not existing_complete:
                         existing['term'] = term
-                    elif term_complete == existing_complete and len(term) > len(existing['term']):
+                    elif term_complete == existing_complete and _prefer_as_canonical(
+                        term, existing['term'], strip=name_matching.strip_title
+                    ):
                         existing['term'] = term
-                elif len(term) > len(existing['term']):
-                    existing['term'] = term  # fuller spelling observed — upgrade
+                elif _prefer_as_canonical(term, existing['term']):
+                    existing['term'] = term  # fuller/cleaner spelling observed — upgrade
                 key = _registry_key(term_type, existing['term'])
                 mutated = True
 

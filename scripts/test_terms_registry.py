@@ -171,6 +171,34 @@ class IngestDocumentTermsTests(unittest.TestCase):
         self.assertEqual(registry["program:BOARD WORKSHOP"]["term"], "BOARD WORKSHOP")
         self.assertEqual(len(registry["program:BOARD WORKSHOP"]["sources"]), 2)
 
+    def test_punctuation_artifact_term_gets_corrected_by_cleaner_corroboration(self):
+        # Regression for the live todos/028 bug: "Molly. Schen" (stray period, the very first
+        # extraction on 2023-08-21) stayed canonical across 70 corroborating sources through
+        # 2025-08-18, including the clean "Molly Schen" among them, because the old length-based
+        # tiebreak treated the punctuation-inflated form as "fuller". Fuzzy-matches and merges
+        # into the same entity either way; the fix is which spelling wins as canonical.
+        registry = {}
+        ingest_document_terms(registry, "file1", "2023-08-21", "minutes",
+                               [{"term": "Molly. Schen", "type": "person"}])
+        ingest_document_terms(registry, "file2", "2023-09-11", "minutes",
+                               [{"term": "Molly Schen", "type": "person"}])
+        self.assertEqual(len(registry), 1)
+        self.assertIn("person:Molly Schen", registry)
+        self.assertEqual(registry["person:Molly Schen"]["term"], "Molly Schen")
+        self.assertEqual(len(registry["person:Molly Schen"]["sources"]), 2)
+
+    def test_clean_term_not_overridden_by_later_punctuation_artifact(self):
+        # Mirror of the above with the clean form registered first — a later, noisier mention of
+        # the same person must not regress an already-clean canonical spelling.
+        registry = {}
+        ingest_document_terms(registry, "file1", "2023-08-21", "minutes",
+                               [{"term": "Molly Schen", "type": "person"}])
+        ingest_document_terms(registry, "file2", "2023-09-11", "minutes",
+                               [{"term": "Molly. Schen", "type": "person"}])
+        self.assertEqual(len(registry), 1)
+        self.assertIn("person:Molly Schen", registry)
+        self.assertEqual(registry["person:Molly Schen"]["term"], "Molly Schen")
+
     def test_place_fragments_consolidate_via_containment(self):
         registry = {}
         ingest_document_terms(registry, "file1", "2026-01-08", "agenda",

@@ -1,6 +1,6 @@
 [
   { "correct": "Timothy Matheney", "aliases": ["Mr. Matheney", "Tim Matheney", "Superintendent Matheney"], "note": "Former Superintendent of Schools", "type": "person", "misspellings": ["Superintendent Matheny"] },
-  { "correct": "Molly. Schen", "aliases": ["Molly Schen", "Ms. Schen", "Board Chair Schen", "Chair Schen"], "note": "Vice Chair, South Portland Board of Education", "type": "person", "misspellings": ["Elliot Schen", "Susan Schen"] },
+  { "correct": "Molly Schen", "aliases": ["Ms. Schen", "Board Chair Schen", "Chair Schen"], "note": "Vice Chair, South Portland Board of Education", "type": "person", "misspellings": ["Molly. Schen", "Elliot Schen", "Susan Schen"] },
   { "correct": "Scott Tombelson", "misspellings": ["Scott Tomson", "Scott Tombleson"], "note": "Principal, SPHS", "type": "person" },
   { "correct": "Jennifer Ryan", "aliases": ["Ms. Ryan", "Board Chair Ryan"], "note": "Board Member / Buildings & Grounds Committee Chair", "type": "person" },
   { "correct": "Rosemarie DeAngelis", "aliases": ["Ms. DeAngelis", "Chair DeAngelis"], "note": "Board Member and Vice Chair", "type": "person", "misspellings": ["Elyse T DeAngelis", "Rosemary DeAngelis", "Claire DeAngelis", "Rosemary DeAngelos"] },
