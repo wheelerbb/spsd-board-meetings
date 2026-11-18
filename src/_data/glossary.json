@@ -76,5 +76,6 @@
   { "correct": "Superintendent\u2019s2024-25Budget Presentation", "misspellings": ["Superintendent\u2019sFY25Budget Presentation"], "note": "Presentation", "type": "program", "scope": ["2024-03-11"] },
   { "correct": "PreK Expansion", "misspellings": ["Pre-K expansion", "pre-K expansion"], "note": "initiative", "type": "program" },
   { "correct": "SPHS principal Sarah Glenn", "aliases": ["Sarah Glenn"], "note": "Principal, South Portland High School", "type": "person" },
-  { "correct": "Scott Lusardi", "misspellings": ["Scott Ardi"], "note": "Resident and public commenter", "type": "person", "scope": ["2025-04-14"] }
+  { "correct": "Scott Lusardi", "misspellings": ["Scott Ardi"], "note": "Resident and public commenter", "type": "person", "scope": ["2025-04-14"] },
+  { "correct": "Mahoney", "misspellings": ["Maloney"], "note": "school", "type": "place", "scope": ["2025-03-10"] }
 ]

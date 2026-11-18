@@ -1,5 +1,53 @@
 [
   {
+    "run_id": "44307298247",
+    "timestamp": "2026-11-18T12:56:45.151528Z",
+    "stage": "post_process",
+    "topics_updated": [
+      {
+        "topic": "Academic Performance",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Diversity Equity and Inclusion",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Elementary School Reconfiguration",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Student Mental Health",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Superintendent Appointment 2026",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "FY26 Budget",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      }
+    ],
+    "topics_skipped": 62,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "44307298247",
+    "timestamp": "2026-11-18T12:49:12.277215Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
     "run_id": "44207823527",
     "timestamp": "2026-11-18T00:27:07.346269Z",
     "stage": "post_process",
@@ -2034,27 +2082,5 @@
     "topics_skipped": 0,
     "blurbs_generated": [],
     "previews_generated": []
-  },
-  {
-    "run_id": "34754780295",
-    "timestamp": "2026-09-13T11:36:08.150065Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "2026-09-13T11:31:36.769444",
-    "timestamp": "2026-09-13T11:31:36.769476Z",
-    "stage": "post_process",
-    "topics_updated": [],
-    "topics_skipped": 65,
-    "blurbs_generated": [],
-    "previews_generated": [
-      {
-        "slug": "2026-09-14",
-        "model": "gemini-2.5-pro"
-      }
-    ]
   }
 ]
