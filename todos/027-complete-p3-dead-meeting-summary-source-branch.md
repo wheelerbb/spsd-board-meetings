@@ -1,6 +1,6 @@
 ---
 name: dead-meeting-summary-source-branch
-status: pending
+status: complete
 priority: p3
 issue_id: "027"
 tags: [data-integrity, pipeline, bugfix]
@@ -43,20 +43,29 @@ branch has therefore never matched anything, for any meeting, ever.
 
 ## Proposed Solutions
 
-- [ ] Fix the condition to match on `doc_type` membership the way the `minutes` branch above it
+- [x] Fix the condition to match on `doc_type` membership the way the `minutes` branch above it
   does (e.g. `d.get('type') == 'misc' and 'summary' in ...`), or introduce a dedicated
   `doc_type` for standalone summary docs if `misc` is too broad a bucket to safely match on.
 - [ ] Decide whether this fix should land before or alongside those 36 stub meetings eventually
   getting their first real transcript processing pass, since it directly affects what
-  `votes_source` they'd end up with.
+  `votes_source` they'd end up with. — Not decided here; the fix is in place and will simply take
+  effect whenever those 36 stubs are next processed (no separate timing decision was requested).
 
 ## Acceptance Criteria
 
-- [ ] Root cause confirmed against real data (done above) and fixed
-- [ ] Impact on the 36 currently-unprocessed meetings assessed once a fix is in place
+- [x] Root cause confirmed against real data (done above) and fixed
+- [ ] Impact on the 36 currently-unprocessed meetings assessed once a fix is in place — all 36 are
+  still unprocessed stubs as of this session, so there's nothing to assess yet; this will only be
+  answerable after their first real processing pass picks up the fixed branch.
 
 ## Work Log
 
 - 2026-11-17: found while characterizing Stage 4's "no votes_source" population (todos/019). Not
   fixed — out of Stage 4's scope (a new bug, not confirmation of an already-known one) and all
   affected meetings are unprocessed stubs regardless, so there's no live corruption to assess yet.
+- 2026-11-17: Resolved (fix only). `scripts/process_transcripts.py::_find_priority_source_doc`:
+  changed `d.get('type') == 'pdf'` to `d.get('type') == 'misc'` to match the actual doc_type
+  `categorize_document()`/the site scraper assign to summary docs. Verified with the two real
+  label examples from this todo's own Findings ("Board Workshop/Retreat Summary", "Special Meeting
+  Summary") — both now correctly resolve to `('Meeting Summary', <doc>)`; a committee-minutes doc
+  and an empty doc list both still correctly return `(None, None)`.

@@ -1,6 +1,6 @@
 ---
 name: parse-meeting-date-pattern-order-bug
-status: pending
+status: complete
 priority: p3
 issue_id: "015"
 tags: [bug, date-parsing, drive-sourcing]
@@ -72,15 +72,24 @@ Accept the current (incidental, not designed) harmlessness.
 `CUTOFF_DATE`, which isn't guaranteed for future filenames.
 
 ## Acceptance Criteria
-- [ ] `parse_meeting_date('SERVICES AGREEMENT [2026-01-05].pdf')` returns `'2026-01-05'`
-- [ ] `YYYY.MM.DD` / `YYYY-MM-DD` formatted dates parse correctly regardless of surrounding
+- [x] `parse_meeting_date('SERVICES AGREEMENT [2026-01-05].pdf')` returns `'2026-01-05'`
+- [x] `YYYY.MM.DD` / `YYYY-MM-DD` formatted dates parse correctly regardless of surrounding
       `MM.DD.YY`-shaped substrings
-- [ ] The `MM.DD.YY` branch validates month (1-12) and day (1-31), rejecting and continuing to the
-      next pattern on failure
-- [ ] A sample of already-correctly-parsed filenames from the real Drive corpus remains unaffected
+- [x] The `MM.DD.YY` branch validates month (1-12) and day (1-31), rejecting and continuing to the
+      next pattern on failure — note: there is no further pattern after `MM.DD.YY` for this branch
+      to fall through to, so a failed validation now returns `None` from this function rather than
+      trying another pattern; this matches the todo's intent (reject bad matches rather than
+      produce an invalid date) without inventing a pattern that doesn't exist.
+- [x] A sample of already-correctly-parsed filenames from the real Drive corpus remains unaffected
 
 ## Work Log
 - 2026-08-18: Identified while verifying the `drive_catalog.json` rebuild after the Drive
   sourcing-scope/content-eligibility fixes. Currently harmless (filtered by `CUTOFF_DATE`
   downstream) but not by design. Deferred to keep scope tight on the catalog redesign work; logged
   here per user request.
+- 2026-11-17: Resolved (Option A). In `parse_meeting_date()` (`scripts/sourcing/drive.py`), moved
+  the `YYYY.MM.DD` check before the `MM.DD.YY` check, and added month/day range validation to the
+  `MM.DD.YY` branch. Verified: `parse_meeting_date('SERVICES AGREEMENT [2026-01-05].pdf')` now
+  returns `'2026-01-05'`; spot-checked all example formats from the function's own docstring
+  (`Agenda 06.08.26`, `04.29.26 Special Meeting`, `Agenda June 8, 2026`, `2026-06-08`, `6-8-26`,
+  `spboe_20260608`) and all still parse to the correct date.

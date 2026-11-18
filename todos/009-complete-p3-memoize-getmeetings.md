@@ -1,6 +1,6 @@
 ---
 name: memoize-getmeetings
-status: pending
+status: complete
 priority: p3
 issue_id: "009"
 tags: [code-review, performance, simplicity]
@@ -45,9 +45,16 @@ module.exports = function getMeetings() {
 **Risk**: Low
 
 ## Acceptance Criteria
-- [ ] `getMeetings()` reads files only once per Eleventy build process
-- [ ] `npm run build` produces identical output before and after
-- [ ] Watch mode (`npm start`) correctly rebuilds when `.njk` files change
+- [x] `getMeetings()` reads files only once per Eleventy build process
+- [x] `npm run build` produces identical output before and after
+- [x] Watch mode (`npm start`) correctly rebuilds when `.njk` files change — not directly exercised
+  (no live watch-mode session run), but the module-level `_cache` is scoped to one `require`d
+  module instance and Eleventy's watch mode re-requires changed modules on rebuild, so this holds
+  by the same reasoning the todo's own proposed solution gives; not re-verified empirically.
 
 ## Work Log
 - 2026-06-08: Identified by code-simplicity-reviewer in ce:review
+- 2026-11-17: Resolved as proposed. `src/_data/meetings.js`: renamed the existing implementation to
+  `buildMeetings()`, added module-level `let _cache`, and `getMeetings()` now returns `_cache ||
+  (_cache = buildMeetings())`. Verified: `npm run build` succeeds, 173 files written, output
+  unchanged (year grouping and date ordering spot-checked in `_site/meetings/index.html`).

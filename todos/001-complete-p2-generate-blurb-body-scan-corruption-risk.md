@@ -1,6 +1,6 @@
 ---
 name: generate-blurb-body-scan-corruption-risk
-status: pending
+status: complete
 priority: p2
 issue_id: "001"
 tags: [code-review, correctness, data-integrity]
@@ -46,9 +46,15 @@ Add a comment documenting the assumption and rely on the content constraint hold
 **Risk**: Medium (silent data corruption if invariant breaks)
 
 ## Acceptance Criteria
-- [ ] `generate_blurb` only checks the YAML front matter block for `blurb:`, not the full file
-- [ ] A meeting body containing the substring `blurb:` does not corrupt the file on a `post_process.py` run
-- [ ] Existing blurb generation behavior is unchanged for current corpus
+- [x] `generate_blurb` only checks the YAML front matter block for `blurb:`, not the full file
+- [x] A meeting body containing the substring `blurb:` does not corrupt the file on a `post_process.py` run
+- [x] Existing blurb generation behavior is unchanged for current corpus
 
 ## Work Log
 - 2026-06-08: Identified by correctness-reviewer in ce:review of the nav/data-derivation refactor
+- 2026-11-17: Resolved — already superseded by unrelated prior work, not a new fix. `generate_blurb()`
+  (`scripts/post_process.py:607`) now writes via `_read_njk`/`_write_njk` (`post_process.py:388-400`),
+  which isolates the YAML front matter block with `re.match(r'^---\s*\n(.*?)\n---\s*\n?(.*)', ...)`
+  and round-trips it through `yaml.safe_load`/`yaml.dump` — exactly Option B from this todo. No raw
+  `'blurb:' not in content` string scan or body-wide `re.sub` exists anywhere in the codebase
+  (confirmed via grep). No code change needed; closing as already fixed.
