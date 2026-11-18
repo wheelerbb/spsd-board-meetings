@@ -5,6 +5,7 @@ import re
 import yaml
 import socket
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from googleapiclient.errors import HttpError
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -18,6 +19,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 from sourcing import drive as drive_mod
 import terms_registry
+import pipeline_log
 from model_config import call_llm, build_client, BATCH_TIMEOUT
 
 
@@ -103,12 +105,32 @@ def _collect_targets(meetings_data):
 
 
 def _ensure_cache_metadata(catalog, svc, file_id, doc_type):
-    """Fetch this file's Drive metadata and ensure catalog[file_id] carries the minimal fields
-    other cache logic (text_cache_fresh, get_or_extract_text) depends on. Returns the file's
-    current modifiedTime, or None if the Drive API call itself failed (caller skips this
-    document for this run, same as before)."""
+    """Return this file's current modifiedTime, ensuring catalog[file_id] carries the minimal
+    fields other cache logic (text_cache_fresh, get_or_extract_text) depends on. Does NOT hit
+    Drive's API when the catalog already has it: source_data.py's own folder scan (run earlier
+    in the same job — see sourcing/drive.py::build_meeting_map) already keeps modified_time
+    current for every file within its scope, so re-fetching here would just duplicate a call
+    source_data.py already made moments ago. Only a file that scan never saw (not in the shared
+    folder, or discovered solely via this meeting's .njk front matter) needs a live lookup here.
+
+    Returns None if the file is (or was just confirmed) inaccessible — caller skips it for this
+    run, same as before."""
+    entry = catalog.get(file_id)
+    if entry and entry.get('access') == 'no_access':
+        return None  # confirmed gone/inaccessible on a prior run — don't keep re-checking
+    if entry and entry.get('modified_time') and entry.get('mime_type'):
+        entry.setdefault('doc_type', doc_type)
+        return entry['modified_time']
     try:
         meta = svc.files().get(fileId=file_id, fields='modifiedTime,mimeType,createdTime').execute()
+    except HttpError as e:
+        if e.resp.status == 404:
+            catalog.setdefault(file_id, {})['access'] = 'no_access'
+            print(f"    Drive file {file_id} is no longer accessible (404) — flagging no_access "
+                  f"so future runs don't retry it.")
+        else:
+            print(f"    Warning: could not get Drive metadata for {file_id}: {e}")
+        return None
     except Exception as e:
         print(f"    Warning: could not get Drive metadata for {file_id}: {e}")
         return None
@@ -254,6 +276,23 @@ def main():
     if not bucket_uri:
         print("No bucket configured — skipping term extraction and registry rebuild.", flush=True)
         return
+
+    force = '--force' in sys.argv
+    if not force:
+        # Mirrors post_process.py's own any_changes check: if source_data.py found nothing new
+        # this run, there are no new/changed official documents for this stage to extract terms
+        # from either — skip the full per-document cache-freshness pass entirely rather than
+        # paying its cost (Drive lookups for anything not already in the catalog, cache-hit
+        # hydration, a line of output per document) for a guaranteed no-op.
+        run_id = pipeline_log.current_run_id()
+        this_run_sourcing = [
+            e for e in pipeline_log.load_log(bucket_uri, 'sourcing_log')
+            if e.get('run_id') == run_id
+        ]
+        if this_run_sourcing and not this_run_sourcing[0].get('any_changes'):
+            print("No new source content this run — skipping term extraction and registry "
+                  "rebuild.", flush=True)
+            return
 
     meetings_data = _scan_meetings('src/meetings/')
     catalog = drive_mod.load_catalog(bucket_uri)

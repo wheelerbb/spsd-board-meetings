@@ -1,7 +1,9 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
-from extract_terms import _chunk, _apply_batch_results, _extract_batch
+from googleapiclient.errors import HttpError
+
+from extract_terms import _chunk, _apply_batch_results, _extract_batch, _ensure_cache_metadata
 
 
 class ChunkTests(unittest.TestCase):
@@ -76,6 +78,67 @@ class ExtractBatchTests(unittest.TestCase):
         with patch('extract_terms.call_llm', side_effect=RuntimeError("rate limited")):
             result = _extract_batch(batch)
         self.assertEqual(result, {})
+
+
+def _svc(execute_return=None, execute_side_effect=None):
+    svc = MagicMock()
+    get = svc.files.return_value.get
+    if execute_side_effect is not None:
+        get.return_value.execute.side_effect = execute_side_effect
+    else:
+        get.return_value.execute.return_value = execute_return
+    return svc
+
+
+def _http_error(status, message="error"):
+    resp = MagicMock(status=status)
+    content = ('{"error": {"message": "%s"}}' % message).encode('utf-8')
+    return HttpError(resp, content)
+
+
+class EnsureCacheMetadataTests(unittest.TestCase):
+    def test_trusts_catalog_metadata_without_a_drive_call(self):
+        # source_data.py's folder scan already keeps modified_time current for every in-scope
+        # file — re-fetching it here would just duplicate a call made moments ago in the same job.
+        catalog = {"f1": {"modified_time": "2026-01-01T00:00:00Z", "mime_type": "application/pdf"}}
+        svc = _svc()
+        result = _ensure_cache_metadata(catalog, svc, "f1", "agenda")
+        self.assertEqual(result, "2026-01-01T00:00:00Z")
+        svc.files.return_value.get.assert_not_called()
+        self.assertEqual(catalog["f1"]["doc_type"], "agenda")
+
+    def test_fetches_from_drive_when_catalog_entry_incomplete(self):
+        catalog = {}
+        svc = _svc(execute_return={
+            "modifiedTime": "2026-02-01T00:00:00Z",
+            "mimeType": "application/pdf",
+            "createdTime": "2025-01-01T00:00:00Z",
+        })
+        result = _ensure_cache_metadata(catalog, svc, "f2", "packet")
+        self.assertEqual(result, "2026-02-01T00:00:00Z")
+        self.assertEqual(catalog["f2"]["mime_type"], "application/pdf")
+        self.assertEqual(catalog["f2"]["doc_type"], "packet")
+
+    def test_404_flags_no_access_and_returns_none(self):
+        catalog = {}
+        svc = _svc(execute_side_effect=_http_error(404, "File not found"))
+        result = _ensure_cache_metadata(catalog, svc, "f3", "minutes")
+        self.assertIsNone(result)
+        self.assertEqual(catalog["f3"]["access"], "no_access")
+
+    def test_no_access_entry_skips_drive_call_on_a_later_run(self):
+        catalog = {"f3": {"access": "no_access"}}
+        svc = _svc()
+        result = _ensure_cache_metadata(catalog, svc, "f3", "minutes")
+        self.assertIsNone(result)
+        svc.files.return_value.get.assert_not_called()
+
+    def test_non_404_error_warns_but_does_not_flag_no_access(self):
+        catalog = {}
+        svc = _svc(execute_side_effect=_http_error(500, "Server error"))
+        result = _ensure_cache_metadata(catalog, svc, "f4", "agenda")
+        self.assertIsNone(result)
+        self.assertNotIn("f4", catalog)
 
 
 if __name__ == "__main__":

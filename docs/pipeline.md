@@ -38,6 +38,7 @@ flowchart LR
     NJK_STUB --> ET["② extract_terms.py"]
     CAT --> ET
     ET --> CAT
+    DOCTXT <--> ET
     ET --> REG[("terms_registry.json")]
     ET --> FP[("terms_registry_fingerprint.json")]
 
@@ -45,6 +46,7 @@ flowchart LR
     CAT --> PT
     REG -. read only .-> PT
     GLOS[("src/_data/glossary.json")] -. read only .-> PT
+    DOCTXT <--> PT
     PT --> NJK_FULL["src/meetings/*.njk<br/>(stub: false)"]
     PT --> CAT
     PT --> PLOG1[("processing_log.json<br/>stage: transcripts")]
@@ -53,6 +55,7 @@ flowchart LR
     CAT --> PP
     REG -. read only .-> PP
     GLOS <--> PP
+    DOCTXT <--> PP
     PP --> TOPICS["src/_data/all_topics.json"]
     PP --> SUMM["src/_data/topic_summaries.json"]
     PP --> HASH[("scripts/topic_hashes.json")]
@@ -74,6 +77,15 @@ it never writes the file back. `terms_registry.json` is written only by stage �
 from-scratch rebuild, not an accumulated mutation — see
 [The Terms Registry](#the-terms-registry-scriptsterms_registrypy)) and only ever read by stages
 ③-④.
+
+`drive_catalog.json` and `GCS official_docs/*.txt` are the two true hub resources — every stage
+②-④ reads and writes both (official_docs/*.txt directly via `drive.get_or_extract_text`/
+`cache_text`/`write_blob` for its own cache-miss extractions and derived blobs, e.g.
+post_process.py's isolated-agenda-excerpt cache). In the diagram above this shows up as several
+long edges doubling back from the right toward stages placed further left by mermaid's
+left-to-right auto-layout — if a rendered/cropped view only shows a stage's node and its
+immediately-adjacent edges, it's easy to misread a stage as sourcing from a single upstream node
+when it's actually also reading/writing one or both of these shared stores.
 
 ### Pipeline Stages
 
@@ -211,6 +223,14 @@ not that the text it was last extracted from is still trustworthy (see
 [The Drive catalog](#the-drive-catalog-drive_catalogjson)). A legacy `terms_blob` pointer with no
 inline `terms` yet is hydrated once on next touch, then dropped.
 
+**No redundant Drive metadata calls.** `_ensure_cache_metadata()` only calls Drive's API for a
+file whose catalog entry doesn't already carry `modified_time`/`mime_type` — which covers almost
+every in-scope document, since `source_data.py`'s folder scan (`build_meeting_map`, same job, run
+moments earlier) already keeps those fields current for everything within its scope. A live call
+only happens for a document that scan never saw. A file that 404s is flagged `access: "no_access"`
+on the catalog entry and never retried — its last-cached terms keep being used by the registry
+rebuild below, but no further Drive calls are made for it on any later run.
+
 **Derived rebuild, not an accumulated ledger.** `build_registry_from_catalog()` builds the
 registry fresh from `{}` every time it runs — iterating every meeting in a fixed deterministic
 order (meeting date ascending, then doc_type priority agenda→packet→minutes, then `file_id` as a
@@ -222,7 +242,7 @@ once did simply doesn't re-contribute it — no explicit retraction logic needed
 qualifying document, stored as a sibling `terms_registry_fingerprint.json` blob — lets
 `extract_terms.py` skip the rebuild entirely on the common case where nothing qualifying changed
 since the last run; a rebuild only actually happens when that fingerprint changes (see
-[todos/026](../todos/026-pending-p2-dedicated-term-extraction-and-derived-registry-rebuild.md)).
+[todos/026](../todos/026-complete-p2-dedicated-term-extraction-and-derived-registry-rebuild.md)).
 This also means a `TEXT_EXTRACTOR_VERSION` bump no longer needs a manual reset-and-rebuild
 workflow — every qualifying entry's fingerprint changes at once, which naturally triggers one
 ordinary full rebuild through this same standing path.
@@ -437,7 +457,7 @@ but not yet closed:
   forever), fingerprint-gated so the rebuild is free on the common unchanged-corpus case. Live
   verification against production (confirming a dropped term actually disappears from the live
   registry) is still pending, tracked in
-  [todos/026](../todos/026-pending-p2-dedicated-term-extraction-and-derived-registry-rebuild.md).
+  [todos/026](../todos/026-complete-p2-dedicated-term-extraction-and-derived-registry-rebuild.md).
 
 ---
 
@@ -546,6 +566,16 @@ source (Apptegy, SPSD site, Drive, Vimeo, transcripts). Pushes to `main` and man
 see the `if:` conditions on each step in `deploy.yml`. Every run's findings — including a
 no-op scheduled tick — are recorded in `sourcing_log.json` / `processing_log.json` and visible
 at `/processing-log/`, sibling to the `/status/` Data Status Dashboard.
+
+`extract_terms.py` and `post_process.py` additionally carry their *own* internal `any_changes`
+check (reading the same `changes` signal back out of `sourcing_log.json` by this run's id), which
+applies regardless of trigger type — including a push, where the workflow-level `if:` above
+doesn't gate the step at all. This matters because both scripts' real cost is per-document (every
+qualifying document's Drive-metadata freshness check for `extract_terms.py`; every meeting's
+topic/summary maintenance for `post_process.py`), not fixed, so skipping the step at the workflow
+level only helps on a schedule tick — a push with no new source content (a docs-only or
+code-only commit, say) would otherwise still pay that full per-document cost for a guaranteed
+no-op. Pass `--force` to either script to bypass this and run anyway.
 
 ---
 
@@ -780,9 +810,21 @@ existing meeting's `.njk` `docs:` list via `merge_documents`, deduplicating by U
   a Drive file whose content-date resolution briefly pointed at the wrong meeting (see
   `build_meeting_map`) from leaving a permanent stray entry once the resolution self-corrects.
 - **Everything else is left alone**: a doc whose URL doesn't appear in *any* date's fresh data this
-  run isn't touched — absence isn't evidence of anything on its own. A URL claimed by two different
-  dates in the same run (an ambiguous/conflicting resolution) is also left alone for both dates
-  rather than guessing which is right.
+  run isn't touched — absence isn't evidence of anything on its own.
+- **Conflicting resolution, broken by content**: a URL claimed by two different dates in the same
+  run (`source_data.py::_resolve_url_owner`) is resolved by checking the Drive catalog's own
+  content-derived `meeting_slug` for that file — content is this pipeline's highest-priority date
+  signal (see above), so if it confidently matches one of the two contenders, that date wins and
+  the doc is dropped from the other, same as an ordinary cross-date reassignment. This closes a
+  real, previously-unfixable case: a document already content-dated to meeting A in the catalog
+  can still show up attached to meeting B this run (e.g. a stale/mismatched date on the district's
+  own site page, or another date's filename-based resolution) — before this tiebreak, such a
+  conflict was only ever logged and left on both dates forever (confirmed live: a Budget Workshop
+  agenda correctly catalogued under `2025-03-17` had also spawned a standing phantom
+  `2024-03-17` stub via a stale site-scraped date match — the board doesn't meet on Sundays, which
+  `2024-03-17` was). Only when the catalog has no opinion on the file, or its resolution matches
+  *neither* contender, does the conflict still fall back to `AMBIGUOUS` — left alone on both dates,
+  same conservative default as before.
 - This can't catch reassignment to a date before `CUTOFF_DATE`, since the ownership index only
   covers in-scope dates.
 - **Exact-content duplicates**: `_dedupe_identical_content` drops a doc when another doc of the

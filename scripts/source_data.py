@@ -25,6 +25,45 @@ CUTOFF_DATE = "2023-08-01"
 # never causes a doc to be stripped from a meeting it might actually still belong to.
 AMBIGUOUS = object()
 
+def _resolve_url_owner(combined_docs_by_slug, catalog=None):
+    """Maps every URL claimed by any in-scope date's combined (site + drive) docs this run to
+    whichever date_slug should own it, or AMBIGUOUS if two dates claim it and nothing can break
+    the tie.
+
+    A same-run collision (one URL showing up under two different dates) is broken by the Drive
+    catalog's own content-derived `meeting_slug` for that file (see
+    sourcing/drive.py::build_meeting_map) when it confidently matches one of the two contenders —
+    content is this pipeline's highest-priority date signal (see docs/pipeline.md), so it should
+    win over a site page, or another date's drive listing, that merely links the same document.
+    A real case this fixes: a document whose content the catalog has already dated to meeting A
+    can still show up attached to meeting B's page this run (e.g. a stale listing on the
+    district's own site, or a second date resolved from the same filename) — previously this was
+    only ever logged as ambiguous and left on both dates forever, with no path to self-heal.
+    Only when the catalog has no opinion on the file, or its resolution matches neither
+    contender, does the collision fall back to AMBIGUOUS — leaving the doc on both dates rather
+    than guessing wrong."""
+    url_owner = {}
+    for slug, docs in combined_docs_by_slug.items():
+        for doc in docs:
+            u = drive.clean_url(doc.get('url'))
+            if not u:
+                continue
+            if u in url_owner and url_owner[u] not in (slug, AMBIGUOUS):
+                prior_slug = url_owner[u]
+                file_id = drive.extract_file_id(u)
+                canonical_slug = catalog.get(file_id, {}).get('meeting_slug') if (file_id and catalog) else None
+                if canonical_slug in (prior_slug, slug):
+                    print(f"  URL {u} resolves to both {prior_slug!r} and {slug!r} this run; "
+                          f"using the Drive catalog's content-derived date {canonical_slug!r}.")
+                    url_owner[u] = canonical_slug
+                else:
+                    print(f"  Warning: URL {u} resolves to both {prior_slug!r} and {slug!r} "
+                          f"this run; not treating it as reassigned from either.")
+                    url_owner[u] = AMBIGUOUS
+            elif u not in url_owner:
+                url_owner[u] = slug
+    return url_owner
+
 def merge_documents(existing_docs, new_docs, url_owner=None, date_slug=None):
     """
     Merges an existing meeting's docs with this run's freshly-resolved docs for the same date,
@@ -235,18 +274,7 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
         site_docs = list(d.get('site', {}).get('docs', [])) if d.get('site') else []
         combined_docs_by_slug[slug] = _combine_site_and_drive_docs(site_docs, d.get('drive', []))
 
-    url_owner = {}
-    for slug, docs in combined_docs_by_slug.items():
-        for doc in docs:
-            u = drive.clean_url(doc.get('url'))
-            if not u:
-                continue
-            if u in url_owner and url_owner[u] not in (slug, AMBIGUOUS):
-                print(f"  Warning: URL {u} resolves to both {url_owner[u]!r} and {slug!r} "
-                      f"this run; not treating it as reassigned from either.")
-                url_owner[u] = AMBIGUOUS
-            elif u not in url_owner:
-                url_owner[u] = slug
+    url_owner = _resolve_url_owner(combined_docs_by_slug, catalog)
 
     for date_slug in sorted_dates:
         if date_slug < CUTOFF_DATE:

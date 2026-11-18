@@ -3,7 +3,7 @@ title: "design: term extraction staleness, derived registry rebuild, and registr
 type: design
 status: proposed
 date: 2026-11-18
-origin: todos/026-pending-p2-dedicated-term-extraction-and-derived-registry-rebuild.md
+origin: todos/026-complete-p2-dedicated-term-extraction-and-derived-registry-rebuild.md
 ---
 
 # design: term extraction & registry rebuild architecture

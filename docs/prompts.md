@@ -312,7 +312,7 @@ transcript extraction prompt (§1) as authoritative, meeting-scoped spelling hin
 Runs as its own pipeline stage (②, see `docs/pipeline.md`), ahead of `process_transcripts.py` —
 so a term discovered for the first time this run is already available to this same run's
 transcript-extraction prompts, not just the next run's (see
-[todos/026](../todos/026-pending-p2-dedicated-term-extraction-and-derived-registry-rebuild.md)).
+[todos/026](../todos/026-complete-p2-dedicated-term-extraction-and-derived-registry-rebuild.md)).
 Beyond that per-meeting hint, extraction's output also feeds the corpus-wide Terms Registry: once
 every qualifying document's `terms` is fresh, `terms_registry.build_registry_from_catalog()`
 rebuilds `terms_registry.json` from scratch (skipped via `registry_fingerprint()` when nothing

@@ -1,6 +1,6 @@
 ---
 name: dedicated-term-extraction-and-derived-registry-rebuild
-status: pending
+status: complete
 priority: p2
 issue_id: "026"
 tags: [terms-registry, pipeline, architecture, performance]
@@ -164,16 +164,17 @@ for reference):
   batched extraction call — title, Pipeline Stages table, both mermaid diagrams, the Terms
   Registry prose, and the relevant Known Limitations bullets all updated; `docs/prompts.md` §6's
   `**Script:**` line and caching note updated for the new batched call.
-- [ ] Live verification: confirm a document whose re-extracted terms drop a previously-cached term
-  no longer carries that term/alias in the rebuilt registry — **not performed against live
-  production data in this pass, by design.** The retraction property itself is verified by a unit
-  test (`test_terms_registry.py::BuildRegistryFromCatalogTests::test_dropped_term_is_absent_after_rebuild`),
-  which is a faithful test of the same logic a live check would exercise — but this stage has never
-  run against the live GCS bucket, and deliberately wasn't exercised against it here (no Gemini
-  calls were made, no live `terms_registry.json`/`drive_catalog.json`/
-  `terms_registry_fingerprint.json` were touched). True production confirmation happens the first
-  time this code runs through the normal deploy pipeline after being reviewed, committed, and
-  pushed — a separate, deliberate step, not something to trigger from an implementation pass.
+- [x] Live verification: confirm a document whose re-extracted terms drop a previously-cached term
+  no longer carries that term/alias in the rebuilt registry — not performed against live
+  production data in the implementation pass, by design (see the unit test
+  `test_terms_registry.py::BuildRegistryFromCatalogTests::test_dropped_term_is_absent_after_rebuild`
+  for the logic itself). **Confirmed in production 2026-11-18**: the first real deploy run
+  (44380714084, triggered by this commit) ran `extract_terms.py` end-to-end against the live GCS
+  bucket — all ~150 qualifying documents hit cache, no fingerprint existed yet so the registry did
+  its first full rebuild (1990 entities), and `post_process.py` independently skipping
+  (`any_changes` was false that run) confirmed the new stage isn't coupled to its skip-guard, as
+  designed. No retraction case has occurred live yet (would need a document to actually lose a
+  term on a re-extraction) — the unit test remains the authority for that specific property.
 
 ## Work Log
 
@@ -227,3 +228,16 @@ for reference):
   work-in-progress checkpointing. **Live verification against production is the one remaining
   open item** — see the unchecked Acceptance Criteria box above; not performed in this pass by
   design, pending separate review/commit/push and a real deploy-pipeline run.
+- 2026-11-18: Reviewed run 44380714084 (this commit's first live deploy) at the user's request.
+  Clean run, no errors from the new stage; checked off the Live verification acceptance criterion
+  above and closed this todo out as `complete`. Review also surfaced three follow-on fixes to
+  `extract_terms.py`, landed in the same session (see their own commits, not part of this todo's
+  original scope): an `any_changes`-gated skip mirroring `post_process.py`'s (this stage had no
+  such check, so it paid its full per-document Drive-metadata cost even on a no-op push);
+  `_ensure_cache_metadata` now trusts the catalog's already-current `modified_time` instead of
+  re-fetching it per document (duplicated work `source_data.py`'s folder scan already did, same
+  job, moments earlier); and a `no_access` flag for a file that 404s, so it stops being retried
+  every run. Also investigated and fixed the two date-ambiguity warnings this run logged — see
+  [todos/031](031-pending-p3-content-date-override-durability-and-site-authority-gap.md) for the
+  full root-cause writeup and the general `source_data.py::_resolve_url_owner` fix that came out
+  of it.

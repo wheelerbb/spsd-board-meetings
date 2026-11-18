@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from source_data import merge_documents, AMBIGUOUS, _dedupe_identical_content, _combine_site_and_drive_docs
+from source_data import merge_documents, AMBIGUOUS, _dedupe_identical_content, _combine_site_and_drive_docs, _resolve_url_owner
 
 
 def doc(url, label, type_='packet'):
@@ -73,6 +73,55 @@ class MergeDocumentsTests(unittest.TestCase):
         self.assertEqual(added, 1)
         self.assertEqual(removed, 0)
         self.assertEqual(len(merged), 2)
+
+
+class ResolveUrlOwnerTests(unittest.TestCase):
+    def test_no_collision_each_url_owned_by_its_one_date(self):
+        combined = {
+            '2024-04-08': [doc('https://drive.google.com/file/d/ABC/view', 'Agenda')],
+            '2024-05-13': [doc('https://drive.google.com/file/d/XYZ/view', 'Packet')],
+        }
+        owner = _resolve_url_owner(combined)
+        self.assertEqual(owner['https://drive.google.com/file/d/ABC/view'], '2024-04-08')
+        self.assertEqual(owner['https://drive.google.com/file/d/XYZ/view'], '2024-05-13')
+
+    def test_collision_with_no_catalog_falls_back_to_ambiguous(self):
+        combined = {
+            '2024-01-08': [doc('https://drive.google.com/file/d/ABC/view', 'Special Meeting Agenda')],
+            '2025-01-08': [doc('https://drive.google.com/file/d/ABC/view', 'Special Meeting Agenda')],
+        }
+        owner = _resolve_url_owner(combined)
+        self.assertIs(owner['https://drive.google.com/file/d/ABC/view'], AMBIGUOUS)
+
+    def test_collision_with_catalog_matching_neither_falls_back_to_ambiguous(self):
+        combined = {
+            '2024-01-08': [doc('https://drive.google.com/file/d/ABC/view', 'Special Meeting Agenda')],
+            '2025-01-08': [doc('https://drive.google.com/file/d/ABC/view', 'Special Meeting Agenda')],
+        }
+        catalog = {'ABC': {'meeting_slug': '2026-03-17'}}  # content resolved to some third date
+        owner = _resolve_url_owner(combined, catalog)
+        self.assertIs(owner['https://drive.google.com/file/d/ABC/view'], AMBIGUOUS)
+
+    def test_collision_broken_by_catalogs_content_derived_date(self):
+        # Real case: a document's content has already been dated to 2025-03-17 in the catalog
+        # (sourcing/drive.py::build_meeting_map), but a stale site listing also attaches the
+        # same URL to 2024-03-17 this run. Content should win.
+        combined = {
+            '2024-03-17': [doc('https://drive.google.com/file/d/ABC/view', 'Budget Workshop I Agenda')],
+            '2025-03-17': [doc('https://drive.google.com/file/d/ABC/view', 'Budget Workshop I Agenda')],
+        }
+        catalog = {'ABC': {'meeting_slug': '2025-03-17'}}
+        owner = _resolve_url_owner(combined, catalog)
+        self.assertEqual(owner['https://drive.google.com/file/d/ABC/view'], '2025-03-17')
+
+    def test_collision_broken_regardless_of_slug_iteration_order(self):
+        combined = {
+            '2025-03-17': [doc('https://drive.google.com/file/d/ABC/view', 'Budget Workshop I Agenda')],
+            '2024-03-17': [doc('https://drive.google.com/file/d/ABC/view', 'Budget Workshop I Agenda')],
+        }
+        catalog = {'ABC': {'meeting_slug': '2025-03-17'}}
+        owner = _resolve_url_owner(combined, catalog)
+        self.assertEqual(owner['https://drive.google.com/file/d/ABC/view'], '2025-03-17')
 
 
 def _fake_read_cached_blob(text_by_blob):
