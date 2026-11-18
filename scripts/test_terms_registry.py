@@ -142,6 +142,35 @@ class IngestDocumentTermsTests(unittest.TestCase):
                                [{"term": "Patti Smith", "type": "person", "context": "Board Member"}])
         self.assertEqual(registry["person:Patti Smith"]["context"], "Board Member")
 
+    def test_case_variant_place_consolidates_into_one_entity(self):
+        # Regression: an ALL-CAPS agenda-header extraction and a mixed-case minutes-body
+        # extraction of the same place name used to fork into two disconnected entities, since
+        # registry keys were case-sensitive and fuzzy_match treats an exact-after-lowercasing
+        # match as "nothing to correct". See todos/021. Confirmed live:
+        # place:South Portland, Maine vs place:SOUTH PORTLAND, MAINE.
+        registry = {}
+        ingest_document_terms(registry, "file1", "2024-01-08", "minutes",
+                               [{"term": "South Portland, Maine", "type": "place"}])
+        ingest_document_terms(registry, "file2", "2024-02-12", "agenda",
+                               [{"term": "SOUTH PORTLAND, MAINE", "type": "place"}])
+        self.assertEqual(len(registry), 1)
+        entity = registry["place:South Portland, Maine"]
+        self.assertEqual(entity["term"], "South Portland, Maine")
+        self.assertEqual(len(entity["sources"]), 2)
+
+    def test_case_variant_matches_regardless_of_which_casing_came_first(self):
+        # Mirror of the above with the ALL-CAPS form registered first — the fix must not depend
+        # on which side arrives first.
+        registry = {}
+        ingest_document_terms(registry, "file1", "2024-02-12", "agenda",
+                               [{"term": "BOARD WORKSHOP", "type": "program"}])
+        ingest_document_terms(registry, "file2", "2024-01-08", "minutes",
+                               [{"term": "Board Workshop", "type": "program"}])
+        self.assertEqual(len(registry), 1)
+        self.assertIn("program:BOARD WORKSHOP", registry)
+        self.assertEqual(registry["program:BOARD WORKSHOP"]["term"], "BOARD WORKSHOP")
+        self.assertEqual(len(registry["program:BOARD WORKSHOP"]["sources"]), 2)
+
     def test_place_fragments_consolidate_via_containment(self):
         registry = {}
         ingest_document_terms(registry, "file1", "2026-01-08", "agenda",

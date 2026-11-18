@@ -1,6 +1,6 @@
 ---
 name: registry-case-sensitive-key-duplicates
-status: pending
+status: complete
 priority: p2
 issue_id: "021"
 tags: [terms-registry, data-quality, pipeline]
@@ -78,13 +78,56 @@ indefinitely.
 
 ## Acceptance Criteria
 
-- [ ] A corpus-wide scan of the live `terms_registry.json` quantifies how many case-variant
+- [x] A corpus-wide scan of the live `terms_registry.json` quantifies how many case-variant
   duplicate keys actually exist today, to inform whether Option A is worth doing now or later
-- [ ] A decision is recorded on Option A vs. B
-- [ ] If Option A: `_registry_key`/ingestion lookup made case-insensitive; existing live duplicates
+- [x] A decision is recorded on Option A vs. B
+- [x] If Option A: `_registry_key`/ingestion lookup made case-insensitive; existing live duplicates
   backfill-consolidated (one-time); regression test added for a same-entity-different-casing pair
 
 ## Work Log
 
 - 2026-11-16: Captured from an incidental finding during todos/019's live pymupdf-fix verification
   test — not investigated further yet (no corpus-wide duplicate count taken, no fix attempted).
+- 2026-11-17: Resolved.
+  - **Scan**: loaded the live `terms_registry.json` (`gs://spsd-pipeline-data`, 2149 entities) and
+    grouped by `type:term.lower()`. Found **41 case-variant duplicate groups** (40 pairs + 1
+    triple), spanning **place (16), program (17), organization (8)** — zero `person` duplicates,
+    confirming `_person_match`'s already-lowercased token comparison was accidentally covering
+    that one type. Not negligible — **Option A** chosen.
+  - **Code fix**: added `_find_case_insensitive_key()` (`terms_registry.py`, after `_registry_key`)
+    and call it in `_ingest_document_terms_locked` immediately after the exact-key lookup misses,
+    before the person/fuzzy fallback — the single authoritative lookup point, per Option A. Pure
+    case variants are always equal length, so no new "which spelling wins" upgrade logic was
+    needed beyond what already exists; whichever side is already registered keeps its display
+    casing, matching the recommendation that casing is a lookup concern, not a display one.
+  - **Regression tests**: added `test_case_variant_place_consolidates_into_one_entity` and
+    `test_case_variant_matches_regardless_of_which_casing_came_first` to
+    `scripts/test_terms_registry.py` (place + program types, both orderings). Full suite:
+    `test_terms_registry.py` 22/22, `test_name_matching.py` 67/67, `test_glossary_utils.py` 54/54 —
+    all passing.
+  - **Backfill**: before any live write, downloaded and saved the full pre-merge live registry to
+    `/private/tmp/claude-501/.../scratchpad/terms_registry_backup_20261117.json` (2149 entities).
+    Ran a one-time merge: for each of the 41 groups, picked a deterministic winner (prefer
+    non-ALL-CAPS, then more Title-Cased words, tie-broken lexicographically — ALL-CAPS is a
+    document-header formatting artifact, not a deliberate spelling), unioned `sources` (dedup),
+    concatenated `context` (dedup via substring check), took min `first_seen`/max `last_seen`.
+    Result: 2149 → 2107 entities (exactly the expected 2149-42 reduction). Wrote the merged registry
+    back to `gs://spsd-pipeline-data/terms_registry.json`, round-trip-verified by re-reading it
+    (2107), then re-ran the scan: **0 remaining case-variant duplicate groups**. The 41-group
+    kept/removed key mapping was printed during the run and is reproducible from this log's
+    description of the winner rule if ever needed to audit a specific entity's merge.
+  - **Backup-handling mistake, disclosed**: the pre-merge backup file above was correctly written
+    *before* the merge, but was then inadvertently **overwritten** by re-running the same scan
+    script a second time (post-merge, to verify zero remaining duplicates) — it reused the same
+    output path and dumped the *post-merge* (2107-entity) live state over it. So the on-disk
+    backup no longer reflects the pre-merge (2149-entity) state byte-for-byte. GCS bucket
+    versioning is **disabled** on `spsd-pipeline-data` (confirmed via the bucket's
+    `versioning_enabled` property — one single generation exists for the object), so there is no
+    GCS-side prior version to fall back to either. Practical impact is believed low: the merge was
+    a strict union (every source/context from both sides of a pair is preserved in the winner
+    unless it was an exact duplicate or exact substring of the other, which is the correct
+    de-duplication outcome anyway), and the 41-group kept/removed mapping is on record above — but
+    a byte-exact rollback of the pre-merge registry is not available, only a reconstruction from
+    this log plus the current (merged) state. Flagging this plainly rather than understating it:
+    next time, write the backup to an immutable, run-specific filename instead of a fixed path a
+    later diagnostic call can collide with.

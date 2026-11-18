@@ -63,6 +63,22 @@ def _registry_key(term_type, canonical):
     return f"{term_type}:{canonical}"
 
 
+def _find_case_insensitive_key(registry, term_type, term):
+    """The existing registry key for `term_type`:`term` when a same-type entity's own `term`
+    differs from this one only by case, else None. Registry keys are case-sensitive
+    (`_registry_key` performs no normalization), but the real-world entity a term names is not —
+    an ALL-CAPS agenda-header extraction and a mixed-case minutes-body extraction of the same
+    place/org/program name are the same entity, not two (see todos/021). Checked before any
+    fuzzy/surname matching, so casing is purely a *lookup* concern at the one place every caller
+    already goes through to find an existing entity — this doesn't touch fuzzy_match's broader
+    "exact match means nothing to correct" contract, which stays correct for every other caller."""
+    term_norm = term.lower()
+    for k, e in registry.items():
+        if e.get('type') == term_type and (e.get('term') or '').lower() == term_norm:
+            return k
+    return None
+
+
 def entities_of_type(registry, term_type):
     return [e for e in registry.values() if e.get('type') == term_type]
 
@@ -126,6 +142,12 @@ def _ingest_document_terms_locked(registry, file_id, meeting_slug, doc_type, ext
 
         key = _registry_key(term_type, term)
         existing = registry.get(key)
+
+        if existing is None:
+            ci_key = _find_case_insensitive_key(registry, term_type, term)
+            if ci_key is not None:
+                key = ci_key
+                existing = registry[ci_key]
 
         if existing is None:
             same_type = entities_of_type(registry, term_type)
