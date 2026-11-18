@@ -20,7 +20,7 @@
   { "correct": "Susan Rauscher", "aliases": ["Ms. Rauscher"], "note": "Board of Education Member", "type": "person", "misspellings": ["Rosemarie Rauscher", "Claire Rauscher", "Rose Marie Rauscher"] },
   { "correct": "Jennifer Kinney", "aliases": ["Ms. Kinney"], "note": "Board of Education Member", "type": "person" },
   { "correct": "Elliot Wertheimer", "misspellings": ["Eliot Wertheimer"], "note": "Former Student Representative", "type": "person" },
-  { "correct": "David Kahill", "misspellings": ["David Cahill"], "note": "Boys' Head Coach", "type": "person", "scope": ["2024-06-10"] },
+  { "correct": "David Kahill", "misspellings": ["David Cahill", "Coach Kahill"], "note": "Boys' Head Coach", "type": "person" },
   { "correct": "Angela Kabisa", "misspellings": ["Anjeloise Kabisa", "Angela Kaba"], "note": "Person featured in the Portland Press Herald", "type": "person", "aliases": ["Ms. Kabisa"] },
   { "correct": "Mr. Harold Blaney", "aliases": ["Harold Blaney"], "note": "Building & Grounds Director, District", "type": "person", "scope": ["2024-10-15"] },
   { "correct": "Huck Charrov", "misspellings": ["Huck Charv", "Huck Chav"], "note": "Graduate and donor", "type": "person" },
@@ -33,7 +33,7 @@
   { "correct": "Amy Haskins", "misspellings": ["Amy Huskins"], "note": "Parent", "type": "person", "scope": ["2025-01-13"] },
   { "correct": "Beth Meyers", "misspellings": ["Beth Myers"], "note": "Resident", "type": "person", "scope": ["2025-01-13"] },
   { "correct": "Joe Lawlor", "misspellings": ["Joe Lawler"], "note": "Resident", "type": "person" },
-  { "correct": "Jen Bartucca", "misspellings": ["Jen Barca"], "note": "Citizen", "type": "person", "scope": ["2025-01-13"] },
+  { "correct": "Jen Bartucca", "misspellings": ["Jen Barca", "Rick Bartucca"], "note": "Citizen", "type": "person" },
   { "correct": "James Mellow", "misspellings": ["James Meow"], "note": "Citizen", "type": "person", "scope": ["2025-01-27"] },
   { "correct": "Eleni Richardson", "misspellings": ["Alenni Richardson", "Rosemary Richardson", "Elyse T. Richardson"], "note": "School Board member", "type": "person", "aliases": ["Ms. Richardson"] },
   { "correct": "Connie DiSanto", "misspellings": ["Connie DeSanto"], "note": "Resource room ed tech and SPESPA President", "type": "person" },
@@ -77,5 +77,9 @@
   { "correct": "PreK Expansion", "misspellings": ["Pre-K expansion", "pre-K expansion"], "note": "initiative", "type": "program" },
   { "correct": "SPHS principal Sarah Glenn", "aliases": ["Sarah Glenn"], "note": "Principal, South Portland High School", "type": "person" },
   { "correct": "Scott Lusardi", "misspellings": ["Scott Ardi"], "note": "Resident and public commenter", "type": "person", "scope": ["2025-04-14"] },
-  { "correct": "Mahoney", "misspellings": ["Maloney"], "note": "school", "type": "place", "scope": ["2025-03-10"] }
+  { "correct": "Mahoney", "misspellings": ["Maloney"], "note": "school", "type": "place", "scope": ["2025-03-10"] },
+  { "correct": "Angola", "misspellings": ["Angela"], "note": "country", "type": "place" },
+  { "correct": "Christine Dobson", "misspellings": ["JD Dobson"], "note": "Public commenter who gave time to Blair Bacon", "type": "person" },
+  { "correct": "1MRSA\u00a7405(6)(D)", "misspellings": ["MRSA\u00a7405(6)(A"], "note": "Maine Revised Statutes Annotated citation for discussing an employee matter", "type": "program", "scope": ["2025-05-12"] },
+  { "correct": "MRSA\u00a7405(6)(D)", "misspellings": ["MRSA\u00a7405(6)(A"], "note": "Maine Revised Statutes Annotated section cited for considering a labor grievance.", "type": "program", "scope": ["2025-05-12"] }
 ]
