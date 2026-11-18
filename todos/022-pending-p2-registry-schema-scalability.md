@@ -77,28 +77,40 @@ but still misinforms anything reading `context` for human review.
 
 ## Proposed Solutions
 
-Not fully resolved here — needs a decision before implementing. Rough shape, combining the
-user's proposed direction with the idempotency fix it needs:
+**Resolved — see `docs/plans/2026-11-18-001-design-registry-schema-scalability-plan.md` for full
+rationale and step-by-step implementation.** Summary of the three decisions:
 
-- Replace `sources: [{file_id, meeting, doc_type}, ...]` with a minimal `file_ids: [file_id, ...]`
-  (or a set) — keeps the idempotency check (`if file_id not in existing['file_ids']`) at a fraction
-  of the storage, since `meeting`/`doc_type` were never read back anywhere.
-  `first_seen`/`last_seen` already capture the date range this way; a separate decision is still
-  needed on whether to attach a specific `file_id` to each (and if so, which tie-break rule for a
-  multi-doc meeting) or leave them as date-only.
-- For `context`: no concrete proposal yet — flagged as a risk, not a chosen fix. Options range from
-  "do nothing, it's still better than the pre-registry status quo" to tagging each fragment with
-  the meeting slug that produced it (which would let a future consumer distinguish current from
-  historical, at the cost of real schema complexity).
+1. `sources: [{file_id, meeting, doc_type}, ...]` → bare `file_ids: [file_id, ...]`. Keeps the
+   idempotency check at a fraction of the storage, since `meeting`/`doc_type` are confirmed read
+   nowhere outside the one append site. Conditional note: if todos/028 (in flight concurrently)
+   ends up needing per-source raw-term tracking, use `{file_id, term}` pairs instead of bare
+   strings — check 028's landed diff before implementing.
+2. `first_seen`/`last_seen` stay **date-only**, no `file_id` attached — no current or foreseeable
+   consumer needs one, and attaching one would require an arbitrary tie-break rule (for same-type
+   multi-doc meetings, e.g. `2024-04-08`'s two `packet`/two `minutes` file_ids) to serve zero
+   readers.
+3. `context`'s temporal blindness: **defer**, not fix. Milder than the original todos/013 bug
+   (`context` never reaches a Gemini prompt, only human-facing `note`/glossary display) and no
+   concrete observed defect yet (unlike todos/028's `Molly. Schen`, a verified live case). Revisit
+   if a real context-staleness bug is ever found.
+
+Implementation is not yet done — the plan doc also flags a sequencing consideration with
+todos/026 (dedicated term extraction + derived registry rebuild): if 026 makes the registry
+derived/rebuildable rather than accumulate-only, the whole `sources`/`file_ids` idempotency
+question may become moot. The code change (Steps 1-2) is cheap/safe to land regardless; the live
+migration (Step 3) may be worth deferring if 026 is imminent — left as a judgment call for
+whoever implements.
 
 ## Acceptance Criteria
 
 - [ ] Decide `sources` → `file_ids`-only (or an equivalent minimal idempotency ledger); implement
-  and backfill-migrate the live registry
+  and backfill-migrate the live registry — **decided, see plan doc**; implementation still pending
 - [ ] Decide whether `first_seen`/`last_seen` carry a `file_id`, and if so the tie-break rule for a
-  meeting with more than one qualifying document
+  meeting with more than one qualifying document — **decided (no), see plan doc**; no
+  implementation needed, status quo already correct
 - [ ] Decide whether `context`'s temporal-blindness risk is worth addressing now or deferred;
   if deferred, note why (e.g. corpus not yet large/old enough for it to have caused a real issue)
+  — **decided (deferred), see plan doc** for the reasoning
 
 ## Work Log
 
@@ -116,3 +128,9 @@ user's proposed direction with the idempotency fix it needs:
   implements the Acceptance Criteria above. (Separately, zero glued-word extraction artifacts
   found across all 188 docs — see todos/019's Stage 1 note — confirming the pymupdf fix at full
   scale, not scope for this todo.)
+- 2026-11-18: Plan drafted (no implementation yet) — see
+  `docs/plans/2026-11-18-001-design-registry-schema-scalability-plan.md`. All three open design
+  questions decided: `sources` → bare `file_ids` (conditional on todos/028's landed shape),
+  `first_seen`/`last_seen` stay date-only, `context` temporal-dedup deferred. Flagged a real
+  sequencing question against todos/026 (derived/rebuildable registry could obsolete the
+  `sources`/`file_ids` idempotency concern entirely) for whoever implements to weigh.
