@@ -74,7 +74,14 @@ jobs:
           python scripts/source_data.py --bucket "${{ vars.GCS_BUCKET_URI }}" ${{ github.event.inputs.force == 'true' && '--force' || '' }}
 
       # On a scheduled run with nothing new, everything below is skipped — pushes to main
-      # and manual runs always proceed regardless of what source_data.py found.
+      # and manual runs always proceed regardless of what source_data.py found. Runs before
+      # Process transcripts so a term discovered this run (and promoted to glossary.json) can
+      # reach this same run's transcript-extraction prompts, not just the next run's — see
+      # todos/026.
+      - name: Extract terms (official documents)
+        if: ${{ github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true' }}
+        run: python scripts/extract_terms.py --bucket "${{ vars.GCS_BUCKET_URI }}"
+
       - name: Process transcripts
         if: ${{ github.event_name != 'schedule' || steps.source_data.outputs.changes == 'true' }}
         run: |

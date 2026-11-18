@@ -1,6 +1,5 @@
 import json
 import re
-import threading
 
 from sourcing import drive as drive_mod
 import name_matching
@@ -56,12 +55,11 @@ def _prefer_as_canonical(candidate, current, strip=lambda s: s):
 # useful diff, same reasoning as drive_catalog.json (see docs/pipeline.md).
 REGISTRY_BLOB_NAME = 'terms_registry.json'
 
-# post_process.py ingests terms for many meetings concurrently via a ThreadPoolExecutor, all
-# mutating the same in-memory registry dict — without this, concurrent ingest_document_terms
-# calls race on the same dict (observed in production as "dictionary changed size during
-# iteration", see todos/019 work log). Owned here rather than by each caller, since this module is
-# the one place that mutates the registry.
-_registry_lock = threading.Lock()
+# Sibling blob to REGISTRY_BLOB_NAME, not a field bolted onto the registry itself — keeps the
+# registry's own schema purely about entities (see todos/022). Holds registry_fingerprint()'s
+# last-rebuild snapshot, so extract_terms.py can skip a from-scratch rebuild on a run where
+# nothing qualifying changed (see todos/026).
+FINGERPRINT_BLOB_NAME = 'terms_registry_fingerprint.json'
 
 
 def load_registry(bucket_uri):
@@ -83,6 +81,31 @@ def save_registry(bucket_uri, registry):
         return
     drive_mod.write_blob(
         bucket_uri, REGISTRY_BLOB_NAME, json.dumps(registry, indent=2),
+        content_type='application/json',
+    )
+
+
+def load_fingerprint(bucket_uri):
+    """Load the last rebuild's registry_fingerprint() result from GCS. Returns None (not [])
+    when no bucket is configured or nothing's been built yet, so the first-ever run always
+    rebuilds rather than comparing against a default empty list that could spuriously match a
+    corpus with zero qualifying documents."""
+    if not bucket_uri:
+        return None
+    cached = drive_mod.read_cached_blob(bucket_uri, FINGERPRINT_BLOB_NAME)
+    if not cached:
+        return None
+    try:
+        return [tuple(entry) for entry in json.loads(cached)]
+    except Exception:
+        return None
+
+
+def save_fingerprint(bucket_uri, fingerprint):
+    if not bucket_uri:
+        return
+    drive_mod.write_blob(
+        bucket_uri, FINGERPRINT_BLOB_NAME, json.dumps(fingerprint),
         content_type='application/json',
     )
 
@@ -154,12 +177,9 @@ def ingest_document_terms(registry, file_id, meeting_slug, doc_type, extracted_t
     else in the pipeline to fold near-duplicate extractions (e.g. "Kaler" and "Kaler Elementary
     School" from different documents, or "Ishmeel Daniels" vs. "Mr. Daniels") into one entity
     instead of leaving them as disconnected fragments. Mutates `registry` in place; returns True
-    if anything changed. Thread-safe: callers may invoke this concurrently across meetings."""
-    with _registry_lock:
-        return _ingest_document_terms_locked(registry, file_id, meeting_slug, doc_type, extracted_terms)
-
-
-def _ingest_document_terms_locked(registry, file_id, meeting_slug, doc_type, extracted_terms):
+    if anything changed. Not thread-safe: the only caller is build_registry_from_catalog()'s
+    single serial rebuild pass — concurrent ingestion into a shared registry was retired rather
+    than guarded, see todos/026."""
     mutated = False
     for t in extracted_terms or []:
         term = (t.get('term') or '').strip()
@@ -235,16 +255,12 @@ def _ingest_document_terms_locked(registry, file_id, meeting_slug, doc_type, ext
             existing = {
                 'term': term, 'type': term_type,
                 'context': context if context and not _is_hedge_fragment(context) else '',
-                'sources': [], 'first_seen': meeting_slug, 'last_seen': meeting_slug,
+                'first_seen': meeting_slug, 'last_seen': meeting_slug,
             }
             mutated = True
 
         registry[key] = existing
 
-        source = {'file_id': file_id, 'meeting': meeting_slug, 'doc_type': doc_type}
-        if source not in existing['sources']:
-            existing['sources'].append(source)
-            mutated = True
         if context and not _is_hedge_fragment(context) and context not in (existing.get('context') or ''):
             existing['context'] = f"{existing['context']}; {context}" if existing.get('context') else context
             mutated = True
@@ -256,6 +272,66 @@ def _ingest_document_terms_locked(registry, file_id, meeting_slug, doc_type, ext
                 existing['last_seen'] = meeting_slug
                 mutated = True
     return mutated
+
+
+# agenda -> packet -> minutes: matches the priority order _find_priority_source_doc already uses
+# elsewhere in this pipeline (process_transcripts.py), so this isn't inventing a new convention.
+_DOC_TYPE_PRIORITY = {'agenda': 0, 'packet': 1, 'minutes': 2}
+
+
+def _qualifying_docs(catalog, meetings_data):
+    """Every (meeting_slug, doc_type, file_id) triple build_registry_from_catalog() and
+    registry_fingerprint() should visit, in one fixed deterministic order: meeting date
+    ascending, then doc_type priority (agenda -> packet -> minutes), then file_id as a final
+    tiebreak for a meeting with more than one document of the same type (confirmed real — see
+    todos/022's 2024-04-08 case: two distinct packet file_ids, two distinct minutes file_ids).
+    Shared by both functions so they can't silently drift apart on what counts as "qualifying"."""
+    ordered = []
+    for m in sorted(meetings_data, key=lambda m: m['slug']):
+        slug = m['slug']
+        qualifying = []
+        for d in (m.get('docs') or []):
+            doc_type = d.get('type')
+            if doc_type not in _DOC_TYPE_PRIORITY:
+                continue
+            file_id = drive_mod.extract_file_id(d.get('url'))
+            if not file_id:
+                continue
+            qualifying.append((file_id, doc_type))
+        qualifying.sort(key=lambda fd: (_DOC_TYPE_PRIORITY[fd[1]], fd[0]))
+        ordered.extend((slug, doc_type, file_id) for file_id, doc_type in qualifying)
+    return ordered
+
+
+def build_registry_from_catalog(catalog, meetings_data):
+    """Build the corpus-wide Terms Registry fresh from drive_catalog.json's current cached
+    `terms`, instead of mutating a persisted, accumulate-forever registry in place. Because the
+    output is wholly reconstructed from the catalog's *current* state, a term a document no
+    longer produces simply isn't re-added — no explicit retraction logic required (see
+    todos/026). Call this once, serially, after extraction has refreshed
+    catalog[file_id]['terms'] for every qualifying document; a meeting with no qualifying
+    official documents simply contributes no terms."""
+    registry = {}
+    for slug, doc_type, file_id in _qualifying_docs(catalog, meetings_data):
+        terms = catalog.get(file_id, {}).get('terms') or []
+        ingest_document_terms(registry, file_id, slug, doc_type, terms)
+    return registry
+
+
+def registry_fingerprint(catalog, meetings_data):
+    """The sorted (file_id, extractor_version, modified_time) tuple for every document
+    build_registry_from_catalog() would visit. If this matches the last rebuild's stored
+    fingerprint, the current terms_registry.json is guaranteed to already equal what a fresh
+    rebuild would produce (the rebuild is deterministic), so the rebuild can be skipped entirely
+    — see todos/026. A document with no catalog entry yet (never extracted) contributes
+    (file_id, None, None), which still changes the fingerprint the moment it's actually
+    extracted, so a brand-new document is never silently skipped."""
+    fingerprint = [
+        (file_id, catalog.get(file_id, {}).get('extractor_version'),
+         catalog.get(file_id, {}).get('modified_time'))
+        for _slug, _doc_type, file_id in _qualifying_docs(catalog, meetings_data)
+    ]
+    return sorted(fingerprint)
 
 
 def canonical_person(raw_name, registry):

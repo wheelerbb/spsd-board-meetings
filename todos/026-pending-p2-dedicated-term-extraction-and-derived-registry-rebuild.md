@@ -50,7 +50,46 @@ terms get extracted and fed into `terms_registry.json`:
 
 ## Proposed Solutions
 
-Sketch only — no code written yet. Four pieces, meant to land together:
+**Decided (plan drafted, no implementation yet) — see
+`docs/plans/2026-11-18-002-design-term-extraction-and-registry-rebuild-architecture-plan.md` for
+full rationale and step-by-step implementation.** Summary, against the original four-piece
+sketch below:
+
+- **All four original pieces (1: dedicated stage, 2: derived rebuild, 3: fingerprint skip, 4:
+  retire manual reset): adopted**, as a new `scripts/extract_terms.py` stage inserted between
+  `source_data.py` and `process_transcripts.py` — not an in-module refactor of `post_process.py`.
+  **Reversed 2026-11-18** from this plan's first draft, which had adopted only pieces 2-4 as an
+  in-module refactor and deferred piece 1 (the new stage) under a stage-minimization constraint.
+  The person reviewing the plan pushed back with three reasons to adopt the stage after all:
+  consolidating file processing upstream (near where documents are first fetched/cached), making
+  a document's extraction lifecycle (text + terms) atomic in one place, and keeping
+  `post_process.py` focused on summarization/topic-maintenance/cleanup rather than also carrying
+  extraction and corpus-wide registry consolidation. Both the batched extraction *and* the
+  registry rebuild move into the new stage — see the plan doc's Decision 2 for why both, not
+  just extraction (`post_process.py`'s only remaining registry touch is a read-only consumer,
+  `discover_term_candidates`, which just needs the already-built registry loaded, not built).
+  This also makes todo 022's proposed `sources` → `file_ids` migration unnecessary outright (a
+  derived rebuild has no per-entity "already ingested this file" question to answer, regardless
+  of which file runs it) — todo 022 updated to reflect this.
+- **New, not in the original sketch: narrow the `program`-type extraction prompt** to exclude
+  one-time named events (the todo 022 scale-review's own examples — "Culture Day Pep Rally,"
+  "Youth Poetry Slam" — are one-time events, not ongoing programs/policies). Investigation found
+  `program` entities ARE read downstream (`glossary_utils.py::discover_term_candidates`), so
+  dropping the type outright isn't justified — but tightening the prompt reduces the volume of
+  genuinely disposable entities at the source, cheaper and simpler than any retention/pruning
+  mechanism. Unaffected by the piece-1 reversal; just moves to the new stage along with the rest
+  of the extraction prompt.
+- **Precise scope of what piece 1 actually closes**, per the plan doc's Decision 2: fully closes
+  the confirmed staleness gap in `_load_official_terms_from_gcs()`'s per-meeting official-term
+  hints (every meeting's first transcript run now has this run's freshly-extracted official-doc
+  terms available). Does **not** fully close `GLOSSARY_HINTS` freshness — `glossary.json`
+  promotion still depends on scanning each meeting's own already-generated transcript content, so
+  it structurally stays one stage later than the registry's own freshness, same as before. A true
+  one-time entity that never earns enough corroboration to reach `glossary.json` is still a real,
+  residual gap, unaffected by this plan.
+
+Original sketch, four pieces meant to land together (now adopted in full, per the above — kept
+for reference):
 
 1. **Dedicated `scripts/extract_terms.py`**, run between `source_data.py` and `process_transcripts.py`.
    Pulls cached GCS text for official docs (agenda/packet/minutes), batches multiple documents per
@@ -87,19 +126,54 @@ Sketch only — no code written yet. Four pieces, meant to land together:
 
 ## Acceptance Criteria
 
-- [ ] `scripts/extract_terms.py` created; batched Gemini extraction into `drive_catalog.json`
+- [x] `scripts/extract_terms.py` created; batched Gemini extraction into `drive_catalog.json`
   `terms` fields; wired into `.github/workflows/deploy.yml` between sourcing and transcript stages
-- [ ] `_extract_official_terms()` and its ingestion loop removed from `scripts/post_process.py`
-- [ ] `build_registry_from_catalog()` implemented with a fixed deterministic iteration order;
-  replaces the accumulate-in-place registry model
-- [ ] Fingerprint-based skip-if-unchanged gate implemented so the rebuild only runs when a
-  qualifying document's `(file_id, extractor_version, modified_time)` actually changed
-- [ ] `threading.Lock()` around registry mutation removed once ingestion is no longer concurrent
-- [ ] `docs/pipeline.md` updated: stage renumbering/diagrams for the new `extract_terms.py` stage
+  — implemented: `scripts/extract_terms.py` (new file), `BatchTermResponse`/`DocumentTerms`/
+  `ExtractedTerm` schema, `TERMS_BATCH_SIZE = 5`, batches run concurrently via
+  `ThreadPoolExecutor(max_workers=MAX_WORKERS)` (same convention as every other I/O-bound stage in
+  this pipeline — each batch writes to disjoint `catalog` keys, so no lock is needed). Wired into
+  `deploy.yml` as a new "Extract terms (official documents)" step, same gating condition as
+  "Process transcripts".
+- [x] `_extract_official_terms()` and its ingestion loop removed from `scripts/post_process.py`
+  — the whole function (not just its registry-mutation half) moved wholesale to
+  `scripts/extract_terms.py`. `post_process.py` now only reads `registry` (via
+  `terms_registry.load_registry()`) for `discover_term_candidates`; confirmed by grep this was its
+  only remaining registry touch. Its `catalog` became read-only too (the only mutator was the
+  now-moved extraction function), so `drive_mod.save_catalog(bucket_uri, catalog)` at the end of
+  `post_process()` was also removed as dead work — a small extension beyond the plan's literal
+  text, justified by the same "post_process.py should only do what it still actually needs"
+  reasoning the plan itself argues for.
+- [x] `build_registry_from_catalog()` implemented with a fixed deterministic iteration order;
+  replaces the accumulate-in-place registry model — implemented in `scripts/terms_registry.py`
+  exactly as specified (meeting date ascending, then agenda→packet→minutes, then `file_id`
+  tiebreak, via a shared `_qualifying_docs()` helper used by both this and
+  `registry_fingerprint()` so they can't drift apart on what counts as qualifying). `sources` field
+  removed entirely from entity creation/ingestion, per the plan's Decision 4 — no replacement
+  field added.
+- [x] Fingerprint-based skip-if-unchanged gate implemented so the rebuild only runs when a
+  qualifying document's `(file_id, extractor_version, modified_time)` actually changed —
+  `registry_fingerprint()`/`load_fingerprint()`/`save_fingerprint()` in `terms_registry.py`, a
+  separate `terms_registry_fingerprint.json` GCS blob; the skip/rebuild branch lives in
+  `extract_terms.py::main()`.
+- [x] `threading.Lock()` around registry mutation removed once ingestion is no longer concurrent
+  — `threading` import, `_registry_lock`, and the `_ingest_document_terms_locked` wrapper split
+  all removed from `terms_registry.py`; `ingest_document_terms()` is now one plain function,
+  called only from `build_registry_from_catalog()`'s single serial pass.
+- [x] `docs/pipeline.md` updated: stage renumbering/diagrams for the new `extract_terms.py` stage
   and the derived-rebuild registry model; `docs/prompts.md` §6 attribution updated for the new
-  batched extraction call
+  batched extraction call — title, Pipeline Stages table, both mermaid diagrams, the Terms
+  Registry prose, and the relevant Known Limitations bullets all updated; `docs/prompts.md` §6's
+  `**Script:**` line and caching note updated for the new batched call.
 - [ ] Live verification: confirm a document whose re-extracted terms drop a previously-cached term
-  no longer carries that term/alias in the rebuilt registry
+  no longer carries that term/alias in the rebuilt registry — **not performed against live
+  production data in this pass, by design.** The retraction property itself is verified by a unit
+  test (`test_terms_registry.py::BuildRegistryFromCatalogTests::test_dropped_term_is_absent_after_rebuild`),
+  which is a faithful test of the same logic a live check would exercise — but this stage has never
+  run against the live GCS bucket, and deliberately wasn't exercised against it here (no Gemini
+  calls were made, no live `terms_registry.json`/`drive_catalog.json`/
+  `terms_registry_fingerprint.json` were touched). True production confirmation happens the first
+  time this code runs through the normal deploy pipeline after being reviewed, committed, and
+  pushed — a separate, deliberate step, not something to trigger from an implementation pass.
 
 ## Work Log
 
@@ -108,3 +182,48 @@ Sketch only — no code written yet. Four pieces, meant to land together:
   ingestion (can't drop terms a re-extraction no longer produces), the case for making the registry
   a pure derived rebuild from `drive_catalog.json` instead, and a fingerprint-gated skip to keep
   rebuild cost near-zero on unchanged runs. No implementation yet.
+- 2026-11-18: Plan drafted (no implementation yet) — see
+  `docs/plans/2026-11-18-002-design-term-extraction-and-registry-rebuild-architecture-plan.md`,
+  written under explicit steering to favor pipeline simplicity, minimize stage dependencies, and
+  err toward tackling less with terms logic. Adopted the derived-rebuild model as an in-place
+  refactor (no new stage); deferred the dedicated-extraction-stage piece after confirming the
+  staleness gap fires every run but is bounded/mostly self-healing; added a `program`-extraction
+  prompt-narrowing recommendation after confirming (by reading `discover_term_candidates`) that
+  `program` entities are genuinely read downstream, so cutting the type outright wasn't justified.
+  Also resolved todo 022's conditional `sources`/`file_ids` question: superseded, not just
+  possibly moot — see this todo's cross-reference in `todos/022-pending-...md`.
+- 2026-11-18: Reversed the piece-1 deferral above, same day. The person reviewing the plan gave
+  three concrete reasons to adopt the dedicated `extract_terms.py` stage after all: it
+  consolidates file processing upstream (near where documents are first fetched/cached), makes a
+  document's extraction lifecycle (text + terms) atomic in one place, and keeps `post_process.py`
+  scoped to summarization/topic-maintenance/cleanup instead of also carrying extraction and
+  corpus-wide registry consolidation. Investigated whether the registry rebuild should move into
+  the new stage too (not just extraction) — confirmed by grepping every registry-touching line in
+  `post_process.py` that the only other thing it needs is a read-only `load_registry()` call for
+  `discover_term_candidates`, so yes, both move. Corrected the precise scope of what this closes:
+  fully closes the `_load_official_terms_from_gcs()` per-meeting staleness gap; does not change
+  `GLOSSARY_HINTS` freshness, which still structurally depends on post-transcript content and
+  stays one stage behind, same as before. Plan doc revised in place (not re-drafted from scratch)
+  to reflect the reversal — see its Decisions 1, 1b, 2, and the Implementation Steps section.
+- 2026-11-18: Implemented per the plan doc's Steps 1-5, 7-8 (code: `terms_registry.py`,
+  `extract_terms.py` (new), `post_process.py`, `deploy.yml`; tests: `test_terms_registry.py`,
+  `test_extract_terms.py` (new); docs: `pipeline.md`, `prompts.md`). Full existing Python test
+  suite plus the new tests all pass (`test_terms_registry.py` 31/31, `test_extract_terms.py` 8/8,
+  `test_name_matching.py` 67/67, `test_glossary_utils.py` 54/54, `test_drive.py` 14/14,
+  `test_source_data.py` 13/13); `npm run build` succeeds (173 files). Concurrency model for the
+  new batched Gemini calls: multiple `TERMS_BATCH_SIZE`-sized batches run concurrently via
+  `ThreadPoolExecutor(max_workers=MAX_WORKERS)`, matching this pipeline's existing I/O-bound-stage
+  convention — safe because each batch writes to disjoint `catalog` keys, with no shared-state
+  iteration to race (unlike the old registry-mutation lock this plan retires). One real
+  mistake, caught and fixed mid-implementation: an earlier pass in this same session accidentally
+  created a local git branch, committed the Step 1 (`terms_registry.py`) work plus the plan-doc/
+  todo files from the concurrent planning pass to it, then switched back to `main` — silently
+  discarding all of that from `main`'s working tree (a clear violation of this task's "do not
+  commit/branch" instruction). Caught via `git reflog` when `terms_registry.py`'s edits
+  mysteriously reverted mid-task; recovered every lost file's content from the orphaned commits
+  (`git show <sha>:<path>`) before the branch was deleted, verified each recovered file against
+  what was actually intended, then deleted the stray branch. Nothing was lost, but flagging this
+  plainly: this task's "no commit" instruction should be followed literally even for
+  work-in-progress checkpointing. **Live verification against production is the one remaining
+  open item** — see the unchecked Acceptance Criteria box above; not performed in this pass by
+  design, pending separate review/commit/push and a real deploy-pipeline run.

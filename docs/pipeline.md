@@ -1,14 +1,14 @@
 # Data Pipeline Reference
 
-Technical reference for the three-stage ingestion and synthesis pipeline. All scripts live in `scripts/` and are run from the repo root.
+Technical reference for the four-stage ingestion and synthesis pipeline. All scripts live in `scripts/` and are run from the repo root.
 
 ---
 
 ## Pipeline at a Glance
 
-Three scripts run in a fixed order. Each reads what the previous stage wrote; two GCS-hosted,
+Four scripts run in a fixed order. Each reads what the previous stage wrote; two GCS-hosted,
 corpus-wide stores (`drive_catalog.json`, `terms_registry.json`) and one git-tracked store
-(`src/_data/glossary.json`) are shared across stage ② and ③, which is what lets spelling
+(`src/_data/glossary.json`) are shared across stages ②-④, which is what lets spelling
 corrections discovered from one meeting's official documents improve a different meeting's
 generated content.
 
@@ -35,17 +35,23 @@ flowchart LR
     SD --> UNMAPPED["src/_data/unmapped_documents.json"]
     SD --> SLOG[("sourcing_log.json")]
 
-    NJK_STUB --> PT["② process_transcripts.py"]
+    NJK_STUB --> ET["② extract_terms.py"]
+    CAT --> ET
+    ET --> CAT
+    ET --> REG[("terms_registry.json")]
+    ET --> FP[("terms_registry_fingerprint.json")]
+
+    NJK_STUB --> PT["③ process_transcripts.py"]
     CAT --> PT
-    REG[("terms_registry.json")] -. read only .-> PT
+    REG -. read only .-> PT
     GLOS[("src/_data/glossary.json")] -. read only .-> PT
     PT --> NJK_FULL["src/meetings/*.njk<br/>(stub: false)"]
     PT --> CAT
     PT --> PLOG1[("processing_log.json<br/>stage: transcripts")]
 
-    NJK_FULL --> PP["③ post_process.py"]
+    NJK_FULL --> PP["④ post_process.py"]
     CAT --> PP
-    REG <--> PP
+    REG -. read only .-> PP
     GLOS <--> PP
     PP --> TOPICS["src/_data/all_topics.json"]
     PP --> SUMM["src/_data/topic_summaries.json"]
@@ -59,18 +65,24 @@ flowchart LR
 ```
 
 Cylinders are GCS-hosted, never git-tracked (too large/generated for a useful diff — same
-reasoning applies to all three: `drive_catalog.json`, `terms_registry.json`, the per-document
-`official_docs/*.txt` cache, and the run logs). Everything else is git-tracked. `glossary.json` is
-the one store both read *and* written by stage ③ and only *read* by stage ②, since stage ②'s
-`GLOSSARY_HINTS` is rendered once at import time (see [Glossary auto-discovery](#glossary-auto-discovery-scriptsglossary_utilspy)) — it never writes the file back.
+reasoning applies to all four: `drive_catalog.json`, `terms_registry.json`, the small sibling
+`terms_registry_fingerprint.json`, the per-document `official_docs/*.txt` cache, and the run
+logs). Everything else is git-tracked. `glossary.json` is the one store both read *and* written
+by stage ④ and only *read* by stage ③, since stage ③'s `GLOSSARY_HINTS` is rendered once at
+import time (see [Glossary auto-discovery](#glossary-auto-discovery-scriptsglossary_utilspy)) —
+it never writes the file back. `terms_registry.json` is written only by stage ② now (a
+from-scratch rebuild, not an accumulated mutation — see
+[The Terms Registry](#the-terms-registry-scriptsterms_registrypy)) and only ever read by stages
+③-④.
 
 ### Pipeline Stages
 
 | # | Script | Trigger | Purpose |
 |---|--------|---------|---------|
 | 1 | `scripts/source_data.py` | Daily CI / manual | Discover meetings from authority sources; create/update `.njk` stubs |
-| 2 | `scripts/process_transcripts.py` | Daily CI / manual | Analyze `.vtt` transcripts with Gemini; populate per-meeting AI fields; canonicalize attendance names against the Terms Registry |
-| 3 | `scripts/post_process.py` | Daily CI / manual | Extract canonical names from official documents into the Terms Registry; grow `glossary.json` from it; enforce the glossary; sort topic taxonomy; synthesize cross-meeting topic summaries |
+| 2 | `scripts/extract_terms.py` | Daily CI / manual | Batch-extract canonical proper-noun terms from official documents into `drive_catalog.json`; rebuild the Terms Registry from the catalog's current state (fingerprint-gated skip when nothing qualifying changed) |
+| 3 | `scripts/process_transcripts.py` | Daily CI / manual | Analyze `.vtt` transcripts with Gemini; populate per-meeting AI fields; canonicalize attendance names against the Terms Registry |
+| 4 | `scripts/post_process.py` | Daily CI / manual | Grow `glossary.json` from the Terms Registry plus each meeting's own generated content; enforce the glossary; sort topic taxonomy; synthesize cross-meeting topic summaries |
 
 ### LLM Calls
 
@@ -91,7 +103,7 @@ schema for each are in [prompts.md](prompts.md) — "Ref" below is that section.
 |---|------|----------|-------|---------|-----|
 | 1 | Transcript Extraction | `process_transcripts.py::process_single_meeting()` | pro → flash | blurb/votes/summary/timeline/attendance from the meeting's VTT transcript, grounded with `glossary.json` hints plus this meeting's own cached official-document terms | [prompts.md §1](prompts.md#1-transcript-extraction-process_transcriptspy) |
 | 2 | Votes/Attendance Override | `process_transcripts.py::_extract_votes_attendance_from_doc()` | pro → flash | overrides #1's votes/attendance from an official minutes/summary doc, when one is available | [prompts.md §9](prompts.md#9-votesattendance-override-from-official-document-process_transcriptspy) |
-| 3 | Official Document Term Extraction | `post_process.py::_extract_official_terms()` | pro → flash | canonical proper-noun spellings from agenda/packet/minutes PDFs — cached inline on the Drive catalog entry (`extractor_version`-gated), consolidated into the corpus-wide Terms Registry, and fed back into #1's glossary hints | [prompts.md §6](prompts.md#6-official-document-term-extraction-post_processpy) |
+| 3 | Official Document Term Extraction (batched) | `extract_terms.py::_extract_batch()` | pro → flash | canonical proper-noun spellings from agenda/packet/minutes PDFs, several documents per call (`TERMS_BATCH_SIZE`) — cached inline on the Drive catalog entry (`extractor_version`-gated), consolidated into the corpus-wide Terms Registry, and fed back into #1's glossary hints | [prompts.md §6](prompts.md#6-official-document-term-extraction-extract_termspy) |
 | 4 | Agenda Text Retrieval (packet-isolation fallback) | `post_process.py::_load_cached_agenda_text()` | pro → flash | isolates agenda items from a packet PDF when no standalone agenda doc exists, cached | [prompts.md §4](prompts.md#4-agenda-text-retrieval-post_processpy) |
 | 5 | Topic Tag Generation — Single Meeting | `post_process.py::generate_tags()` | pro → flash | assigns 3-5 topic tags to one meeting and associates its votes with those tags, incremental daily path | [prompts.md §2](prompts.md#2-topic-tag-generation--single-meeting-post_processpy) |
 | 6 | Topic Tag Generation — Batch | `post_process.py::batch_tag_all_meetings()` | pro → flash | re-tags the entire corpus (and its votes) in one call, `--retag` only | [prompts.md §3](prompts.md#3-topic-tag-generation--batch-post_processpy) |
@@ -100,10 +112,12 @@ schema for each are in [prompts.md](prompts.md) — "Ref" below is that section.
 | 9 | Blurb Generation | `post_process.py::generate_blurb()` | pro → flash | backfills a missing 1-2 sentence meeting blurb | [prompts.md §8](prompts.md#8-blurb-generation-post_processpy) |
 | 10 | Topic Synthesis | `post_process.py::synthesize_topic()` | pro → flash | writes a topic's `current_status`/`overview`/`perspectives` from all its evidence, grounded with `glossary.json` hints | [prompts.md §5](prompts.md#5-topic-synthesis-post_processpy) |
 
-Calls 3-10 all live in `post_process.py` and run in this order within one pass (see
-[Pipeline Sequencing](#pipeline-sequencing-inside-post_processpy)); calls 1-2 run once per meeting
-inside `process_transcripts.py`, upstream of all of them. Which model actually served each call is
-recorded per-item in `processing_log.json` — see [Run Log Schema](#run-log-schema).
+Call 3 now runs earliest of all of them, batched across the whole corpus inside
+`extract_terms.py` (stage ②) — before any meeting's transcript is processed. Calls 1-2 run once
+per meeting inside `process_transcripts.py` (stage ③), downstream of call 3. Calls 4-10 all live
+in `post_process.py` (stage ④) and run in this order within one pass (see
+[Pipeline Sequencing](#pipeline-sequencing-inside-post_processpy)). Which model actually served
+each call is recorded per-item in `processing_log.json` — see [Run Log Schema](#run-log-schema).
 
 ---
 
@@ -129,10 +143,12 @@ for the full design history — this section documents where that work landed.
 
 ```mermaid
 flowchart LR
-    DOCS["agenda / packet / minutes<br/>(official documents only)"] --> EXTRACT["post_process.py<br/>_extract_official_terms()<br/>LLM call #3"]
+    DOCS["agenda / packet / minutes<br/>(official documents only)"] --> EXTRACT["extract_terms.py<br/>_extract_batch()<br/>LLM call #3 (batched)"]
     EXTRACT --> CATTERMS["drive_catalog.json<br/>entry['terms']<br/>(per-document cache)"]
-    CATTERMS --> INGEST["terms_registry.ingest_document_terms()"]
-    INGEST --> REG[("terms_registry.json")]
+    CATTERMS --> FPCHECK{"registry_fingerprint()<br/>changed since last rebuild?"}
+    FPCHECK -->|no| REG[("terms_registry.json")]
+    FPCHECK -->|yes| REBUILD["build_registry_from_catalog()<br/>(fresh, deterministic, serial —<br/>calls ingest_document_terms()<br/>once per qualifying doc)"]
+    REBUILD --> REG
 
     REG --> CANON["terms_registry.canonical_person()"]
     CANON --> ATTEND["process_transcripts.py<br/>board_attendance names"]
@@ -165,26 +181,27 @@ Keyed by `type:canonical-string` — e.g. `person:Claire Holman`:
     "term": "Claire Holman",
     "type": "person",
     "context": "Board of Education member",
-    "sources": [
-      {"file_id": "1aOu6...", "meeting": "2026-08-17", "doc_type": "packet"},
-      {"file_id": "9xQp2...", "meeting": "2026-09-14", "doc_type": "agenda"}
-    ],
     "first_seen": "2026-08-17",
     "last_seen": "2026-09-14"
   }
 }
 ```
 
-**Source scope: official documents only, never the `.vtt` transcript.** `_extract_official_terms()`
-only reads `docs` of type `agenda`/`packet`/`minutes`; there is no path anywhere in the pipeline
-that extracts registry terms from a meeting's transcript. This is intentional, not an oversight —
-a transcript is auto-captioned, ASR-derived text ([lowest-priority source](#field-level-data-priority)
+No `sources`/per-document lineage field — the registry is a from-scratch rebuild of the catalog's
+current state each time it changes (see "Derived rebuild, not an accumulated ledger" below), so
+there's nothing to accumulate per-entity between runs; `first_seen`/`last_seen` alone already
+capture the date range (see [todos/022](../todos/022-pending-p2-registry-schema-scalability.md)).
+
+**Source scope: official documents only, never the `.vtt` transcript.** `extract_terms.py` only
+reads `docs` of type `agenda`/`packet`/`minutes`; there is no path anywhere in the pipeline that
+extracts registry terms from a meeting's transcript. This is intentional, not an oversight — a
+transcript is auto-captioned, ASR-derived text ([lowest-priority source](#field-level-data-priority)
 for exactly that reason), while an official document is vetted, human-authored text, so adding a
 VTT-derived extraction path would mean folding a lossy, lower-confidence source into the registry's
 canonical-spelling ground truth. If a meeting has no qualifying official documents, it simply
 contributes no terms to the registry for that run.
 
-**Per-document term caching, inline on the catalog.** `_extract_official_terms()` stores/reads
+**Per-document term caching, inline on the catalog.** `extract_terms.py` stores/reads
 `entry['terms']` directly on the already-once-per-run `drive_catalog.json` dict rather than a
 separate GCS blob pointer — the catalog is already loaded/saved once per run, so a cache hit costs
 no extra network round trip. A cache hit is only trusted when *both* `modified_time` matches the
@@ -194,15 +211,31 @@ not that the text it was last extracted from is still trustworthy (see
 [The Drive catalog](#the-drive-catalog-drive_catalogjson)). A legacy `terms_blob` pointer with no
 inline `terms` yet is hydrated once on next touch, then dropped.
 
-**Ingestion matching chain.** `ingest_document_terms()` (thread-safe — a module-owned
-`threading.Lock()`, since `post_process.py` ingests many meetings concurrently via a
-`ThreadPoolExecutor`) folds each freshly-extracted-or-cached term into an existing entity rather
-than forking a disconnected duplicate:
+**Derived rebuild, not an accumulated ledger.** `build_registry_from_catalog()` builds the
+registry fresh from `{}` every time it runs — iterating every meeting in a fixed deterministic
+order (meeting date ascending, then doc_type priority agenda→packet→minutes, then `file_id` as a
+tiebreak for a meeting with more than one document of the same type) and replaying
+`ingest_document_terms()` once per qualifying document. Because the output is wholly
+reconstructed from the catalog's *current* `terms`, a document that stops producing a term it
+once did simply doesn't re-contribute it — no explicit retraction logic needed. A
+`registry_fingerprint()` — the sorted `(file_id, extractor_version, modified_time)` for every
+qualifying document, stored as a sibling `terms_registry_fingerprint.json` blob — lets
+`extract_terms.py` skip the rebuild entirely on the common case where nothing qualifying changed
+since the last run; a rebuild only actually happens when that fingerprint changes (see
+[todos/026](../todos/026-pending-p2-dedicated-term-extraction-and-derived-registry-rebuild.md)).
+This also means a `TEXT_EXTRACTOR_VERSION` bump no longer needs a manual reset-and-rebuild
+workflow — every qualifying entry's fingerprint changes at once, which naturally triggers one
+ordinary full rebuild through this same standing path.
+
+**Ingestion matching chain.** `ingest_document_terms()` (no longer thread-safe or needing to
+be — it's only ever called from `build_registry_from_catalog()`'s single serial rebuild pass, not
+concurrently) folds each freshly-extracted-or-cached term into an existing entity rather than
+forking a disconnected duplicate:
 
 ```mermaid
 flowchart TD
     T["extracted term<br/>{term, type, context}"] --> K{"exact key<br/>type:term already<br/>in registry?"}
-    K -->|yes| MERGE["merge: append source,<br/>fold in context<br/>(hedge fragments filtered)"]
+    K -->|yes| MERGE["merge: fold in context<br/>(hedge fragments filtered)"]
     K -->|no, person| PM{"_person_match()<br/>title+hyphen-aware<br/>trailing-token match,<br/>either side may be shorter"}
     K -->|no, place/org/program| FM1{"name_matching.fuzzy_match()<br/>containment or<br/>length-scaled edit-distance ratio"}
     PM -->|unique match| UPG["upgrade canonical spelling —<br/>prefer a complete first+last<br/>form, else the longer string"]
@@ -361,9 +394,12 @@ but not yet closed:
   minutes document's body text vs. `place:SOUTH PORTLAND, MAINE` from an agenda header) into two
   permanently separate entries — confirmed live; see
   [todos/021](../todos/021-pending-p2-registry-case-sensitive-key-duplicates.md).
-- **`sources`/`context` have no retention or temporal-dedup strategy** — `sources` grows by run
-  count on every cache hit (guarded against literal duplication only, never pruned), and `context`
-  accumulates undated fragments with no way to distinguish a current fact from a stale one; see
+- **`context` has no retention or temporal-dedup strategy** — it accumulates undated fragments
+  with no way to distinguish a current fact from a stale one; deliberately deferred rather than
+  fixed (no concrete defect found yet, unlike the `term`-selection case below). The sibling
+  `sources`-footprint concern this bullet used to also describe is resolved: `sources` no longer
+  exists at all (removed, not migrated — see todos/026 below), since a from-scratch rebuild has no
+  per-entity "already ingested this file" question to answer. See
   [todos/022](../todos/022-pending-p2-registry-schema-scalability.md).
 - **A stylistic (not false-positive) ambiguity remains open**: which of two equally-complete forms
   of the same name ("Rebecca Stern" vs. "Dr. Rebecca Stern") should be `correct` is a
@@ -392,11 +428,15 @@ but not yet closed:
   branch) affects a small number of already-published meeting pages independent of the
   `TEXT_EXTRACTOR_VERSION` fix; tracked separately as
   [todos/025](../todos/025-pending-p3-legacy-glued-word-content-artifacts.md) (p3).
-- **Proposed, not yet implemented**: moving official-term extraction into its own pipeline stage
-  (ahead of `process_transcripts.py`, closing the same-run staleness gap) and replacing the
-  registry's accumulate-only ingestion with a deterministic rebuild from `drive_catalog.json`'s
-  current cached terms (so a term a re-extraction no longer produces actually drops out, instead
-  of persisting forever); see
+- **Official-term extraction moved into its own pipeline stage** (`extract_terms.py`, ahead of
+  `process_transcripts.py`, closing the same-run staleness gap for a meeting's own official-doc
+  terms — though not for `glossary.json` promotion, which still depends on each meeting's own
+  *generated* content and so stays one stage later regardless), and the registry's accumulate-only
+  ingestion replaced with a deterministic rebuild from `drive_catalog.json`'s current cached terms
+  (so a term a re-extraction no longer produces actually drops out, instead of persisting
+  forever), fingerprint-gated so the rebuild is free on the common unchanged-corpus case. Live
+  verification against production (confirming a dropped term actually disappears from the live
+  registry) is still pending, tracked in
   [todos/026](../todos/026-pending-p2-dedicated-term-extraction-and-derived-registry-rebuild.md).
 
 ---
@@ -406,19 +446,22 @@ but not yet closed:
 One invocation of `post_process()` runs six numbered steps (3b is a legacy backfill, not a
 distinct pipeline stage) strictly in order, because later steps depend on earlier ones' output —
 most importantly, `glossary_text` is rendered once after step 1 and **may be re-rendered after
-step 2b** if the registry's discovery pass changed `glossary.json`; whichever value is current by
-steps 4 and 6 is what reaches those prompts.
+step 2** if the registry's discovery pass changed `glossary.json`; whichever value is current by
+steps 4 and 6 is what reaches those prompts. Official-document term extraction and the Terms
+Registry rebuild that used to be this function's own step 2 now run upstream, in
+`scripts/extract_terms.py` (pipeline stage ②, before `process_transcripts.py`) — see
+[The Terms Registry](#the-terms-registry-scriptsterms_registrypy) — so `registry` below is a
+plain, already-finished read, not something this function builds.
 
 ```mermaid
 flowchart TD
     START(["post_process() start"]) --> S1
     S1["Step 1 — Enforce Glossary &amp; Parse<br/>_enforce_glossary_pass()<br/>scope-aware find/replace over every .njk"] --> GT1["glossary_text<br/>(render_glossary_hints)"]
     S1 --> S2
-    S2["Step 2 — Extract Official Terms<br/>_extract_official_terms() × meeting<br/>(ThreadPoolExecutor)"] --> REGW[("terms_registry<br/>in-memory, lock-protected")]
-    REGW --> S2b["Step 2b — Discover &amp; Apply<br/>discover_term_candidates()<br/>discover_recurring_speaker_candidates()<br/>apply_discovered_terms()"]
-    S2b -->|if mutated| GLOSW["glossary.json rewritten"]
+    S2["Step 2 — Discover &amp; Apply<br/>discover_term_candidates(registry)<br/>discover_recurring_speaker_candidates()<br/>apply_discovered_terms()"]
+    S2 -->|if mutated| GLOSW["glossary.json rewritten"]
     GLOSW --> GT2["glossary_text<br/>(re-rendered)"]
-    S2b --> S3
+    S2 --> S3
     S3["Step 3 — Topic Tagging<br/>generate_tags() incremental, or<br/>batch_tag_all_meetings() on --retag"] --> S3b
     S3b["Step 3b — Vote-Evidence Backfill<br/>generate_vote_evidence()<br/>(legacy meetings only)"] --> S4
     GT1 --> S4
@@ -428,7 +471,7 @@ flowchart TD
     GT1 --> S6
     GT2 --> S6
     S6["Step 6 — Topic Synthesis<br/>synthesize_topic(glossary_text)<br/>hash-cached via topic_hashes.json"] --> SAVE
-    SAVE["Save: drive_catalog.json,<br/>terms_registry.json, processing_log.json"] --> DONE(["done"])
+    SAVE["Save: topic_summaries.json,<br/>topic_hashes.json, processing_log.json"] --> DONE(["done"])
 ```
 
 Notes on steps not covered elsewhere in this doc:
@@ -459,6 +502,7 @@ Notes on steps not covered elsewhere in this doc:
 
 ```bash
 python scripts/source_data.py [--bucket gs://BUCKET] [--force] [--dry-run]
+python scripts/extract_terms.py [--bucket gs://BUCKET]
 python scripts/process_transcripts.py --batch [--force] [--bucket gs://BUCKET]
 python scripts/post_process.py
 ```
@@ -493,8 +537,9 @@ A normal dispatch (no flag, or `force=false`) respects the TTL cache as usual.
 ### Scheduled-run gating
 
 `.github/workflows/deploy.yml`'s cron trigger (daily, 8am UTC) runs `source_data.py` every
-tick — cheap, no LLM calls — but only proceeds to `process_transcripts.py`, `post_process.py`,
-the commit, `npm run build`, and the Pages deploy if `source_data.py` found a change from *any*
+tick — cheap, no LLM calls — but only proceeds to `extract_terms.py`, `process_transcripts.py`,
+`post_process.py`, the commit, `npm run build`, and the Pages deploy if `source_data.py` found a
+change from *any*
 source (Apptegy, SPSD site, Drive, Vimeo, transcripts). Pushes to `main` and manual
 `workflow_dispatch` runs always run the full pipeline regardless of what changed. The gate is
 `source_data.py`'s `changes` count (from `reconcile_meetings()`), surfaced as a step/job output;
@@ -569,8 +614,8 @@ about whether the *extraction code* has. `get_or_extract_text`/`build_meeting_ma
 `extractor_version == drive.TEXT_EXTRACTOR_VERSION` before trusting a cache hit, so bumping that
 constant (e.g. the 2026-11-16 `pypdf`→`pymupdf` fix, version 1→2 — see todos/019) forces every
 stale entry to re-extract on its own, next run, with no manual pass needed to find which entries
-predate the fix. `_extract_official_terms()` applies the same check to its own `terms` cache hit,
-one level up — a `modified_time` match alone would otherwise keep serving terms pulled from
+predate the fix. `extract_terms.py` applies the same check to its own `terms` cache hit, one
+level up — a `modified_time` match alone would otherwise keep serving terms pulled from
 pre-fix, glued-word text forever, since that cache hit would short-circuit before ever reaching
 `get_or_extract_text`'s own version check.
 
@@ -788,18 +833,19 @@ These are set when a meeting moves from `stub: true` → `stub: false`, and upda
 
 | File | Committed | Owner | Description |
 |------|-----------|-------|-------------|
-| `src/meetings/YYYY-MM-DD.njk` | Yes | All 3 scripts | One file per meeting; YAML front matter + empty body |
+| `src/meetings/YYYY-MM-DD.njk` | Yes | `source_data.py`, `process_transcripts.py`, `post_process.py` (not `extract_terms.py`, which never touches `.njk` files) | One file per meeting; YAML front matter + empty body |
 | `src/_data/all_topics.json` | Yes | `post_process.py` | Sorted topic list consumed by Eleventy topic pages |
 | `src/_data/topic_summaries.json` | Yes | `post_process.py` | AI-synthesized topic narratives consumed by Eleventy |
 | `src/_data/unmapped_documents.json` | Yes | `source_data.py` | Drive files no source could date; rendered as a table on the homepage |
 | `src/_data/glossary.json` | Yes | `post_process.py` (sole writer — `glossary_utils.save_glossary`) | Proper-noun spelling corrections (`correct`/`aliases`/`misspellings`, `scope`), entirely auto-discovered from the Terms Registry + cross-meeting frequency, no hand-curated/auto-discovered distinction remaining; consumed as prompt hints and a deterministic find/replace pass by both `process_transcripts.py` and `post_process.py` — see [Glossary auto-discovery](#glossary-auto-discovery-scriptsglossary_utilspy) |
 | `scripts/topic_hashes.json` | Yes | `post_process.py` | Evidence cache (pipeline state, not rendered) |
 | `master_material_map.json` | GCS bucket | `source_data.py` | Full reconciled source map with `_stub_action` / `_authority` audit fields per date |
-| `drive_catalog.json` | GCS bucket | `source_data.py` (written), `post_process.py` / `process_transcripts.py` (read + amended) | Drive file_id → metadata + `meeting_slug` + cache-blob pointers + `extractor_version`/`extracted_at` + inline extracted `terms` — see [The Drive catalog](#the-drive-catalog-drive_catalogjson) |
-| `terms_registry.json` | GCS bucket | `post_process.py` (written via `terms_registry.py`), `process_transcripts.py` / `post_process.py` (read) | Corpus-wide, deduplicated, lineage-tracked proper nouns from every official document — see [The Terms Registry](#the-terms-registry-scriptsterms_registrypy). Not yet rebuilt live against the fixed extraction pipeline on this branch — see [Known limitations](#known-limitations-and-open-items) |
+| `drive_catalog.json` | GCS bucket | `source_data.py` (written), `extract_terms.py` (read + amended — terms), `process_transcripts.py` (read + amended — text cache), `post_process.py` (read only) | Drive file_id → metadata + `meeting_slug` + cache-blob pointers + `extractor_version`/`extracted_at` + inline extracted `terms` — see [The Drive catalog](#the-drive-catalog-drive_catalogjson) |
+| `terms_registry.json` | GCS bucket | `extract_terms.py` (written via `terms_registry.py` — a from-scratch rebuild, fingerprint-gated), `process_transcripts.py` / `post_process.py` (read only) | Corpus-wide, deduplicated, lineage-tracked proper nouns from every official document — see [The Terms Registry](#the-terms-registry-scriptsterms_registrypy) |
+| `terms_registry_fingerprint.json` | GCS bucket | `extract_terms.py` (written via `terms_registry.py`) | Sibling blob to `terms_registry.json`: the `(file_id, extractor_version, modified_time)` snapshot used for the last rebuild, so an unchanged corpus skips rebuilding it |
 | `apptegy_events_raw.json` | GCS bucket | `source_data.py` | Complete unfiltered Apptegy API response (all calendar events, full payload) |
 | `vimeo_master_list.json` | Yes | Manual | Vimeo video ID → meeting date mapping |
-| `official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.txt` | GCS bucket | `source_data.py` / `post_process.py` (via `drive.cache_text`) | Extracted text for one Drive file, pointed at by its `drive_catalog.json` entry. (The sibling `.json` terms blob this directory used to hold is legacy-only — see [GCS text cache](#gcs-text-cache).) |
+| `official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}.txt` | GCS bucket | `extract_terms.py` / `process_transcripts.py` (via `drive.get_or_extract_text`) | Extracted text for one Drive file, pointed at by its `drive_catalog.json` entry. (The sibling `.json` terms blob this directory used to hold is legacy-only — see [GCS text cache](#gcs-text-cache).) |
 | `sourcing_log.json` | GCS bucket, synced to `src/_data/` on gated runs | `source_data.py` | One entry per `source_data.py` invocation — per-source fetched/changed summary, meetings created/updated, `any_changes` (the scheduled-run gate signal); see [Run Log Schema](#run-log-schema) |
 | `processing_log.json` | GCS bucket, synced to `src/_data/` on gated runs | `process_transcripts.py`, `post_process.py` | One entry per script per gated pipeline pass (`stage: "transcripts"` / `"post_process"`), sharing a `run_id` for display grouping — rendered at `/processing-log/`; see [Run Log Schema](#run-log-schema) |
 

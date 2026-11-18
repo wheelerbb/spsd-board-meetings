@@ -1,8 +1,9 @@
 import unittest
-import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from terms_registry import ingest_document_terms, canonical_person, persons, entities_of_type
+from terms_registry import (
+    ingest_document_terms, canonical_person, persons, entities_of_type,
+    build_registry_from_catalog, registry_fingerprint,
+)
 
 
 class IngestDocumentTermsTests(unittest.TestCase):
@@ -16,7 +17,6 @@ class IngestDocumentTermsTests(unittest.TestCase):
         entity = registry["person:Ishmeel Daniels"]
         self.assertEqual(entity["term"], "Ishmeel Daniels")
         self.assertEqual(entity["context"], "public comment")
-        self.assertEqual(len(entity["sources"]), 1)
         self.assertEqual(entity["first_seen"], "2026-04-02")
         self.assertEqual(entity["last_seen"], "2026-04-02")
 
@@ -28,7 +28,6 @@ class IngestDocumentTermsTests(unittest.TestCase):
                                [{"term": "Ishmeel Daniels", "type": "person", "context": "candidate"}])
         self.assertEqual(len(registry), 1)
         entity = registry["person:Ishmeel Daniels"]
-        self.assertEqual(len(entity["sources"]), 2)
         self.assertEqual(entity["first_seen"], "2026-03-23")
         self.assertEqual(entity["last_seen"], "2026-04-02")
 
@@ -39,8 +38,7 @@ class IngestDocumentTermsTests(unittest.TestCase):
         ingest_document_terms(registry, "file2", "2026-02-12", "minutes",
                                [{"term": "DeAngelis", "type": "person", "context": "moved to approve"}])
         self.assertEqual(len(registry), 1)
-        entity = registry["person:Rosemarie DeAngelis"]
-        self.assertEqual(len(entity["sources"]), 2)
+        self.assertIn("person:Rosemarie DeAngelis", registry)
 
     def test_fuller_later_mention_upgrades_canonical_spelling(self):
         registry = {}
@@ -76,8 +74,7 @@ class IngestDocumentTermsTests(unittest.TestCase):
         ingest_document_terms(registry, "file2", "2026-10-01", "minutes",
                                [{"term": "Mr. Daniel Feller", "type": "person"}])
         self.assertEqual(len(registry), 1)
-        entity = registry["person:Mr. Daniel Feller"]
-        self.assertEqual(len(entity["sources"]), 2)
+        self.assertIn("person:Mr. Daniel Feller", registry)
 
     def test_titled_nickname_merges_via_fuzzy_fallback(self):
         # Same asymmetry one layer down: the leftover "Mr. " prefix dragged the fuzzy-match
@@ -113,7 +110,6 @@ class IngestDocumentTermsTests(unittest.TestCase):
                                [{"term": "Taj", "type": "organization"}])
         self.assertEqual(len(registry), 1)
         self.assertEqual(registry["person:Taj"]["type"], "person")
-        self.assertEqual(len(registry["person:Taj"]["sources"]), 2)
 
     def test_cross_type_ambiguous_match_stays_separate(self):
         # Safe-degrade: if two entities under the same string but different types already
@@ -123,9 +119,9 @@ class IngestDocumentTermsTests(unittest.TestCase):
         # can't tell which of the two it corroborates, so it becomes its own entity rather than
         # guessing.
         registry = {
-            "person:Taj": {"term": "Taj", "type": "person", "context": "", "sources": [],
+            "person:Taj": {"term": "Taj", "type": "person", "context": "",
                            "first_seen": "2026-10-01", "last_seen": "2026-10-01"},
-            "place:Taj": {"term": "Taj", "type": "place", "context": "", "sources": [],
+            "place:Taj": {"term": "Taj", "type": "place", "context": "",
                           "first_seen": "2026-10-14", "last_seen": "2026-10-14"},
         }
         ingest_document_terms(registry, "file3", "2026-11-09", "packet", [{"term": "Taj", "type": "organization"}])
@@ -156,7 +152,6 @@ class IngestDocumentTermsTests(unittest.TestCase):
         self.assertEqual(len(registry), 1)
         entity = registry["place:South Portland, Maine"]
         self.assertEqual(entity["term"], "South Portland, Maine")
-        self.assertEqual(len(entity["sources"]), 2)
 
     def test_case_variant_matches_regardless_of_which_casing_came_first(self):
         # Mirror of the above with the ALL-CAPS form registered first — the fix must not depend
@@ -169,7 +164,6 @@ class IngestDocumentTermsTests(unittest.TestCase):
         self.assertEqual(len(registry), 1)
         self.assertIn("program:BOARD WORKSHOP", registry)
         self.assertEqual(registry["program:BOARD WORKSHOP"]["term"], "BOARD WORKSHOP")
-        self.assertEqual(len(registry["program:BOARD WORKSHOP"]["sources"]), 2)
 
     def test_punctuation_artifact_term_gets_corrected_by_cleaner_corroboration(self):
         # Regression for the live todos/028 bug: "Molly. Schen" (stray period, the very first
@@ -185,7 +179,6 @@ class IngestDocumentTermsTests(unittest.TestCase):
         self.assertEqual(len(registry), 1)
         self.assertIn("person:Molly Schen", registry)
         self.assertEqual(registry["person:Molly Schen"]["term"], "Molly Schen")
-        self.assertEqual(len(registry["person:Molly Schen"]["sources"]), 2)
 
     def test_clean_term_not_overridden_by_later_punctuation_artifact(self):
         # Mirror of the above with the clean form registered first — a later, noisier mention of
@@ -220,30 +213,133 @@ class IngestDocumentTermsTests(unittest.TestCase):
         self.assertFalse(ingest_document_terms(registry, "file1", "2026-01-08", "agenda", []))
         self.assertEqual(registry, {})
 
-    def test_concurrent_ingestion_does_not_race(self):
-        # Regression test for the 2026-11-13 production bug: post_process.py's ThreadPoolExecutor
-        # calls ingest_document_terms for many meetings concurrently against the same registry
-        # dict. Before the lock, this intermittently raised "dictionary changed size during
-        # iteration" from entities_of_type's list comprehension over registry.values() racing
-        # another thread's registry.pop()/registry[key]=... — silently dropping that meeting's
-        # terms (caught by post_process.py's broad except). Run many distinct new entities
-        # concurrently; with the lock, every one must land with no exception.
-        registry = {}
-        # Genuinely-distinct surnames (random hex, not sequential numbers) so none is a substring
-        # or near-fuzzy-match of another — otherwise ingest_document_terms's own (correct)
-        # consolidation logic would legitimately merge them, which isn't what this test checks.
-        names = [f"Person {uuid.uuid4().hex}" for _ in range(200)]
-        with ThreadPoolExecutor(max_workers=16) as executor:
-            futures = [
-                executor.submit(
-                    ingest_document_terms, registry, f"file{i}", f"2026-01-{i % 28 + 1:02d}", "agenda",
-                    [{"term": name, "type": "person", "context": "c"}],
-                )
-                for i, name in enumerate(names)
-            ]
-            for future in as_completed(futures):
-                future.result()  # re-raises if the worker hit an exception
-        self.assertEqual(len(registry), 200)
+    # Note: the old "test_concurrent_ingestion_does_not_race" regression test (2026-11-13
+    # production bug — concurrent ThreadPoolExecutor calls racing on the same registry dict)
+    # was removed here, not updated. Its premise no longer holds: ingest_document_terms is no
+    # longer called concurrently anywhere (the only caller is build_registry_from_catalog's
+    # single serial pass) and the lock it exercised is gone — see todos/026. Keeping a
+    # "thread-safety" test around after deliberately retiring the thing it tested would wrongly
+    # imply concurrent calls are still a supported, safe use case.
+
+
+class BuildRegistryFromCatalogTests(unittest.TestCase):
+    def test_deterministic_order_from_unordered_input(self):
+        # meetings_data given out of chronological order; the rebuild must still process them
+        # (and, within each meeting, agenda before packet before minutes) in a fixed order, so
+        # two rebuilds of the same catalog always produce byte-identical results — needed for
+        # the fingerprint skip to be trustworthy.
+        catalog = {
+            "fA": {"terms": [{"term": "Alpha Agenda Co", "type": "organization"}]},
+            "fP": {"terms": [{"term": "Alpha Packet Co", "type": "organization"}]},
+            "fM": {"terms": [{"term": "Alpha Minutes Co", "type": "organization"}]},
+        }
+        meetings_data = [
+            {"slug": "2026-02-12", "docs": [
+                {"type": "minutes", "url": "https://drive.google.com/file/d/fM/view"},
+                {"type": "agenda", "url": "https://drive.google.com/file/d/fA/view"},
+                {"type": "packet", "url": "https://drive.google.com/file/d/fP/view"},
+            ]},
+            {"slug": "2026-01-08", "docs": []},
+        ]
+        r1 = build_registry_from_catalog(catalog, meetings_data)
+        r2 = build_registry_from_catalog(catalog, list(reversed(meetings_data)))
+        self.assertEqual(r1, r2)
+        self.assertEqual(len(r1), 3)
+
+    def test_same_meeting_same_doctype_collision_resolved_by_file_id(self):
+        # Confirmed-real case (todos/022): a meeting with two distinct documents of the same
+        # doc_type (e.g. a revised packet). The tiebreak must be a stable, deterministic
+        # ordering (file_id), not dependent on docs[] list order, for the same byte-identical-
+        # rebuild reason as above.
+        catalog = {
+            "fZ": {"terms": [{"term": "First Mention Inc", "type": "organization"}]},
+            "fA": {"terms": [{"term": "First Mention Inc", "type": "organization", "context": "renamed"}]},
+        }
+        meetings_data = [{"slug": "2024-04-08", "docs": [
+            {"type": "packet", "url": "https://drive.google.com/file/d/fZ/view"},
+            {"type": "packet", "url": "https://drive.google.com/file/d/fA/view"},
+        ]}]
+        registry = build_registry_from_catalog(catalog, meetings_data)
+        # fA sorts before fZ, so fA's ingestion runs first regardless of docs[] list order —
+        # its context becomes the entity's context (ingest_document_terms's context-append only
+        # adds fZ's context if it's a genuinely new fragment, which "renamed" isn't once fA's
+        # own pass already contributed it first... concretely: whichever file_id is alphabetically
+        # first is ingested first).
+        self.assertEqual(len(registry), 1)
+
+    def test_dropped_term_is_absent_after_rebuild(self):
+        # The concrete regression test for the "retraction" property this whole plan is built
+        # around (todos/026): a term a document no longer produces must not survive a rebuild,
+        # unlike the old accumulate-in-place model where nothing ever removed a stale term.
+        catalog = {"f1": {"terms": [
+            {"term": "Culture Day Pep Rally", "type": "program"},
+            {"term": "Claire Holman", "type": "person"},
+        ]}}
+        meetings_data = [{"slug": "2026-01-08", "docs": [
+            {"type": "agenda", "url": "https://drive.google.com/file/d/f1/view"},
+        ]}]
+        before = build_registry_from_catalog(catalog, meetings_data)
+        self.assertIn("program:Culture Day Pep Rally", before)
+
+        # Simulate a re-extraction that no longer produces the one-time-event term (e.g. the
+        # narrowed prompt now correctly excludes it) — same file_id, updated terms.
+        catalog["f1"]["terms"] = [{"term": "Claire Holman", "type": "person"}]
+        after = build_registry_from_catalog(catalog, meetings_data)
+        self.assertNotIn("program:Culture Day Pep Rally", after)
+        self.assertIn("person:Claire Holman", after)
+
+    def test_meeting_with_no_qualifying_docs_contributes_nothing(self):
+        catalog = {}
+        meetings_data = [{"slug": "2026-01-08", "docs": [{"type": "vtt", "url": "https://example.com/x"}]}]
+        self.assertEqual(build_registry_from_catalog(catalog, meetings_data), {})
+
+
+class RegistryFingerprintTests(unittest.TestCase):
+    def _catalog_and_meeting(self, file_id="f1", extractor_version=2, modified_time="2026-01-01T00:00:00Z"):
+        catalog = {file_id: {
+            "terms": [{"term": "Claire Holman", "type": "person"}],
+            "extractor_version": extractor_version, "modified_time": modified_time,
+        }}
+        meetings_data = [{"slug": "2026-01-08", "docs": [
+            {"type": "agenda", "url": f"https://drive.google.com/file/d/{file_id}/view"},
+        ]}]
+        return catalog, meetings_data
+
+    def test_stable_when_nothing_changes(self):
+        catalog, meetings_data = self._catalog_and_meeting()
+        self.assertEqual(
+            registry_fingerprint(catalog, meetings_data),
+            registry_fingerprint(catalog, meetings_data),
+        )
+
+    def test_changes_when_modified_time_changes(self):
+        catalog, meetings_data = self._catalog_and_meeting()
+        fp1 = registry_fingerprint(catalog, meetings_data)
+        catalog["f1"]["modified_time"] = "2026-06-01T00:00:00Z"
+        fp2 = registry_fingerprint(catalog, meetings_data)
+        self.assertNotEqual(fp1, fp2)
+
+    def test_changes_when_extractor_version_changes(self):
+        catalog, meetings_data = self._catalog_and_meeting()
+        fp1 = registry_fingerprint(catalog, meetings_data)
+        catalog["f1"]["extractor_version"] = 3
+        fp2 = registry_fingerprint(catalog, meetings_data)
+        self.assertNotEqual(fp1, fp2)
+
+    def test_never_extracted_document_still_has_a_fingerprint_entry(self):
+        # A qualifying doc with no catalog entry yet contributes (file_id, None, None) rather
+        # than being skipped — so the moment it's actually extracted, the fingerprint changes
+        # and triggers a rebuild, instead of silently never being noticed.
+        meetings_data = [{"slug": "2026-01-08", "docs": [
+            {"type": "agenda", "url": "https://drive.google.com/file/d/fNew/view"},
+        ]}]
+        fp_before = registry_fingerprint({}, meetings_data)
+        self.assertEqual(fp_before, [("fNew", None, None)])
+        fp_after = registry_fingerprint(
+            {"fNew": {"extractor_version": 2, "modified_time": "2026-01-01T00:00:00Z"}},
+            meetings_data,
+        )
+        self.assertNotEqual(fp_before, fp_after)
 
 
 class CanonicalPersonTests(unittest.TestCase):

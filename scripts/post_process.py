@@ -400,108 +400,6 @@ def _write_njk(path, data, body):
         f.write(f'---\n{fm}---\n{body}')
 
 
-def _extract_official_terms(meeting_data, bucket_uri, catalog, registry):
-    """Extract canonical proper nouns from agenda/packet/minutes docs, consolidating them into
-    the corpus-wide Terms Registry (scripts/terms_registry.py — see todos/019). Per-document terms
-    are cached inline on the shared Drive catalog entry (`entry['terms']`), not a separate GCS
-    blob pointer — the catalog is already loaded/saved once per run, so this removes a second
-    network round trip (the old `terms_blob` read) on every cache hit. A legacy `terms_blob`
-    pointer with no inline `terms` yet is hydrated once on first touch, then dropped — no backfill
-    script needed."""
-    docs = meeting_data.get('docs') or []
-    qualifying = [d for d in docs if d.get('type') in ('agenda', 'packet', 'minutes')]
-    if not qualifying:
-        return []
-
-    slug = meeting_data['slug']
-    svc = drive_mod.get_drive_service()
-
-    all_terms = []
-    for doc in qualifying:
-        url = doc.get('url', '')
-        file_id = drive_mod.extract_file_id(url)
-        if not file_id:
-            continue
-        doc_type = doc.get('type', 'doc')
-
-        try:
-            meta = svc.files().get(fileId=file_id, fields='modifiedTime,mimeType,createdTime').execute()
-            current_modified = meta.get('modifiedTime')
-        except Exception as e:
-            print(f"    Warning: could not get Drive metadata for {file_id}: {e}")
-            continue
-
-        # Drive's own folder scan should already have catalogued this file; fill in a minimal
-        # entry only for the rare case of a doc found solely via the SPSD site.
-        entry = catalog.setdefault(file_id, {})
-        entry.setdefault('doc_type', doc_type)
-        entry.setdefault('mime_type', meta.get('mimeType'))
-        entry.setdefault('created_time', meta.get('createdTime'))
-
-        terms = None
-        # Terms are derived from extracted text, so they're only as fresh as the text that
-        # produced them — a modified_time match alone would keep serving terms pulled from
-        # pre-fix, glued-word text forever (see sourcing/drive.py::TEXT_EXTRACTOR_VERSION),
-        # since this cache hit short-circuits before ever reaching get_or_extract_text's own
-        # version check below. Shares drive.text_cache_fresh with get_or_extract_text and
-        # build_meeting_map so the same native-Doc once/day grace applies here too — otherwise a
-        # Minutes doc still being drafted would re-trigger a real, paid Gemini call on every run.
-        if drive_mod.text_cache_fresh(entry, entry.get('mime_type'), current_modified):
-            terms = entry.get('terms')
-            if terms is None and entry.get('terms_blob'):
-                cached = drive_mod.read_cached_blob(bucket_uri, entry['terms_blob'])
-                if cached is not None:
-                    try:
-                        terms = json.loads(cached)
-                        entry['terms'] = terms
-                        entry.pop('terms_blob', None)
-                    except Exception:
-                        terms = None
-
-        if terms is not None:
-            print(f"    Loaded {len(terms)} terms for {slug}/{doc_type} from cache.", flush=True)
-            all_terms.extend(terms)
-            terms_registry.ingest_document_terms(registry, file_id, slug, doc_type, terms)
-            continue
-
-        print(f"    Extracting terms for {slug}/{doc_type} (not in cache)...", flush=True)
-        text, updates = drive_mod.get_or_extract_text(bucket_uri, svc, catalog, file_id)
-        if updates:
-            entry.update(updates)
-        if not text:
-            continue
-
-        prompt = (
-            "Extract all proper nouns from this school board meeting document. Include:\n"
-            "- People with official roles (board members, administrators, staff)\n"
-            "- Named places (schools, buildings, streets, districts)\n"
-            "- Organizations and associations (unions, parent groups, state agencies)\n"
-            "- Named programs, policies, or initiatives\n\n"
-            "Return ONLY a JSON array: "
-            "[{\"term\": \"...\", \"type\": \"person|place|organization|program\", "
-            "\"context\": \"short description or role\"}]\n"
-            "State context as a stable fact about the term (e.g. \"Board Member\", \"State agency\") - "
-            "never meeting-attendance phrasing (\"present at the meeting\") or hedged/speculative "
-            "phrasing (\"likely\", \"probably\", \"appears to be\"). Omit context entirely rather than "
-            "guessing if you're not sure.\n"
-            "Use the exact spelling from the document. Return [] if nothing qualifies.\n\n"
-            f"Document type: {doc_type}\n"
-            f"Document text:\n{text}"
-        )
-        try:
-            response_text, _model = call_llm(_make_client, prompt, json_output=True, label=f"{slug}/{doc_type}")
-            terms = json.loads(response_text)
-            entry['terms'] = terms
-            entry['modified_time'] = current_modified
-            print(f"    Extracted and cached {len(terms)} terms for {slug}/{doc_type}.", flush=True)
-            all_terms.extend(terms)
-            terms_registry.ingest_document_terms(registry, file_id, slug, doc_type, terms)
-        except Exception as e:
-            print(f"    Warning: could not extract terms for {slug}/{doc_type}: {e}", flush=True)
-
-    return all_terms
-
-
 def _load_cached_agenda_text(docs, bucket_uri, catalog, max_chars=2500):
     """Read cached agenda-doc text for a meeting from GCS, looked up directly by each doc's
     file_id in the shared Drive `catalog` (no bucket listing, no slug-prefixed folder — see
@@ -924,29 +822,15 @@ def post_process():
         if stale_ve:
             print(f"Retag mode: cleared vote_evidence for {len(stale_ve)} meeting(s)", flush=True)
 
-    # 2. Extract canonical names from official docs (agenda/packet/minutes), consolidating them
-    # into the corpus-wide Terms Registry (scripts/terms_registry.py — see todos/019).
+    # 2. Discover glossary candidates from the registry + each meeting's own generated content,
+    # plus a cross-meeting recurring-speaker pass for entities the registry has no record of at
+    # all — pure in-memory, no network calls. Official-document term extraction and the Terms
+    # Registry rebuild that used to happen here now run upstream, in scripts/extract_terms.py,
+    # before process_transcripts.py ever runs — see todos/026; `registry` (loaded above) is
+    # already a finished, freshly-rebuilt read by the time this function starts, not something
+    # this function builds or mutates. Evidence-scoped, no human review step (see todos/019 "no
+    # manual-review gate, anywhere" and "remove the protection, not the data").
     if bucket_uri:
-        print("Extracting canonical names from official meeting documents...", flush=True)
-        term_targets = [
-            m for m in meetings_data
-            if any(d.get('type') in ('agenda', 'packet', 'minutes') for d in (m.get('docs') or []))
-        ]
-        def _extract_terms_task(m):
-            try:
-                _extract_official_terms(m, bucket_uri, catalog, registry)
-            except Exception as e:
-                print(f"  Warning: term extraction failed for {m.get('slug')}: {e}", flush=True)
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            futures = [executor.submit(_extract_terms_task, m) for m in term_targets]
-            for future in as_completed(futures):
-                future.result()
-
-        # 2b. Discover glossary candidates from the registry + each meeting's own generated
-        # content, plus a cross-meeting recurring-speaker pass for entities the registry has no
-        # record of at all — pure in-memory, no network calls, now that step 2 above has the
-        # registry populated. Evidence-scoped, no human review step (see todos/019 "no manual-
-        # review gate, anywhere" and "remove the protection, not the data").
         print("Discovering glossary candidates...", flush=True)
         observations = []
         for m in meetings_data:
@@ -1149,9 +1033,6 @@ def post_process():
         json.dump(summaries, f, indent=2)
     with open(hashes_lib_path, 'w') as f:
         json.dump(hashes, f, indent=2)
-
-    drive_mod.save_catalog(bucket_uri, catalog)
-    terms_registry.save_registry(bucket_uri, registry)
 
     import datetime as _dt
     pipeline_log.append_entry(bucket_uri, 'processing_log', {

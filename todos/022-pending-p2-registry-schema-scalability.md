@@ -80,11 +80,16 @@ but still misinforms anything reading `context` for human review.
 **Resolved — see `docs/plans/2026-11-18-001-design-registry-schema-scalability-plan.md` for full
 rationale and step-by-step implementation.** Summary of the three decisions:
 
-1. `sources: [{file_id, meeting, doc_type}, ...]` → bare `file_ids: [file_id, ...]`. Keeps the
-   idempotency check at a fraction of the storage, since `meeting`/`doc_type` are confirmed read
-   nowhere outside the one append site. Conditional note: if todos/028 (in flight concurrently)
-   ends up needing per-source raw-term tracking, use `{file_id, term}` pairs instead of bare
-   strings — check 028's landed diff before implementing.
+1. **Superseded, not implemented.** `sources: [{file_id, meeting, doc_type}, ...]` → bare
+   `file_ids: [file_id, ...]` was the plan; it is no longer needed at all. Todo 026's plan
+   (`docs/plans/2026-11-18-002-design-term-extraction-and-registry-rebuild-architecture-plan.md`,
+   Decision 4) adopts a derived-rebuild registry model where nothing persists an in-progress
+   ingestion ledger between runs — the whole reason `sources`/`file_ids` existed (guarding against
+   re-appending a file's contribution across incremental accumulate-in-place runs) disappears once
+   the registry is rebuilt from scratch each time. **Skip this migration entirely** once todo 026
+   ships; the `sources` field is deleted outright, not migrated to a smaller replacement. (Also
+   confirmed moot on its own narrower terms: todo 028's landed diff did not add per-observation
+   raw-term tracking, so even absent todo 026, the bare-string form would have been correct.)
 2. `first_seen`/`last_seen` stay **date-only**, no `file_id` attached — no current or foreseeable
    consumer needs one, and attaching one would require an arbitrary tie-break rule (for same-type
    multi-doc meetings, e.g. `2024-04-08`'s two `packet`/two `minutes` file_ids) to serve zero
@@ -94,17 +99,17 @@ rationale and step-by-step implementation.** Summary of the three decisions:
    concrete observed defect yet (unlike todos/028's `Molly. Schen`, a verified live case). Revisit
    if a real context-staleness bug is ever found.
 
-Implementation is not yet done — the plan doc also flags a sequencing consideration with
-todos/026 (dedicated term extraction + derived registry rebuild): if 026 makes the registry
-derived/rebuildable rather than accumulate-only, the whole `sources`/`file_ids` idempotency
-question may become moot. The code change (Steps 1-2) is cheap/safe to land regardless; the live
-migration (Step 3) may be worth deferring if 026 is imminent — left as a judgment call for
-whoever implements.
+Implementation is not yet done for Decisions 2/3 (still correct as stated above). Decision 1 is
+now **superseded outright** by todo 026's plan (drafted 2026-11-18) rather than merely "possibly
+moot" — see the note under Decision 1 above and `docs/plans/2026-11-18-002-...md` Decision 4.
+Skip todo 022's Steps 1-3 for `sources`/`file_ids`; they are not needed once todo 026 ships.
 
 ## Acceptance Criteria
 
 - [ ] Decide `sources` → `file_ids`-only (or an equivalent minimal idempotency ledger); implement
-  and backfill-migrate the live registry — **decided, see plan doc**; implementation still pending
+  and backfill-migrate the live registry — **superseded, see plan doc and todo 026's plan**: not
+  needed at all once todo 026 ships a derived-rebuild registry; no implementation or migration
+  required for this criterion
 - [ ] Decide whether `first_seen`/`last_seen` carry a `file_id`, and if so the tie-break rule for a
   meeting with more than one qualifying document — **decided (no), see plan doc**; no
   implementation needed, status quo already correct

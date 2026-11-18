@@ -10,7 +10,12 @@ origin: todos/022-pending-p2-registry-schema-scalability.md
 
 ## Decisions (summary)
 
-1. **`sources` → `file_ids`.** Replace `sources: [{file_id, meeting, doc_type}, ...]` with a bare
+1. **`sources` → `file_ids`. SUPERSEDED 2026-11-18 — see note at the end of Decision 1's detail
+   section below.** This decision was correct given what was known at the time, but todo 026's
+   plan (drafted the same day) adopts a derived-rebuild registry model that removes the need for
+   any per-entity idempotency ledger at all. Do not implement this migration; the `sources` field
+   is deleted outright under todo 026's plan instead. Original reasoning kept below for the
+   record. Replace `sources: [{file_id, meeting, doc_type}, ...]` with a bare
    `file_ids: [file_id, ...]` list. Keeps the only property `sources` actually provides
    (idempotency: "have I already folded this document in?") at a fraction of the storage, since
    `meeting`/`doc_type` are confirmed-by-grep read nowhere outside this one append site.
@@ -93,6 +98,17 @@ strings — still a fraction of today's footprint (two fields instead of three, 
 `doc_type`), but able to back whatever `term`-frequency logic 028 ends up needing. **Check 028's
 final diff to `terms_registry.py` before implementing this plan's Step 1** to see whether it
 already added such tracking; if not, proceed with the bare-string form.
+
+**2026-11-18 update — superseded.** Both the base plan above and its 028-conditional branch are
+now moot: todo 028 landed (`scripts/terms_registry.py:244`) without adding per-observation
+raw-term tracking, which would have made the bare-string form correct regardless — but
+separately and more fundamentally, todo 026's plan
+(`docs/plans/2026-11-18-002-design-term-extraction-and-registry-rebuild-architecture-plan.md`,
+Decision 4) replaces the accumulate-in-place registry with a from-scratch-every-rebuild model,
+under which no per-entity idempotency ledger of any shape is needed at all. **Do not implement
+Decision 1 or its Steps 1-3 below** — the `sources` field is deleted outright as part of todo
+026's plan instead of migrated to `file_ids`. Kept in this document for the historical record of
+how the decision was reached, not as live guidance.
 
 ## Decision 2 detail: `first_seen`/`last_seen` stay date-only
 
@@ -200,19 +216,13 @@ todo.
   as before implementing Step 1, specifically whether it needed to start tracking a raw term string
   per source/observation. If it did, use the `{file_id, term}` variant of `file_ids`; if not, the
   bare-string form is correct.
-- **todos/026 (dedicated term extraction + derived registry rebuild) — pending, bigger
-  architectural scope.** This is the one with real sequencing weight: 026's stated goal is making
-  the registry **derived/rebuildable** rather than accumulate-only (re-extracting fresh each run
-  instead of incrementally mutating a persisted blob across runs forever). If 026 lands as
-  described, the entire reason `sources`/`file_ids` needs to exist — guarding against
-  re-appending duplicates across *incremental* runs — may become moot: a registry that's rebuilt
-  fresh each run from the current document set doesn't need a per-entity "have I seen this file
-  before" ledger at all, because there's no accumulation to guard against in the first place.
-  **This plan's Step 1 is cheap and safe to land independently right now** (it's a net win
-  regardless of 026's eventual shape, and easy to delete later if 026 obsoletes it entirely), but
-  if 026 is imminent, consider deferring Step 3 (the live migration) specifically, to avoid
-  migrating live data twice in quick succession. This is a judgment call for whoever sequences the
-  two todos, not resolved here — flagging it rather than picking an order.
+- **todos/026 (dedicated term extraction + derived registry rebuild) — plan drafted 2026-11-18,
+  confirmed to supersede Decision 1.** 026's plan adopts the derived-rebuild model described
+  above as fact, not hypothesis: the entire reason `sources`/`file_ids` needs to exist —
+  guarding against re-appending duplicates across *incremental* runs — is gone once the registry
+  is rebuilt fresh from the catalog every time, because there's no accumulation to guard against
+  in the first place. **Do not implement this plan's Step 1-3** — skip straight to todo 026's
+  plan, which deletes `sources` outright rather than migrating it to `file_ids`.
   Decision 2 and Decision 3 (defer `context`) are unaffected by 026 either way — a derived registry
   would still have the identical `first_seen`/`last_seen` tie-break and `context` temporal-dedup
   questions, since both are about canonical-value selection among multiple observations, not about

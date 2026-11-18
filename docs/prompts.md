@@ -219,7 +219,7 @@ A second, different failure mode showed up after adding evidence-bullet citation
 
 ### Behavior
 
-1. Look for a cached standalone `agenda`-type doc under `official_docs/{slug}/` in GCS (populated by `_extract_official_terms()`, §6) — if found, return its text.
+1. Look for a cached standalone `agenda`-type doc under `official_docs/{slug}/` in GCS (populated by `extract_terms.py`, §6) — if found, return its text.
 2. Otherwise, if a `packet`-type doc is cached (agendas are sometimes bundled into the packet rather than standing alone), isolate just the agenda/order-of-business items from it via the prompt below — a one-time Gemini call, cached back to GCS (`{packet_blob}.agenda-extract.txt`) so it never re-runs for the same packet.
 3. Returns `None` if neither is cached for that slug.
 
@@ -296,45 +296,77 @@ MD5 hash of the evidence string stored in `scripts/topic_hashes.json`. Synthesis
 
 ---
 
-## 6. Official Document Term Extraction (`post_process.py`)
+## 6. Official Document Term Extraction (`extract_terms.py`)
 
-**Script:** `scripts/post_process.py → _extract_official_terms()`  
+**Script:** `scripts/extract_terms.py → _extract_batch()`  
 **Model:** `DEFAULT_MODEL` (`gemini-2.5-pro`), falling back to `BACKUP_MODEL` (`gemini-3.5-flash`) on a 429 rate-limit — see `scripts/model_config.py`.  
-**Output:** JSON array (`json_output=True` mime type, parsed manually — no fixed schema shape)
+**Output:** `BatchTermResponse` (Pydantic `response_schema`) — `{"results": [{"file_id": "...", "terms": [{"term": "...", "type": "...", "context": "..."}]}]}`
 
 ### Purpose
 
 Extracts canonical proper noun spellings from agenda/packet/minutes PDFs stored in Drive, caches
-the per-document result inline on the Drive catalog entry (`entry['terms']` — no separate GCS blob
+each document's result inline on its Drive catalog entry (`entry['terms']` — no separate GCS blob
 read needed on a cache hit, see `docs/pipeline.md#gcs-text-cache`), and injects them into the
 transcript extraction prompt (§1) as authoritative, meeting-scoped spelling hints.
 
-Beyond that per-meeting hint, every extraction is also consolidated into the corpus-wide Terms
-Registry (`scripts/terms_registry.py::ingest_document_terms()` — see
-`docs/pipeline.md#the-terms-registry-scriptsterms_registrypy`), which is what `glossary.json`'s
-auto-discovery and attendance-name canonicalization read from. Use `src/_data/glossary.json`
-directly only for a spelling correction that should apply regardless of what any official document
-says (todos/013); everything sourced from a specific meeting's own documents, including anything
-role- or date-dependent, belongs here instead.
+Runs as its own pipeline stage (②, see `docs/pipeline.md`), ahead of `process_transcripts.py` —
+so a term discovered for the first time this run is already available to this same run's
+transcript-extraction prompts, not just the next run's (see
+[todos/026](../todos/026-pending-p2-dedicated-term-extraction-and-derived-registry-rebuild.md)).
+Beyond that per-meeting hint, extraction's output also feeds the corpus-wide Terms Registry: once
+every qualifying document's `terms` is fresh, `terms_registry.build_registry_from_catalog()`
+rebuilds `terms_registry.json` from scratch (skipped via `registry_fingerprint()` when nothing
+qualifying changed) — see
+`docs/pipeline.md#the-terms-registry-scriptsterms_registrypy`. That registry is what
+`glossary.json`'s auto-discovery and attendance-name canonicalization read from. Use
+`src/_data/glossary.json` directly only for a spelling correction that should apply regardless of
+what any official document says (todos/013); everything sourced from a specific meeting's own
+documents, including anything role- or date-dependent, belongs here instead.
+
+### Batching
+
+One Gemini call covers up to `TERMS_BATCH_SIZE` (5) documents at once — cache-miss documents
+across the whole corpus are chunked into groups of this size, each group a separate call,
+following the same batched-call pattern as `post_process.py::batch_tag_all_meetings()` (§3) but
+chunked rather than one all-corpus call, since raw document text is far more token-heavy per item
+than a condensed transcript summary. Multiple batches run concurrently
+(`ThreadPoolExecutor(max_workers=MAX_WORKERS)`).
 
 ### Prompt template
 
+One call's prompt covers every document in that batch, each labeled by its `file_id`:
+
 ```
-Extract all proper nouns from this school board meeting document. Include:
+Extract all proper nouns from each of the following school board meeting documents. For each
+document, include:
 - People with official roles (board members, administrators, staff)
 - Named places (schools, buildings, streets, districts)
 - Organizations and associations (unions, parent groups, state agencies)
-- Named programs, policies, or initiatives
+- Named programs, policies, or ongoing initiatives (not one-time events like a single assembly,
+  fundraiser, or celebration — only things with standing beyond one occurrence)
 
-Return ONLY a JSON array:
-[{"term": "...", "type": "person|place|organization|program", "context": "short description or role"}]
+State context as a stable fact about the term (e.g. "Board Member", "State agency") - never
+meeting-attendance phrasing ("present at the meeting") or hedged/speculative phrasing ("likely",
+"probably", "appears to be"). Omit context entirely rather than guessing if you're not sure.
+Use the exact spelling from the document. A document with nothing qualifying gets an empty terms
+list, not an omitted entry.
 
-Use the exact spelling from the document. Return [] if nothing qualifies.
+Respond with one entry per document below, keyed by its file_id.
 
-Document type: {doc_type}
-Document text:
+### file_id: {file_id} (type: {doc_type})
 {text}
+
+### file_id: {file_id} (type: {doc_type})
+{text}
+...
 ```
+
+The one-time-event exclusion on the `program` bullet was added after a live scale review found
+`program`-type entities were ~40% of a sample, almost entirely non-recurring (specific policy
+citations, one-off named events like "Culture Day Pep Rally"), with no retention policy — see
+[todos/022](../todos/022-pending-p2-registry-schema-scalability.md). Tightening extraction at the
+source was chosen over dropping the type (still genuinely read downstream by
+`glossary_utils.py::discover_term_candidates()`) or building retention/pruning logic.
 
 ### Caching
 
@@ -347,8 +379,9 @@ gs://{bucket}/official_docs/{created_date}_{doc_type}_{file_id}_{modified_stamp}
 ```
 
 Extracted *terms* are no longer written to a sibling `.json` blob — they're cached inline on the
-catalog entry itself (`entry['terms']`) and consolidated into the corpus-wide
-`gs://{bucket}/terms_registry.json` — see
+catalog entry itself (`entry['terms']`). The corpus-wide registry built from those terms
+(`gs://{bucket}/terms_registry.json`) is now a from-scratch rebuild rather than something this
+call appends into directly — see
 [pipeline.md#the-terms-registry-scriptsterms_registrypy](pipeline.md#the-terms-registry-scriptsterms_registrypy).
 
 ---
