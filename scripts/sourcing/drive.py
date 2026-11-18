@@ -309,18 +309,20 @@ def parse_meeting_date(filename):
         if 1 <= int(m) <= 12 and 1 <= int(d) <= 31:
             return f"{y}-{m}-{d}"
 
+    # YYYY.MM.DD format — checked before MM.DD.YY: a 4-digit leading group is unambiguous and
+    # must never be reinterpreted as MM.DD.YY (e.g. "2026.01.05" misparsed as month=26)
+    match = re.search(r'(\d{4})\.(\d{2})\.(\d{2})', filename)
+    if match:
+        return match.group(0).replace('.', '-')
+
     # MM.DD.YY or MM.DD.YYYY format
     match = re.search(r'(\d{1,2})\.(\d{1,2})\.(\d{2,4})', filename)
     if match:
         month, day, year = match.groups()
-        if len(year) == 2:
-            year = f"20{year}"
-        return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-
-    # YYYY.MM.DD format
-    match = re.search(r'(\d{4})\.(\d{2})\.(\d{2})', filename)
-    if match:
-        return match.group(0).replace('.', '-')
+        if 1 <= int(month) <= 12 and 1 <= int(day) <= 31:
+            if len(year) == 2:
+                year = f"20{year}"
+            return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
 
     # Month Day, Year format
     match = re.search(rf'({"|".join(MONTHS)})\s+(\d{{1,2}})(?:st|nd|rd|th)?(?:,)?\s+(\d{{4}})', filename, re.I)

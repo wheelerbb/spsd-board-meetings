@@ -241,7 +241,7 @@ pageScript: |
   <section class="year-section" data-year="{{ sy }}">
     <div class="year-label">{{ sy }} School Year</div>
     <div class="meetings-grid">
-      {% for m in meetings | where("school_year", sy) | sort(true, false, "date") %}
+      {% for m in meetings | where("school_year", sy) %}
       {% if not m.future %}
       <a href="{{ ('/meetings/' + m.slug + '/') | url }}" class="meeting-card" data-year="{{ sy }}" data-topics="{{ m.topics | join(',') if m.topics else '' }}">
         <div class="card-top">

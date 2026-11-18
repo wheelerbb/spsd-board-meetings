@@ -34,7 +34,9 @@ function meetingType(tag) {
   return 'Regular';
 }
 
-function getMeetings() {
+let _cache;
+
+function buildMeetings() {
   const dir = path.join(__dirname, '../meetings');
   const today = new Date().toISOString().split('T')[0];
 
@@ -48,7 +50,6 @@ function getMeetings() {
         return {
           slug,
           school_year:    schoolYear(slug),
-          date:           slug,
           display_date:   data.display_date,
           day_of_week:    data.day_of_week    || '',
           time:           data.time           || '',
@@ -66,7 +67,9 @@ function getMeetings() {
                             : 0,
           has_video:      !!data.has_video,
           has_transcript: !!data.has_transcript,
-          stub:           data.stub !== false,
+          // default true — new stubs rarely set stub: false immediately; a missing key means
+          // "not yet marked non-stub", matching post_process.py's not m.get('stub', True)
+          stub:           data.stub ?? true,
           future:         slug >= today,
           blurb:          data.blurb          || '',
           agenda_preview: data.agenda_preview  || '',
@@ -78,7 +81,15 @@ function getMeetings() {
       }
     })
     .filter(Boolean)
-    .sort((a, b) => b.date.localeCompare(a.date));
+    .sort((a, b) => b.slug.localeCompare(a.slug));
+}
+
+// Cache is process-scoped: Eleventy calls this once for the `meetings` global and years.js calls
+// it again independently for `years` — without caching that's 2x the file reads per build. In
+// watch mode the module is re-required on rebuild, clearing _cache automatically.
+function getMeetings() {
+  if (!_cache) _cache = buildMeetings();
+  return _cache;
 }
 
 module.exports = getMeetings;

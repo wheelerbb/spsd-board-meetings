@@ -141,7 +141,7 @@ def _find_priority_source_doc(docs):
         # committee minutes use type=minutes today), but check first in case that changes.
         if d.get('type') == 'minutes' and 'committee' not in (d.get('label') or '').lower():
             return 'Minutes', d
-    summary_docs = [d for d in docs if d.get('type') == 'pdf' and 'summary' in (d.get('label') or '').lower()]
+    summary_docs = [d for d in docs if d.get('type') == 'misc' and 'summary' in (d.get('label') or '').lower()]
     if summary_docs:
         # Prefer the plain meeting summary over an executive-session or standalone workshop one.
         preferred = [d for d in summary_docs

@@ -1052,7 +1052,7 @@ def post_process():
     # 5. Generate missing blurbs
     print("Generating blurbs for unprocessed meetings...")
     blurb_tasks = [m for m in meetings_data
-                   if not m.get('stub') and not m.get('blurb') and m.get('summary')]
+                   if not m.get('stub', True) and not m.get('blurb') and m.get('summary')]
     blurb_results = []
     if blurb_tasks:
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
