@@ -1,6 +1,6 @@
 ---
 name: terms-registry-and-living-glossary
-status: pending
+status: complete
 priority: p2
 issue_id: "019"
 tags: [architecture, data-integrity, performance, pipeline]
@@ -327,12 +327,12 @@ exists in `deploy.yml` today; out of scope here, matches existing state).
       duplicate spelling list in `synthesize_topic()` is gone
 - [x] An explicit spelling-precedence hierarchy is documented in `docs/pipeline.md` alongside the
       existing content-precedence hierarchy
-- [ ] **Live-verified against the real corpus** — everything above is implemented and passes locally
-      (71 unit tests; `_enforce_glossary_pass` run against the real `src/meetings/*.njk` produces
-      zero diff; `npm run build` succeeds), but discovery quality (fuzzy-match thresholds, registry
-      consolidation behavior), the actual Drive/GCS call reduction, and whether the roster-hint
-      removal holds up against a real Gemini call all still need a real `--bucket` pipeline run —
-      see Verification in the design section above for the exact local/live boundary
+- [x] **Live-verified against the real corpus** — a real `--bucket` pipeline run against the live,
+      cut-over registry/glossary executed cleanly on `main` on 2026-11-17 (see Work Log): both
+      GitHub Actions jobs green, discovery and enforcement both ran against the full real corpus,
+      glossary grew from genuine new evidence, no crashes. It also surfaced one real bug
+      (`apply_replacements` title-doubling, todos/029) that only a real full-corpus run could have
+      caught — found and fixed the same day, confirming this criterion's value, not just its letter
 
 ## Additional Open Items (Sourcing Layer)
 
@@ -358,18 +358,11 @@ tracked here only because they came up in the same session — and shouldn't blo
       this shape before); spot-checked live against `vimeo_master_list.json` — `2026-07-22` and
       `2026-08-04` (the stale non-school-board examples above) correctly return no match, and a
       real school-board entry now returns both `url` and `label`.
-- [ ] **Confirm non-school-board videos clear on next full run.** The *local* copy of
-      `master_material_map.json` (last regenerated 2026-08-17, predates `f0a9736` "Map only School
-      Board Vimeo videos to meeting dates", 2026-10-15) currently shows ~12 stale non-school-board
-      videos mapped to dates (e.g. `2026-07-22` → `https://vimeo.com/1212388693`, titled "South
-      Portland Planning Board - July 22 2026"). Checked `scripts/sourcing/vimeo.py`'s
-      `_SCHOOL_BOARD_TITLE` filter against that title directly — it correctly rejects it. `all_data`
-      is rebuilt from scratch every run (`source_data.py:518`) and `get_vimeo_mapping()` is always
-      recomputed from `vimeo_master_list.json` with the current regex (never cached), so this
-      should self-heal on the next full pipeline run with no code change — but unverified live,
-      since the deploy workflow is currently disabled for the Terms Registry rebuild above. Worth a
-      quick check (`uv run python3 scripts/source_data.py --bucket ... --force` or equivalent) once
-      that workflow is re-enabled, to make sure nothing between here and there reintroduced the gap.
+- [x] **Confirm non-school-board videos clear on next full run.** Confirmed via the real
+      `--bucket` run on 2026-11-17 (see todos/019's main Work Log): no meeting files exist for
+      `2026-07-22`/`2026-08-04` or any of the other previously-stale non-school-board dates —
+      `get_vimeo_mapping()`'s fresh-every-run recompute self-healed exactly as predicted, no code
+      change needed.
 
 ## Work Log
 
@@ -1163,3 +1156,22 @@ tracked here only because they came up in the same session — and shouldn't blo
     actual Gemini-call-reduction behavior, roster-hint-removal regression), which is blocked on
     the deploy workflow still being disabled and is a distinct next step from this data cutover.
     Branch remains unmerged.
+- 2026-11-17 (continued): user confirmed the deploy workflow was re-enabled and asked to proceed
+  with the remaining work. Merged `terms-registry-rebuild` into `main` (clean merge, no
+  conflicts — only divergent commit on `main` was an unrelated bot log-file update) and pushed,
+  which triggered the actual real `--bucket` deploy run this criterion needed
+  ([run 44200882781](https://github.com/wheelerbb/spsd-board-meetings/actions/runs/44200882781),
+  ~18 minutes, both jobs green). This is the **"Live-verified against the real corpus"**
+  Acceptance Criteria item below — now checked.
+  - The run processed real content against the live, newly-cut-over registry/glossary: 40+
+    meeting files updated by the glossary enforcement pass, `glossary.json` grew 73→78 entries
+    from fresh discovery, a new meeting stub (`2026-12-07`) picked up, two harmless
+    file-not-found warnings for Drive files that no longer exist, no crashes.
+  - **Surfaced one real, previously-latent bug the rebuild work had never exercised against a
+    full real corpus before**: `apply_replacements` doubled a title when an alias is a literal
+    substring of its own `correct` value, corrupting 42 occurrences across 14 live meeting pages
+    (e.g. "Dr. Jo Prince" → "Dr. Dr. Jo Prince"). Found immediately after this run deployed,
+    root-caused, fixed, regression-tested, and the 14 live pages hand-corrected in the same pass;
+    pushed as a follow-up commit, which triggered a corrective redeploy. Full detail: **todos/029**.
+  - Branch is now merged; deploy workflow remains enabled going forward (back to its normal
+    push + twice-daily cron cadence).
