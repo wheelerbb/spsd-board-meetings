@@ -1,6 +1,6 @@
 ---
 name: delete-remove-nav-keys-script
-status: pending
+status: complete
 priority: p3
 issue_id: "007"
 tags: [code-review, dead-code, cleanup]
@@ -33,8 +33,9 @@ Alternatively, if keeping the script is preferred, add a banner:
 **Risk**: Zero
 
 ## Acceptance Criteria
-- [ ] `scripts/remove_nav_keys.py` is either deleted or has a clear COMPLETED status banner
-- [ ] No developer can accidentally trigger an unnecessary YAML round-trip by running a script they found in `scripts/`
+- [x] `scripts/remove_nav_keys.py` is either deleted or has a clear COMPLETED status banner
+- [x] No developer can accidentally trigger an unnecessary YAML round-trip by running a script they found in `scripts/`
 
 ## Work Log
 - 2026-06-08: Identified by maintainability-reviewer (M02) in ce:review
+- 2026-11-17: Resolved — `scripts/remove_nav_keys.py` is deleted (confirmed absent from the working tree).

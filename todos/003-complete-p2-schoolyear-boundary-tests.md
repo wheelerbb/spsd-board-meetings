@@ -1,6 +1,6 @@
 ---
 name: schoolyear-boundary-tests
-status: pending
+status: complete
 priority: p2
 issue_id: "003"
 tags: [code-review, testing, correctness]
@@ -45,9 +45,10 @@ assert.strictEqual(schoolYear('2025-01-01'), '2024-2025', 'January stays in same
 **Risk**: Low
 
 ## Acceptance Criteria
-- [ ] `schoolYear` is importable from its module
-- [ ] Tests cover: August (starts new year), July (prior year), September, January, the anomalous `2026-07-13`
-- [ ] All assertions pass with current implementation
+- [x] `schoolYear` is importable from its module
+- [x] Tests cover: August (starts new year), July (prior year), September, January, the anomalous `2026-07-13`
+- [x] All assertions pass with current implementation
 
 ## Work Log
 - 2026-06-08: Identified by testing-reviewer (TEST-002) in ce:review of nav/data-derivation refactor
+- 2026-11-17: Resolved — `schoolYear` is exported from `src/_data/meetings.js` and `test/meetings.test.js` covers the named boundary cases, including the `2026-07-13` anomaly.

@@ -1,6 +1,6 @@
 ---
 name: meetingnav-test-copies-not-imports
-status: pending
+status: complete
 priority: p2
 issue_id: "002"
 tags: [code-review, testing, architecture]
@@ -58,9 +58,10 @@ Add a named export from `.eleventy.js` for the filter function.
 **Risk**: Low
 
 ## Acceptance Criteria
-- [ ] `test/meetingNav.test.js` imports the function from its source module, not a copy
-- [ ] All 10 existing assertions still pass
-- [ ] `npm test` (or `node test/meetingNav.test.js`) exits 0
+- [x] `test/meetingNav.test.js` imports the function from its source module, not a copy
+- [x] All 10 existing assertions still pass
+- [x] `npm test` (or `node test/meetingNav.test.js`) exits 0
 
 ## Work Log
 - 2026-06-08: Identified by maintainability-reviewer (M07) and testing-reviewer (TEST-001) in ce:review
+- 2026-11-17: Resolved — Option A implemented. `src/_lib/meetingNav.js` exports the raw function; `test/meetingNav.test.js` imports it directly (verified via `require('../src/_lib/meetingNav')`).

@@ -1,6 +1,6 @@
 ---
 name: delete-dead-validation-script
-status: pending
+status: complete
 priority: p2
 issue_id: "006"
 tags: [code-review, dead-code, cleanup]
@@ -29,9 +29,10 @@ If any element of the technique is worth preserving for future reference, add a 
 **Risk**: Zero (the script cannot run)
 
 ## Acceptance Criteria
-- [ ] `scripts/validate_meetings_derivation.py` is deleted from the repository
-- [ ] `git ls-files scripts/validate_meetings_derivation.py` returns empty
+- [x] `scripts/validate_meetings_derivation.py` is deleted from the repository
+- [x] `git ls-files scripts/validate_meetings_derivation.py` returns empty
 - [ ] AGENTS.md or commit message captures the intent if deemed valuable
 
 ## Work Log
 - 2026-06-08: Identified by maintainability-reviewer (M01) in ce:review of nav/data-derivation refactor
+- 2026-11-17: Resolved — `scripts/validate_meetings_derivation.py` is deleted (confirmed absent from the working tree).

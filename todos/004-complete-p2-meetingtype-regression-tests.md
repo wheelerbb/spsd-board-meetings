@@ -1,6 +1,6 @@
 ---
 name: meetingtype-regression-tests
-status: pending
+status: complete
 priority: p2
 issue_id: "004"
 tags: [code-review, testing, correctness]
@@ -57,10 +57,11 @@ assert.strictEqual(meetingType('  Exec. Session · April 2026'), 'Exec. Session'
 **Risk**: Low
 
 ## Acceptance Criteria
-- [ ] `meetingType` is importable from its module
-- [ ] All five type branches have at least one passing assertion
-- [ ] `meetingType('Exec. Session · April 2026')` === `'Exec. Session'` is explicitly asserted
-- [ ] Null/falsy input produces `'Regular'`
+- [x] `meetingType` is importable from its module
+- [x] All five type branches have at least one passing assertion
+- [x] `meetingType('Exec. Session · April 2026')` === `'Exec. Session'` is explicitly asserted
+- [x] Null/falsy input produces `'Regular'`
 
 ## Work Log
 - 2026-06-08: Identified by testing-reviewer (TEST-003) in ce:review of nav/data-derivation refactor
+- 2026-11-17: Resolved — `meetingType` is exported from `src/_data/meetings.js` and `test/meetings.test.js` covers all branches including the Exec. Session regression and null/falsy guard.
