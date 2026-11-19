@@ -1,5 +1,51 @@
 [
   {
+    "run_id": "44525783628",
+    "timestamp": "2026-11-19T12:40:33.568859Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2024-03-17",
+            "label": "Budget Workshop I Agenda",
+            "doc_type": "agenda",
+            "change": "new"
+          }
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1248000500",
+            "title": "spcc_20261117 - South Portland City Council - November 17 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17"
+      ]
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "44415676556",
     "timestamp": "2026-11-18T22:53:28.980173Z",
     "trigger": "schedule",
@@ -8129,53 +8175,6 @@
         "2024-04-08",
         "2024-01-08",
         "2023-12-11"
-      ]
-    },
-    "any_changes": true
-  },
-  {
-    "run_id": "32391053480",
-    "timestamp": "2026-08-20T16:17:52.967063Z",
-    "trigger": "workflow_dispatch",
-    "sourcing": {
-      "apptegy": {
-        "fetched": false,
-        "changed": []
-      },
-      "site": {
-        "fetched": false,
-        "changed": []
-      },
-      "drive": {
-        "fetched": false,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": false,
-        "changed": []
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": [
-        "2024-12-09",
-        "2024-11-12",
-        "2024-10-15",
-        "2024-09-09",
-        "2024-08-19",
-        "2024-07-08",
-        "2024-05-13",
-        "2024-04-08",
-        "2024-03-11",
-        "2024-01-08",
-        "2023-12-11",
-        "2023-11-13",
-        "2023-10-10",
-        "2023-09-11"
       ]
     },
     "any_changes": true

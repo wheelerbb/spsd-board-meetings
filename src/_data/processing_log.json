@@ -1,5 +1,53 @@
 [
   {
+    "run_id": "44525783628",
+    "timestamp": "2026-11-19T12:47:24.791757Z",
+    "stage": "post_process",
+    "topics_updated": [
+      {
+        "topic": "Differential School Funding",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Special Education",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Superintendent Appointment 2026",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Immigration Enforcement",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Elementary School Reconfiguration",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      },
+      {
+        "topic": "Student Enrollment and Class Size",
+        "model": "gemini-2.5-pro",
+        "reason": "evidence changed"
+      }
+    ],
+    "topics_skipped": 62,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "44525783628",
+    "timestamp": "2026-11-19T12:41:07.371192Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
     "run_id": "44415676556",
     "timestamp": "2026-11-18T22:59:00.135197Z",
     "stage": "post_process",
@@ -2063,23 +2111,6 @@
     "skipped": true,
     "topics_updated": [],
     "topics_skipped": 0,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "35008613627",
-    "timestamp": "2026-09-15T18:38:03.507829Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "34974723626",
-    "timestamp": "2026-09-15T13:27:25.204692Z",
-    "stage": "post_process",
-    "topics_updated": [],
-    "topics_skipped": 65,
     "blurbs_generated": [],
     "previews_generated": []
   }
