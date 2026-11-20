@@ -1,5 +1,22 @@
 [
   {
+    "run_id": "44737434020",
+    "timestamp": "2026-11-20T12:45:11.972511Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 68,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "44737434020",
+    "timestamp": "2026-11-20T12:40:42.939095Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
     "run_id": "44525783628",
     "timestamp": "2026-11-19T12:47:24.791757Z",
     "stage": "post_process",
@@ -2086,31 +2103,6 @@
       }
     ],
     "topics_skipped": 62,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "35009453768",
-    "timestamp": "2026-09-15T18:47:28.146116Z",
-    "stage": "transcripts",
-    "targeted": [
-      "2026-09-14"
-    ],
-    "results": [
-      {
-        "slug": "2026-09-14",
-        "status": "Success"
-      }
-    ],
-    "rate_limited": []
-  },
-  {
-    "run_id": "35008613627",
-    "timestamp": "2026-09-15T18:38:06.599435Z",
-    "stage": "post_process",
-    "skipped": true,
-    "topics_updated": [],
-    "topics_skipped": 0,
     "blurbs_generated": [],
     "previews_generated": []
   }

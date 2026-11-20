@@ -1,5 +1,92 @@
 [
   {
+    "run_id": "44737434020",
+    "timestamp": "2026-11-20T12:40:11.990835Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1ix7yvMgulcU0Z_T-pCej3OPzbq3SEB3o",
+            "label": "Policy COMMITTEE MEETING MINUTES",
+            "doc_type": "minutes",
+            "meeting_slug": "2026-10-05",
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1248422134",
+            "title": "South Portland Forward: Season 3: Episode 9: November 2026"
+          },
+          {
+            "video_id": "1248388578",
+            "title": "sppb_20261118 - South Portland Plammimg Board - November 18 2026"
+          },
+          {
+            "video_id": "1248340120",
+            "title": "SMCC Games AD"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2024-03-17"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "44633260942",
+    "timestamp": "2026-11-19T22:57:14.083464Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "44525783628",
     "timestamp": "2026-11-19T12:40:33.568859Z",
     "trigger": "schedule",
@@ -8104,79 +8191,5 @@
       "updated": []
     },
     "any_changes": false
-  },
-  {
-    "run_id": "32396738968",
-    "timestamp": "2026-08-20T17:19:11.702566Z",
-    "trigger": "workflow_dispatch",
-    "sourcing": {
-      "apptegy": {
-        "fetched": false,
-        "changed": []
-      },
-      "site": {
-        "fetched": false,
-        "changed": []
-      },
-      "drive": {
-        "fetched": false,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": false,
-        "changed": []
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": [
-        "2025-08-18",
-        "2024-04-08",
-        "2024-01-08",
-        "2023-12-11"
-      ]
-    },
-    "any_changes": true
-  },
-  {
-    "run_id": "32396736498",
-    "timestamp": "2026-08-20T17:17:39.810330Z",
-    "trigger": "push",
-    "sourcing": {
-      "apptegy": {
-        "fetched": false,
-        "changed": []
-      },
-      "site": {
-        "fetched": false,
-        "changed": []
-      },
-      "drive": {
-        "fetched": false,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": false,
-        "changed": []
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": [
-        "2025-08-18",
-        "2024-04-08",
-        "2024-01-08",
-        "2023-12-11"
-      ]
-    },
-    "any_changes": true
   }
 ]
