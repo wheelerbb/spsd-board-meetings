@@ -1,5 +1,22 @@
 [
   {
+    "run_id": "44760090148",
+    "timestamp": "2026-11-20T15:11:34.996980Z",
+    "stage": "post_process",
+    "topics_updated": [],
+    "topics_skipped": 68,
+    "blurbs_generated": [],
+    "previews_generated": []
+  },
+  {
+    "run_id": "44760090148",
+    "timestamp": "2026-11-20T15:08:01.951847Z",
+    "stage": "transcripts",
+    "targeted": [],
+    "results": [],
+    "rate_limited": []
+  },
+  {
     "run_id": "44737434020",
     "timestamp": "2026-11-20T12:45:11.972511Z",
     "stage": "post_process",
@@ -2070,39 +2087,6 @@
     "stage": "post_process",
     "topics_updated": [],
     "topics_skipped": 65,
-    "blurbs_generated": [],
-    "previews_generated": []
-  },
-  {
-    "run_id": "35010733536",
-    "timestamp": "2026-09-15T19:00:04.057743Z",
-    "stage": "transcripts",
-    "targeted": [],
-    "results": [],
-    "rate_limited": []
-  },
-  {
-    "run_id": "35009453768",
-    "timestamp": "2026-09-15T18:48:46.406878Z",
-    "stage": "post_process",
-    "topics_updated": [
-      {
-        "topic": "Student Cell Phone Policy 2026",
-        "model": "gemini-2.5-pro",
-        "reason": "evidence changed"
-      },
-      {
-        "topic": "Special Education Staffing",
-        "model": "gemini-2.5-pro",
-        "reason": "evidence changed"
-      },
-      {
-        "topic": "FY26 Budget",
-        "model": "gemini-2.5-pro",
-        "reason": "evidence changed"
-      }
-    ],
-    "topics_skipped": 62,
     "blurbs_generated": [],
     "previews_generated": []
   }

@@ -1,5 +1,39 @@
 [
   {
+    "run_id": "44760090148",
+    "timestamp": "2026-11-20T15:07:53.328082Z",
+    "trigger": "push",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [
+        "2024-03-17"
+      ],
+      "updated": []
+    },
+    "any_changes": true
+  },
+  {
     "run_id": "44737434020",
     "timestamp": "2026-11-20T12:40:11.990835Z",
     "trigger": "schedule",
@@ -8132,38 +8166,6 @@
     "run_id": "32397700902",
     "timestamp": "2026-08-20T17:30:36.144922Z",
     "trigger": "workflow_dispatch",
-    "sourcing": {
-      "apptegy": {
-        "fetched": false,
-        "changed": []
-      },
-      "site": {
-        "fetched": false,
-        "changed": []
-      },
-      "drive": {
-        "fetched": false,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": false,
-        "changed": []
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": []
-    },
-    "any_changes": false
-  },
-  {
-    "run_id": "32397688377",
-    "timestamp": "2026-08-20T17:27:54.434682Z",
-    "trigger": "push",
     "sourcing": {
       "apptegy": {
         "fetched": false,
