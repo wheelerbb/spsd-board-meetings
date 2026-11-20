@@ -740,6 +740,11 @@ described above — a mismatched `modified_time` alone doesn't force re-resoluti
 extraction already ran. Content is never attempted at all for a Slides/Sheets file (`processing:
 "unsupported_format"`), even though it's otherwise agenda/packet/minutes-typed.
 
+Entries hand-corrected with `resolved_via: "manual"` (for files whose own document text carries the
+wrong date) still re-extract text when stale so `text_blob` stays current, but their `meeting_slug`
+and `resolved_via` are preserved (and never overwritten by the site fallback either), logging a
+warning if the underlying Drive file's `modified_time` changed.
+
 ### GCS text cache
 
 Text extracted during content resolution is cached at a flat (no subfolders) blob name —
@@ -813,18 +818,17 @@ existing meeting's `.njk` `docs:` list via `merge_documents`, deduplicating by U
   run isn't touched — absence isn't evidence of anything on its own.
 - **Conflicting resolution, broken by content**: a URL claimed by two different dates in the same
   run (`source_data.py::_resolve_url_owner`) is resolved by checking the Drive catalog's own
-  content-derived `meeting_slug` for that file — content is this pipeline's highest-priority date
-  signal (see above), so if it confidently matches one of the two contenders, that date wins and
-  the doc is dropped from the other, same as an ordinary cross-date reassignment. This closes a
-  real, previously-unfixable case: a document already content-dated to meeting A in the catalog
-  can still show up attached to meeting B this run (e.g. a stale/mismatched date on the district's
-  own site page, or another date's filename-based resolution) — before this tiebreak, such a
-  conflict was only ever logged and left on both dates forever (confirmed live: a Budget Workshop
-  agenda correctly catalogued under `2025-03-17` had also spawned a standing phantom
-  `2024-03-17` stub via a stale site-scraped date match — the board doesn't meet on Sundays, which
-  `2024-03-17` was). Only when the catalog has no opinion on the file, or its resolution matches
-  *neither* contender, does the conflict still fall back to `AMBIGUOUS` — left alone on both dates,
-  same conservative default as before.
+  `meeting_slug` for that file — content (or a `manual` override) is this pipeline's highest-priority
+  date signal (see above), so if it confidently matches one of the two contenders, that date wins
+  and `_filter_owned_docs` excludes the doc from the losing date's `combined_docs` and `new_docs`
+  (as well as dropping it from `existing_docs` on existing meetings). Furthermore, `has_site_data`
+  only counts a site entry as authority when at least one of its docs survives `_filter_owned_docs`
+  for that date — since `spsd_site.py` only invents a date from Drive links it sees nearby, a
+  site-only date whose every doc lost the tiebreak to another date has no surviving evidence and
+  will not spawn a phantom stub (closing the live `2024-03-17` Sunday-stub recurrence). Only when
+  the catalog has no opinion on the file, or its resolution matches *neither* contender, does the
+  conflict still fall back to `AMBIGUOUS` — left alone on both dates, same conservative default as
+  before.
 - This can't catch reassignment to a date before `CUTOFF_DATE`, since the ownership index only
   covers in-scope dates.
 - **Exact-content duplicates**: `_dedupe_identical_content` drops a doc when another doc of the

@@ -51,10 +51,12 @@ def _resolve_url_owner(combined_docs_by_slug, catalog=None):
             if u in url_owner and url_owner[u] not in (slug, AMBIGUOUS):
                 prior_slug = url_owner[u]
                 file_id = drive.extract_file_id(u)
-                canonical_slug = catalog.get(file_id, {}).get('meeting_slug') if (file_id and catalog) else None
+                catalog_entry = catalog.get(file_id, {}) if (file_id and catalog) else {}
+                canonical_slug = catalog_entry.get('meeting_slug')
                 if canonical_slug in (prior_slug, slug):
+                    via = catalog_entry.get('resolved_via') or 'catalog'
                     print(f"  URL {u} resolves to both {prior_slug!r} and {slug!r} this run; "
-                          f"using the Drive catalog's content-derived date {canonical_slug!r}.")
+                          f"using the Drive catalog's date {canonical_slug!r} (resolved via {via}).")
                     url_owner[u] = canonical_slug
                 else:
                     print(f"  Warning: URL {u} resolves to both {prior_slug!r} and {slug!r} "
@@ -63,6 +65,21 @@ def _resolve_url_owner(combined_docs_by_slug, catalog=None):
             elif u not in url_owner:
                 url_owner[u] = slug
     return url_owner
+
+
+def _filter_owned_docs(docs, url_owner, date_slug):
+    """Drop any doc whose cleaned URL is confidently owned by a *different* date_slug this run.
+    Docs owned by date_slug, marked AMBIGUOUS, or absent from url_owner are kept."""
+    if not url_owner:
+        return list(docs)
+    kept = []
+    for d in docs:
+        u = drive.clean_url(d.get('url'))
+        owner = url_owner.get(u) if u else None
+        if owner is not None and owner is not AMBIGUOUS and owner != date_slug:
+            continue
+        kept.append(d)
+    return kept
 
 def merge_documents(existing_docs, new_docs, url_owner=None, date_slug=None):
     """
@@ -92,7 +109,7 @@ def merge_documents(existing_docs, new_docs, url_owner=None, date_slug=None):
         merged[url] = d
 
     added_count = 0
-    for d in new_docs:
+    for d in _filter_owned_docs(new_docs, url_owner, date_slug):
         url = drive.clean_url(d.get('url'))
         if url not in merged:
             added_count += 1
@@ -291,7 +308,11 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
                     has_valid_event = True
                     break
 
-        has_site_data = bool(data.get('site'))
+        # Site data only counts as authority if at least one of its docs survives url_owner for
+        # this date — spsd_site.py only creates a date entry from Drive links it sees nearby, so
+        # a site-only date whose every doc lost the tiebreak to another date has no valid evidence.
+        site_docs = list(data.get('site', {}).get('docs', [])) if data.get('site') else []
+        has_site_data = bool(_filter_owned_docs(site_docs, url_owner, date_slug))
         has_event = has_valid_event or has_site_data
 
         # Audit: record which authority source(s) claim this date
@@ -312,8 +333,11 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
             data['_stub_action'] = 'skipped'
             continue
 
-        # Gather all docs for this date (Priority: Drive > Site) — precomputed above.
-        combined_docs = combined_docs_by_slug.get(date_slug, [])
+        # Gather all docs for this date (Priority: Drive > Site), excluding any URL that lost
+        # the url_owner tiebreak to another date so neither new stubs nor existing meetings
+        # receive (or re-receive) a misattributed doc.
+        combined_docs = _filter_owned_docs(
+            combined_docs_by_slug.get(date_slug, []), url_owner, date_slug)
 
         video_info = data.get('video')
         video_url = video_info.get('url') if isinstance(video_info, dict) else video_info
@@ -434,8 +458,8 @@ def reconcile_meetings(all_data, dry_run=False, catalog=None, bucket_uri=''):
             "location": location,
             "has_video": bool(video_url),
             "video_url": video_url or "",
-            "has_vtt_source": bool(transcript_path) or any(d.get('type') == 'transcript' for d in data.get('drive', [])),
-            "has_transcript": bool(transcript_path) or any(d.get('type') == 'transcript' for d in data.get('drive', [])),
+            "has_vtt_source": bool(transcript_path) or any(d.get('type') == 'transcript' for d in combined_docs),
+            "has_transcript": bool(transcript_path) or any(d.get('type') == 'transcript' for d in combined_docs),
             "stub": True,
             "docs": combined_docs
         }
@@ -657,7 +681,7 @@ def main():
                     for d in info['site'].get('docs', [])
                 }
                 for entry in catalog.values():
-                    if entry.get('meeting_slug') is not None:
+                    if entry.get('meeting_slug') is not None or entry.get('resolved_via') == 'manual':
                         continue
                     site_slug = site_url_to_slug.get(drive.clean_url(entry.get('url')))
                     if site_slug:

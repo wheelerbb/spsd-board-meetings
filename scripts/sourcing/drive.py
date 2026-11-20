@@ -566,6 +566,11 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
     even though the file itself hasn't changed, since what's stale here is the extraction code,
     not the source file.
 
+    Entries hand-corrected with `resolved_via == 'manual'` still re-extract text when stale (so
+    downstream consumers get fresh `text_blob` content), but their `meeting_slug` and
+    `resolved_via` (plus any `resolved_via_note`) are preserved rather than overwritten by
+    auto-detection.
+
     When a file resolves via a fresh content read and a GCS bucket is configured, its
     already-extracted text is cached (`cache_text`) and the catalog's `text_blob` is updated so
     downstream steps (post_process.py, process_transcripts.py) can reuse it.
@@ -601,10 +606,13 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
             entry['processing'] = 'unsupported_format'
         extractable = text_eligible and mime_type not in _UNSUPPORTED_NATIVE_MIMES
 
+        is_manual = entry.get('resolved_via') == 'manual'
+        prev_modified = entry.get('modified_time')
+
         if 'meeting_slug' in entry:
             if extractable and text_cache_fresh(entry, mime_type, modified_time):
                 continue  # cached extraction (or today's native-doc grace) still good — nothing to redo
-            if not extractable and entry.get('modified_time') == modified_time:
+            if not extractable and prev_modified == modified_time:
                 continue  # nothing extractable here, and nothing else about the file changed
 
         date_slug = None
@@ -629,14 +637,26 @@ def build_meeting_map(files, catalog, bucket_uri=None, service=None, cutoff_date
             if date_slug:
                 resolved_via = 'filename'
 
-        if date_slug:
-            print(f"  Matched Drive file to {date_slug} via {resolved_via}: {filename}")
-        else:
-            print(f"  Drive file has no resolvable date (deferring to site fallback): {filename}")
-
         entry['modified_time'] = modified_time
-        entry['meeting_slug'] = date_slug
-        entry['resolved_via'] = resolved_via
+
+        if is_manual:
+            # Manual overrides exist precisely for files whose own content/filename states the
+            # wrong date — never silently regress them on a TEXT_EXTRACTOR_VERSION bump or
+            # re-upload. Text extraction above still ran so text_blob stays current for downstream
+            # consumers.
+            if prev_modified and prev_modified != modified_time:
+                print(f"  Warning: preserving manual meeting_slug {entry.get('meeting_slug')!r} "
+                      f"for modified Drive file {filename} (auto-detected {date_slug!r} via {resolved_via})")
+            else:
+                print(f"  Preserving manual meeting_slug {entry.get('meeting_slug')!r} "
+                      f"for {filename} across re-extraction (auto-detected {date_slug!r} via {resolved_via})")
+        else:
+            if date_slug:
+                print(f"  Matched Drive file to {date_slug} via {resolved_via}: {filename}")
+            else:
+                print(f"  Drive file has no resolvable date (deferring to site fallback): {filename}")
+            entry['meeting_slug'] = date_slug
+            entry['resolved_via'] = resolved_via
 
         if bucket_uri and text:
             entry['text_blob'] = cache_text(bucket_uri, file_id, entry, text)

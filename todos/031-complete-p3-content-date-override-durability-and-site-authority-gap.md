@@ -1,6 +1,6 @@
 ---
 name: content-date-override-durability-and-site-authority-gap
-status: pending
+status: complete
 priority: p3
 issue_id: "031"
 tags: [data-integrity, date-resolution, pipeline]
@@ -92,3 +92,20 @@ Not designed yet. Two independent threads:
   `meeting_slug` now breaks a same-run URL collision instead of always falling back to
   `AMBIGUOUS`), with tests. Filed this todo for the two durability gaps the general fix doesn't
   close.
+- 2026-11-20: Confirmed the live recurrence in commit `29ea581` (run `44760090148`): not only did
+  `src/meetings/2024-03-17.njk` get recreated, it was recreated *with* the misattributed doc
+  `1xknZQ1mAIx2EhJJhI3laoQ3D1EyjjSGp` still attached, because `reconcile_meetings` wrote
+  unfiltered `combined_docs` on new stubs and `merge_documents` only filtered `existing_docs`
+  (not `new_docs`) against `url_owner`. Fixed all three pieces:
+  1. Added `_filter_owned_docs(docs, url_owner, date_slug)` in `scripts/source_data.py`, applied
+     to `new_docs` in `merge_documents`, to `combined_docs` in `reconcile_meetings`, and to
+     `has_site_data` (a site entry now only counts as authority if at least one of its docs
+     survives `url_owner` for that date — legitimate site-only meetings with non-catalogued docs
+     still survive because `url_owner` assigns them to that date or `AMBIGUOUS`).
+  2. Made `resolved_via: "manual"` durable in `scripts/sourcing/drive.py::build_meeting_map` (and
+     skipped `resolved_via == 'manual'` in `source_data.py`'s site fallback): text re-extraction
+     still runs when stale so `text_blob` stays current, while `meeting_slug`, `resolved_via`,
+     and `resolved_via_note` are preserved (with a warning if `modified_time` changed).
+  3. Added unit tests in `scripts/test_drive.py` and `scripts/test_source_data.py` (206/206
+     passing) and updated `docs/pipeline.md`. Note: `src/meetings/2024-03-17.njk` on `origin/main`
+     (from `29ea581`) still needs to be deleted once pulled/rebased.

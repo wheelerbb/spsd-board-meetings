@@ -1,7 +1,13 @@
+import os
+import tempfile
 import unittest
 from unittest.mock import patch
+import yaml
 
-from source_data import merge_documents, AMBIGUOUS, _dedupe_identical_content, _combine_site_and_drive_docs, _resolve_url_owner
+from source_data import (
+    merge_documents, AMBIGUOUS, _dedupe_identical_content,
+    _combine_site_and_drive_docs, _resolve_url_owner, reconcile_meetings,
+)
 
 
 def doc(url, label, type_='packet'):
@@ -73,6 +79,19 @@ class MergeDocumentsTests(unittest.TestCase):
         self.assertEqual(added, 1)
         self.assertEqual(removed, 0)
         self.assertEqual(len(merged), 2)
+
+    def test_new_doc_owned_by_other_date_is_not_added_or_readded(self):
+        # Even when a stale site listing still offers the URL in new_docs for this date,
+        # url_owner assigning it to another date must both drop it from existing_docs and
+        # prevent new_docs from immediately adding it right back.
+        stale_url = 'https://drive.google.com/file/d/ABC/view'
+        existing = [doc(stale_url, 'Budget Workshop I Agenda', 'agenda')]
+        new = [doc(stale_url, 'Budget Workshop I Agenda', 'agenda')]
+        url_owner = {stale_url: '2025-03-17'}
+        merged, added, removed = merge_documents(existing, new, url_owner=url_owner, date_slug='2024-03-17')
+        self.assertEqual(removed, 1)
+        self.assertEqual(added, 0)
+        self.assertEqual(merged, [])
 
 
 class ResolveUrlOwnerTests(unittest.TestCase):
@@ -186,6 +205,108 @@ class DedupeIdenticalContentTests(unittest.TestCase):
         mock_read.assert_not_called()
         self.assertEqual(removed, 0)
         self.assertEqual(result, docs)
+
+
+class ReconcileMeetingsSiteAuthorityTests(unittest.TestCase):
+    def setUp(self):
+        self._orig_cwd = os.getcwd()
+        self._tmp = tempfile.TemporaryDirectory()
+        os.chdir(self._tmp.name)
+
+    def tearDown(self):
+        os.chdir(self._orig_cwd)
+        self._tmp.cleanup()
+
+    def _read_fm(self, slug):
+        with open(os.path.join('src/meetings', f'{slug}.njk')) as f:
+            parts = f.read().split('---')
+        return yaml.safe_load(parts[1])
+
+    def test_site_only_date_whose_sole_doc_lost_tiebreak_does_not_create_stub(self):
+        # Exact 2024-03-17 vs 2025-03-17 bug (todo 031): SPSD site matched a 2024-03-17 date
+        # near a link whose Drive catalog entry resolves to 2025-03-17. 2024-03-17 must NOT be
+        # created at all, while 2025-03-17 keeps the document.
+        url = 'https://drive.google.com/file/d/ABC/view'
+        all_data = {
+            '2024-03-17': {
+                'site': {'date': '2024-03-17', 'type': 'Regular', 'docs': [doc(url, 'Budget Workshop I Agenda', 'agenda')]},
+            },
+            '2025-03-17': {
+                'events': [{'title': 'School Board Budget Workshop'}],
+                'drive': [doc(url, 'Budget Workshop I Agenda', 'agenda')],
+            },
+        }
+        catalog = {'ABC': {'meeting_slug': '2025-03-17', 'resolved_via': 'content'}}
+        reconcile_meetings(all_data, catalog=catalog)
+
+        self.assertEqual(all_data['2024-03-17']['_authority'], None)
+        self.assertEqual(all_data['2024-03-17']['_stub_action'], 'skipped')
+        self.assertFalse(os.path.exists('src/meetings/2024-03-17.njk'))
+
+        self.assertEqual(all_data['2025-03-17']['_stub_action'], 'created')
+        fm = self._read_fm('2025-03-17')
+        self.assertEqual([d['url'] for d in fm['docs']], [url])
+
+    def test_legitimate_site_only_meeting_without_catalog_still_creates_stub(self):
+        # A genuine site-only meeting whose doc isn't in the Drive catalog must still be created.
+        url = 'https://drive.google.com/file/d/SITEONLY/view'
+        all_data = {
+            '2025-04-14': {
+                'site': {'date': '2025-04-14', 'type': 'Regular', 'docs': [doc(url, 'Agenda', 'agenda')]},
+            },
+        }
+        reconcile_meetings(all_data, catalog={})
+
+        self.assertEqual(all_data['2025-04-14']['_authority'], 'site')
+        self.assertEqual(all_data['2025-04-14']['_stub_action'], 'created')
+        fm = self._read_fm('2025-04-14')
+        self.assertEqual([d['url'] for d in fm['docs']], [url])
+
+    def test_new_stub_with_valid_event_excludes_misattributed_site_doc(self):
+        # If a real Apptegy-backed meeting also has a misattributed site doc owned by another
+        # date, the stub is still created (from Apptegy), but WITHOUT the misattributed doc.
+        url = 'https://drive.google.com/file/d/ABC/view'
+        all_data = {
+            '2024-03-18': {
+                'events': [{'title': 'School Board Special Meeting'}],
+                'site': {'date': '2024-03-18', 'type': 'Special', 'docs': [doc(url, 'Wrong Year Agenda', 'agenda')]},
+            },
+            '2025-03-17': {
+                'events': [{'title': 'School Board Budget Workshop'}],
+                'drive': [doc(url, 'Budget Workshop I Agenda', 'agenda')],
+            },
+        }
+        catalog = {'ABC': {'meeting_slug': '2025-03-17', 'resolved_via': 'content'}}
+        reconcile_meetings(all_data, catalog=catalog)
+
+        self.assertEqual(all_data['2024-03-18']['_authority'], 'apptegy')
+        self.assertEqual(all_data['2024-03-18']['_stub_action'], 'created')
+        fm = self._read_fm('2024-03-18')
+        self.assertEqual(fm['docs'], [])
+
+    def test_existing_meeting_strips_misattributed_doc_even_when_site_reoffers_it(self):
+        url = 'https://drive.google.com/file/d/ABC/view'
+        os.makedirs('src/meetings', exist_ok=True)
+        with open('src/meetings/2024-03-17.njk', 'w') as f:
+            f.write(
+                "---\nlayout: layouts/meeting.njk\nstub: true\n"
+                f"docs:\n- label: Budget Workshop I Agenda\n  url: {url}\n  type: agenda\n---\n"
+            )
+        all_data = {
+            '2024-03-17': {
+                'site': {'date': '2024-03-17', 'type': 'Regular', 'docs': [doc(url, 'Budget Workshop I Agenda', 'agenda')]},
+            },
+            '2025-03-17': {
+                'events': [{'title': 'School Board Budget Workshop'}],
+                'drive': [doc(url, 'Budget Workshop I Agenda', 'agenda')],
+            },
+        }
+        catalog = {'ABC': {'meeting_slug': '2025-03-17', 'resolved_via': 'content'}}
+        reconcile_meetings(all_data, catalog=catalog)
+
+        self.assertEqual(all_data['2024-03-17']['_stub_action'], 'updated')
+        fm = self._read_fm('2024-03-17')
+        self.assertEqual(fm['docs'], [])
 
 
 if __name__ == '__main__':
