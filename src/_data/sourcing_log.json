@@ -1,5 +1,342 @@
 [
   {
+    "run_id": "45518215825",
+    "timestamp": "2026-11-25T00:29:19.527281Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2027-02-08",
+            "title": "School Board Meeting",
+            "change": "new"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-11-23",
+            "label": "Workshop and Special Meeting Agenda",
+            "doc_type": "agenda",
+            "change": "new"
+          }
+        ]
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1d3AVbqORBJa5xqDeHL-zTDQolLITxxDn",
+            "label": "Small Elementary Donation Dec 2026",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          },
+          {
+            "file_id": "1VtoN6FusSH7BXWrMdJekRCyesHneZhDk",
+            "label": "Dyer Elementary Donation Dec 2026",
+            "doc_type": "misc",
+            "meeting_slug": null,
+            "change": "new"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": [
+          {
+            "video_id": "1249707503",
+            "title": "spboe_20261123 - South Portland Board of Education - November 23 2026"
+          }
+        ]
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": [
+        "2026-11-23"
+      ]
+    },
+    "any_changes": true
+  },
+  {
+    "run_id": "45416676191",
+    "timestamp": "2026-11-24T14:40:40.002555Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
+    "run_id": "45314927271",
+    "timestamp": "2026-11-24T02:49:33.140753Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": [
+          {
+            "date": "2026-11-25",
+            "title": "Thanksgiving Break \u2013 No School",
+            "change": "modified"
+          }
+        ]
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
+    "run_id": "45191725677",
+    "timestamp": "2026-11-23T14:14:48.287648Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": [
+          {
+            "file_id": "1bkdSkYyVYJn9G8cCHb4WaKfHV4lZMtte",
+            "label": "SCHOOL BOARD AGENDA",
+            "doc_type": "agenda",
+            "meeting_slug": "2026-11-23",
+            "change": "modified"
+          }
+        ]
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
+    "run_id": "45073111979",
+    "timestamp": "2026-11-22T21:37:39.533236Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
+    "run_id": "45021925593",
+    "timestamp": "2026-11-22T12:24:11.988141Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
+    "run_id": "44951836240",
+    "timestamp": "2026-11-21T21:30:35.849204Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
+    "run_id": "44903236864",
+    "timestamp": "2026-11-21T12:20:31.407068Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": true,
+        "changed": []
+      },
+      "site": {
+        "fetched": true,
+        "changed": []
+      },
+      "drive": {
+        "fetched": true,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": true,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
+    "run_id": "44829637889",
+    "timestamp": "2026-11-20T22:31:49.106163Z",
+    "trigger": "schedule",
+    "sourcing": {
+      "apptegy": {
+        "fetched": false,
+        "changed": []
+      },
+      "site": {
+        "fetched": false,
+        "changed": []
+      },
+      "drive": {
+        "fetched": false,
+        "changed": []
+      },
+      "vimeo": {
+        "fetched": false,
+        "changed": []
+      },
+      "transcripts": {
+        "fetched": true,
+        "changed": []
+      }
+    },
+    "meetings": {
+      "created": [],
+      "updated": []
+    },
+    "any_changes": false
+  },
+  {
     "run_id": "44765391722",
     "timestamp": "2026-11-20T15:39:49.049701Z",
     "trigger": "push",
@@ -7528,670 +7865,5 @@
       ]
     },
     "any_changes": true
-  },
-  {
-    "run_id": "32950012049",
-    "timestamp": "2026-08-26T08:54:18.108583Z",
-    "trigger": "schedule",
-    "sourcing": {
-      "apptegy": {
-        "fetched": true,
-        "changed": []
-      },
-      "site": {
-        "fetched": true,
-        "changed": [
-          "2024-03-17",
-          "2025-01-08"
-        ]
-      },
-      "drive": {
-        "fetched": true,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": true,
-        "changed": []
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": [
-        "2024-03-17",
-        "2025-01-08"
-      ]
-    },
-    "any_changes": true
-  },
-  {
-    "run_id": "32828770352",
-    "timestamp": "2026-08-25T08:52:48.359223Z",
-    "trigger": "schedule",
-    "sourcing": {
-      "apptegy": {
-        "fetched": true,
-        "changed": []
-      },
-      "site": {
-        "fetched": true,
-        "changed": [
-          "2024-03-17",
-          "2025-01-08"
-        ]
-      },
-      "drive": {
-        "fetched": true,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": true,
-        "changed": []
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": [
-        "2024-03-17",
-        "2025-01-08"
-      ]
-    },
-    "any_changes": true
-  },
-  {
-    "run_id": "32708816305",
-    "timestamp": "2026-08-24T08:58:21.778166Z",
-    "trigger": "schedule",
-    "sourcing": {
-      "apptegy": {
-        "fetched": true,
-        "changed": []
-      },
-      "site": {
-        "fetched": true,
-        "changed": [
-          "2024-03-17",
-          "2025-01-08"
-        ]
-      },
-      "drive": {
-        "fetched": true,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": true,
-        "changed": []
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": [
-        "2024-03-17",
-        "2025-01-08"
-      ]
-    },
-    "any_changes": true
-  },
-  {
-    "run_id": "32628787100",
-    "timestamp": "2026-08-23T08:40:04.536042Z",
-    "trigger": "schedule",
-    "sourcing": {
-      "apptegy": {
-        "fetched": true,
-        "changed": []
-      },
-      "site": {
-        "fetched": true,
-        "changed": [
-          "2024-03-17",
-          "2025-01-08"
-        ]
-      },
-      "drive": {
-        "fetched": true,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": true,
-        "changed": []
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": [
-        "2024-03-17",
-        "2025-01-08"
-      ]
-    },
-    "any_changes": true
-  },
-  {
-    "run_id": "32562789935",
-    "timestamp": "2026-08-22T08:39:37.766257Z",
-    "trigger": "schedule",
-    "sourcing": {
-      "apptegy": {
-        "fetched": true,
-        "changed": []
-      },
-      "site": {
-        "fetched": true,
-        "changed": [
-          "2026-08-17",
-          "2026-07-20",
-          "2026-06-08",
-          "2026-06-04",
-          "2026-05-27",
-          "2026-05-11",
-          "2026-04-29",
-          "2026-04-27",
-          "2026-04-17",
-          "2026-04-13",
-          "2026-04-08",
-          "2026-04-07",
-          "2026-04-06",
-          "2026-04-02",
-          "2026-04-01",
-          "2026-03-30",
-          "2026-03-23",
-          "2026-03-17",
-          "2026-03-09",
-          "2026-03-02",
-          "2026-02-24",
-          "2026-02-09",
-          "2026-01-24",
-          "2026-01-14",
-          "2026-01-12",
-          "2026-01-07",
-          "2025-12-22",
-          "2025-12-17",
-          "2025-12-10",
-          "2025-12-08",
-          "2025-12-03",
-          "2025-12-01",
-          "2025-11-05",
-          "2025-11-03",
-          "2025-10-06",
-          "2025-09-15",
-          "2025-09-08",
-          "2025-08-20",
-          "2025-08-18",
-          "2025-07-30",
-          "2025-07-14",
-          "2025-07-10",
-          "2025-07-01",
-          "2025-06-18",
-          "2025-06-09",
-          "2025-06-03",
-          "2025-05-27",
-          "2025-05-12",
-          "2025-04-14",
-          "2025-03-31",
-          "2025-03-27",
-          "2024-03-17",
-          "2025-03-10",
-          "2025-02-24",
-          "2025-01-27",
-          "2025-01-13",
-          "2025-01-08",
-          "2024-12-09",
-          "2024-12-02",
-          "2024-11-12",
-          "2024-10-15",
-          "2024-09-09",
-          "2024-08-19",
-          "2024-07-08",
-          "2024-06-10",
-          "2024-05-30",
-          "2024-05-13",
-          "2024-04-08",
-          "2024-03-28",
-          "2024-03-25",
-          "2024-03-18",
-          "2024-03-11",
-          "2024-02-12",
-          "2024-01-22",
-          "2024-01-08",
-          "2023-12-11",
-          "2023-12-04",
-          "2023-11-13",
-          "2023-10-10",
-          "2023-09-11",
-          "2023-08-21"
-        ]
-      },
-      "drive": {
-        "fetched": true,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": true,
-        "changed": [
-          {
-            "video_id": "1219921309",
-            "title": "South Portland Forward: Season 3: Episode 6: August 2026"
-          }
-        ]
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": [
-        "2026-08-17",
-        "2026-07-20",
-        "2026-06-08",
-        "2026-06-04",
-        "2026-05-27",
-        "2026-05-11",
-        "2026-04-29",
-        "2026-04-13",
-        "2026-04-07",
-        "2026-04-02",
-        "2026-03-30",
-        "2026-03-23",
-        "2026-03-09",
-        "2026-03-02",
-        "2026-02-09",
-        "2026-01-12",
-        "2025-12-17",
-        "2024-03-17",
-        "2025-01-08",
-        "2026-02-04"
-      ]
-    },
-    "any_changes": true
-  },
-  {
-    "run_id": "32503217494",
-    "timestamp": "2026-08-21T16:30:30.467635Z",
-    "trigger": "push",
-    "sourcing": {
-      "apptegy": {
-        "fetched": false,
-        "changed": []
-      },
-      "site": {
-        "fetched": false,
-        "changed": []
-      },
-      "drive": {
-        "fetched": false,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": false,
-        "changed": []
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": []
-    },
-    "any_changes": false
-  },
-  {
-    "run_id": "32494944355",
-    "timestamp": "2026-08-21T14:57:55.842712Z",
-    "trigger": "push",
-    "sourcing": {
-      "apptegy": {
-        "fetched": false,
-        "changed": []
-      },
-      "site": {
-        "fetched": false,
-        "changed": []
-      },
-      "drive": {
-        "fetched": false,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": false,
-        "changed": []
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": [
-        "2026-08-17",
-        "2026-07-20",
-        "2026-06-08",
-        "2026-06-04",
-        "2026-05-27",
-        "2026-05-11",
-        "2026-04-29",
-        "2026-04-27",
-        "2026-04-17",
-        "2026-04-13",
-        "2026-04-08",
-        "2026-04-07",
-        "2026-04-06",
-        "2026-04-02",
-        "2026-04-01",
-        "2026-03-30",
-        "2026-03-23",
-        "2026-03-17",
-        "2026-03-09",
-        "2026-03-02",
-        "2026-02-24",
-        "2026-02-09",
-        "2026-01-24",
-        "2026-01-14",
-        "2026-01-12",
-        "2026-01-07",
-        "2025-12-22",
-        "2025-12-17",
-        "2025-12-10",
-        "2025-12-08",
-        "2025-12-03",
-        "2025-12-01",
-        "2025-11-05",
-        "2025-11-03",
-        "2025-10-06",
-        "2025-09-15",
-        "2025-09-08",
-        "2025-08-20",
-        "2025-08-18",
-        "2025-07-30",
-        "2025-07-14",
-        "2025-07-10",
-        "2025-07-01",
-        "2025-06-18",
-        "2025-06-09",
-        "2025-06-03",
-        "2025-05-27",
-        "2025-05-12",
-        "2025-04-14",
-        "2025-03-31",
-        "2025-03-27",
-        "2025-03-10",
-        "2025-02-24",
-        "2025-01-27",
-        "2025-01-13",
-        "2024-12-09",
-        "2024-12-02",
-        "2024-11-12",
-        "2024-10-15",
-        "2024-09-09",
-        "2024-08-19",
-        "2024-07-08",
-        "2024-06-10",
-        "2024-05-30",
-        "2024-05-13",
-        "2024-04-08",
-        "2024-03-28",
-        "2024-03-25",
-        "2024-03-18",
-        "2024-03-11",
-        "2024-02-12",
-        "2024-01-22",
-        "2024-01-08",
-        "2023-12-11",
-        "2023-12-04",
-        "2023-11-13",
-        "2023-10-10",
-        "2023-09-11",
-        "2023-08-21",
-        "2026-02-04"
-      ]
-    },
-    "any_changes": true
-  },
-  {
-    "run_id": "32464968722",
-    "timestamp": "2026-08-21T08:51:18.366914Z",
-    "trigger": "schedule",
-    "sourcing": {
-      "apptegy": {
-        "fetched": true,
-        "changed": []
-      },
-      "site": {
-        "fetched": true,
-        "changed": [
-          "2026-08-17",
-          "2026-07-20",
-          "2026-06-08",
-          "2026-06-04",
-          "2026-05-27",
-          "2026-05-11",
-          "2026-04-29",
-          "2026-04-27",
-          "2026-04-17",
-          "2026-04-13",
-          "2026-04-08",
-          "2026-04-07",
-          "2026-04-06",
-          "2026-04-02",
-          "2026-04-01",
-          "2026-03-30",
-          "2026-03-23",
-          "2026-03-17",
-          "2026-03-09",
-          "2026-03-02",
-          "2026-02-24",
-          "2026-02-09",
-          "2026-01-24",
-          "2026-01-14",
-          "2026-01-12",
-          "2026-01-07",
-          "2025-12-22",
-          "2025-12-17",
-          "2025-12-10",
-          "2025-12-08",
-          "2025-12-03",
-          "2025-12-01",
-          "2025-11-05",
-          "2025-11-03",
-          "2025-10-06",
-          "2025-09-15",
-          "2025-09-08",
-          "2025-08-20",
-          "2025-08-18",
-          "2025-07-30",
-          "2025-07-14",
-          "2025-07-10",
-          "2025-07-01",
-          "2025-06-18",
-          "2025-06-09",
-          "2025-06-03",
-          "2025-05-27",
-          "2025-05-12",
-          "2025-04-14",
-          "2025-03-31",
-          "2025-03-27",
-          "2024-03-17",
-          "2025-03-10",
-          "2025-02-24",
-          "2025-01-27",
-          "2025-01-13",
-          "2025-01-08",
-          "2024-12-09",
-          "2024-12-02",
-          "2024-11-12",
-          "2024-10-15",
-          "2024-09-09",
-          "2024-08-19",
-          "2024-07-08",
-          "2024-06-10",
-          "2024-05-30",
-          "2024-05-13",
-          "2024-04-08",
-          "2024-03-28",
-          "2024-03-25",
-          "2024-03-18",
-          "2024-03-11",
-          "2024-02-12",
-          "2024-01-22",
-          "2024-01-08",
-          "2023-12-11",
-          "2023-12-04",
-          "2023-11-13",
-          "2023-10-10",
-          "2023-09-11",
-          "2023-08-21"
-        ]
-      },
-      "drive": {
-        "fetched": true,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": true,
-        "changed": []
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": [
-        "2026-08-17",
-        "2026-07-20",
-        "2026-06-08",
-        "2026-06-04",
-        "2026-05-27",
-        "2026-05-11",
-        "2026-04-29",
-        "2026-04-27",
-        "2026-04-17",
-        "2026-04-13",
-        "2026-04-08",
-        "2026-04-07",
-        "2026-04-06",
-        "2026-04-02",
-        "2026-04-01",
-        "2026-03-30",
-        "2026-03-23",
-        "2026-03-17",
-        "2026-03-09",
-        "2026-03-02",
-        "2026-02-24",
-        "2026-02-09",
-        "2026-01-24",
-        "2026-01-14",
-        "2026-01-12",
-        "2026-01-07",
-        "2025-12-22",
-        "2025-12-17",
-        "2025-12-10",
-        "2025-12-08",
-        "2025-12-03",
-        "2025-12-01",
-        "2025-11-05",
-        "2025-11-03",
-        "2025-10-06",
-        "2025-09-15",
-        "2025-09-08",
-        "2025-08-20",
-        "2025-08-18",
-        "2025-07-30",
-        "2025-07-14",
-        "2025-07-10",
-        "2025-07-01",
-        "2025-06-18",
-        "2025-06-09",
-        "2025-06-03",
-        "2025-05-27",
-        "2025-05-12",
-        "2025-04-14",
-        "2025-03-31",
-        "2025-03-27",
-        "2024-03-17",
-        "2025-03-10",
-        "2025-02-24",
-        "2025-01-27",
-        "2025-01-13",
-        "2025-01-08",
-        "2024-12-09",
-        "2024-12-02",
-        "2024-11-12",
-        "2024-10-15",
-        "2024-09-09",
-        "2024-08-19",
-        "2024-07-08",
-        "2024-06-10",
-        "2024-05-30",
-        "2024-05-13",
-        "2024-04-08",
-        "2024-03-28",
-        "2024-03-25",
-        "2024-03-18",
-        "2024-03-11",
-        "2024-02-12",
-        "2024-01-22",
-        "2024-01-08",
-        "2023-12-11",
-        "2023-12-04",
-        "2023-11-13",
-        "2023-10-10",
-        "2023-09-11",
-        "2023-08-21"
-      ]
-    },
-    "any_changes": true
-  },
-  {
-    "run_id": "32403959012",
-    "timestamp": "2026-08-20T18:35:22.398282Z",
-    "trigger": "workflow_dispatch",
-    "sourcing": {
-      "apptegy": {
-        "fetched": false,
-        "changed": []
-      },
-      "site": {
-        "fetched": false,
-        "changed": []
-      },
-      "drive": {
-        "fetched": false,
-        "changed": []
-      },
-      "vimeo": {
-        "fetched": false,
-        "changed": []
-      },
-      "transcripts": {
-        "fetched": true,
-        "changed": []
-      }
-    },
-    "meetings": {
-      "created": [],
-      "updated": []
-    },
-    "any_changes": false
   }
 ]
